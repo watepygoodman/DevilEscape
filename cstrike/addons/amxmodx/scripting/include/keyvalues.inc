@@ -4,4 +4,24 @@
   #endinput
 #endif
 
+new handle_num = 0;
+new handle = 0;
+
+stock kv_create(const f_name[])
+{
+	new szFileDir[128], f_dir[128];
+	get_localinfo("amxx_configsdir", szFileDir, charsmax(szFileDir));
+	formatex(f_dir, charsmax(f_dir), "%s/data/%s.ini", szFileDir, f_name);
+	
+	new file = fopen(f_dir, "rt")
+	fclose(file);
+	
+	handle_num ++;
+	
+	if(handle_num > 31)
+		server_print("Error: kv handle: %d(out of limit)", handle_num);
+	
+	return 1 << handle_num;
+}
+
 

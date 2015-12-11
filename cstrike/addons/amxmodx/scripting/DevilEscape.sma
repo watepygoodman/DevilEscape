@@ -18,7 +18,21 @@ log:
 #include <hamsandwich>
 #include <xs>
 #include <dhudmessage>
+#include <keyvalues>
 
 #define PLUGIN_NAME "DevilEscape"
 #define PLUGIN_VERSION "0.0"
-#define PLUGIN_AUTHOR "watepy"
+#define PLUGIN_AUTHOR "w&a"
+
+public plugin_init()
+{
+	register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
+	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
+}
+
+public event_round_start()
+{
+	new file = kv_create("aa.ini")
+	new file1 = kv_create("aaa.ini")
+	client_print(0, print_chat, "%d/%d", file, file1)
+}
