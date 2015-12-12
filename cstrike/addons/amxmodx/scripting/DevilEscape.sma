@@ -25,18 +25,36 @@ log:
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "w&a"
 
-//====参数=====
+/* ==================
+	
+				 常量
+
+================== */
+enum
+{
+	FM_CS_TEAM_UNASSIGNED = 0,
+	FM_CS_TEAM_T,
+	FM_CS_TEAM_CT,
+	FM_CS_TEAM_SPECTATOR
+}
+
+new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
 new const g_fog_color[] = "128 128 128";
 new const g_fog_denisty[] = "0.002";
 
-//====变量====
-new g_isRegister;
-new g_isLogin;
+/* ================== 
+
+				变量
+				
+================== */
+new g_isRegister = 0;
+new g_isLogin = 0;
+
 
 public plugin_precache()
 {
 	//天气
-	game_create_fog();
+	gm_create_fog();
 	engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_rain"));
 }
 
@@ -57,6 +75,12 @@ public plugin_init()
 	
 }
 
+//进入服务器
+public client_putinserver(id)
+{
+	game_user_load(id)
+}
+
 //回合开始
 public event_round_start()
 {
@@ -64,13 +88,44 @@ public event_round_start()
 	engfunc(EngFunc_LightStyle, 0, 'h')
 }
 
+public logevent_round_end()
+{
+	
+}
+
+public fw_PlayerSpawn_Post(id)
+{
+	
+}
+
+public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
+{
+	
+}
+
+
 //客户端命令
 public fw_ClientCommand(id)
 {
-	new szCommand[24], szText[32]
-	read_argv(0, szCommand, charsmax(szCommand))
-	read_argv(1, szText, charsmax(szText))
+	new szCommand[24], szText[32];
+	read_argv(0, szCommand, charsmax(szCommand));
+	read_argv(1, szText, charsmax(szText));
 	
+	if(!get_bit(g_isLogin, id-1))
+	{
+		if(!strcmp(szCommand, "say"))
+		{
+			//注册与登录
+			if(!get_bit(g_isRegister, id-1))
+				gm_user_register(id, szText);
+			else
+				gm_user_login(id, szText);
+			return FMRES_SUPERCEDE;
+		}
+		return FMRES_IGNORED;
+	}
+	
+	//Chooseteam
 	if(!strcmp(szCommand, "chooseteam") || !strcmp(szCommand, "jointeam")) 
 	{ 
 		new team
@@ -83,13 +138,65 @@ public fw_ClientCommand(id)
 		//show_menu_main(id)
 		return FMRES_SUPERCEDE;
 	} 
+	
+	return FMRES_IGNORED;
 }
 /* =====================
 
 			 Game
 			 
 ===================== */
-game_create_fog()
+
+gm_user_register(id, const password[])
+{
+	new pw_len = strlen(password)
+	if( pw_len > 12 || pw_len < 6)
+	{
+		client_color_print(id, "^x04错误:您的密码过长或过短");
+		return;
+	}
+	
+	for(new i = 0; i < pw_len; i ++)
+	{
+		for(new j = 0; i < charsmax(InvalidChars); i++)
+		{
+			if( password[i] == InvalidChars[j])
+			{
+				client_color_print(id, "^x04错误:您的密码含有非法字符");
+				return;
+			}
+		}
+	}
+	
+	client_color_print(id, "^x04注册成功,你的密码是:%s", password)
+	client_color_print(id, "^x04注册成功,你的密码是:%s", password)
+	set_bit(g_isRegister, id-1)
+	
+	//储存密码
+	new szFileDir[128], szUserName[32];
+	get_user_name(id, szUserName, charsmax(szUserName))
+	get_localinfo("amxx_configsdir", szFileDir, charsmax(szFileDir));
+	formatex(szFileDir, charsmax(szFileDir), "%s/saves/%s.ini", szFileDir, szUserName)
+	
+	new kv = kv_create(szUserName)
+	kv_set_string(kv, "password", password);
+	
+	kv_save_to_file(kv, szFileDir);
+	kv_delete(kv);
+	
+}
+
+gm_user_login(id, const password[])
+{
+	
+}
+
+gm_user_load(id)
+{
+	player_get_key
+}
+
+gm_create_fog()
 {
 	static ent 
 	ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_fog"))
@@ -100,10 +207,6 @@ game_create_fog()
 	}
 }
 
-game_user_register(id, const password[])
-{
-	
-}
 
 /* =====================
 
@@ -150,4 +253,64 @@ stock fm_set_kvd(entity, const key[], const value[], const classname[])
 	set_kvd(0, KV_fHandled, 0)
 
 	dllfunc(DLLFunc_KeyValue, entity, 0)
+}
+
+/* =====================
+
+			 Other
+			 
+===================== */
+
+stock client_color_print(target, const message[], any:...)
+{
+	static buffer[512], i, argscount
+	argscount = numargs()
+	// 发送给所有人
+	if (!target)
+	{
+		static player
+		for (player = 1; player <= get_maxplayers(); player++)
+		{
+			// 断线
+			// if (!g_isconnect[player])
+				// continue;
+			
+			// 记住变化的变量
+			static changed[5], changedcount // [5] = max LANG_PLAYER occurencies
+			changedcount = 0
+			
+			// 将player id 取代LANG_PLAYER
+			for (i = 2; i < argscount; i++)
+			{
+				if (getarg(i) == LANG_PLAYER)
+				{
+					setarg(i, 0, player)
+					changed[changedcount] = i
+					changedcount++
+				}
+			}
+			
+			// Format信息给玩家
+			vformat(buffer, charsmax(buffer), message, 3)
+			
+			// 发送信息
+			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("SayText"), _, player)
+			write_byte(player)
+			write_string(buffer)
+			message_end()
+			
+			// 将back player id 取代LANG_PLAYER
+			for (i = 0; i < changedcount; i++)
+				setarg(changed[i], 0, LANG_PLAYER)
+		}
+	}
+	// 发送给指定目标
+	else
+	{
+		vformat(buffer, charsmax(buffer), message, 3)
+		message_begin(MSG_ONE, get_user_msgid("SayText"), _, target)
+		write_byte(target)
+		write_string(buffer)
+		message_end()
+	}
 }
