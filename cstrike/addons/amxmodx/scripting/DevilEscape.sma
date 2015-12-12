@@ -47,6 +47,7 @@ new const g_fog_denisty[] = "0.002";
 				变量
 				
 ================== */
+new g_savesDir[128];
 new g_isRegister = 0;
 new g_isLogin = 0;
 
@@ -56,6 +57,8 @@ public plugin_precache()
 	//天气
 	gm_create_fog();
 	engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_rain"));
+	get_localinfo("amxx_configsdir", g_savesDir, charsmax(g_savesDir));
+	formatex(g_savesDir, charsmax(g_savesDir), "%s/saves", g_savesDir)
 }
 
 public plugin_init()
@@ -78,7 +81,9 @@ public plugin_init()
 //进入服务器
 public client_putinserver(id)
 {
-	game_user_load(id)
+	delete_bit(g_isRegister, id-1)
+	delete_bit(g_isLogin, id-1)
+	gm_user_load(id)
 }
 
 //回合开始
@@ -175,8 +180,7 @@ gm_user_register(id, const password[])
 	//储存密码
 	new szFileDir[128], szUserName[32];
 	get_user_name(id, szUserName, charsmax(szUserName))
-	get_localinfo("amxx_configsdir", szFileDir, charsmax(szFileDir));
-	formatex(szFileDir, charsmax(szFileDir), "%s/saves/%s.ini", szFileDir, szUserName)
+	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)
 	
 	new kv = kv_create(szUserName)
 	kv_set_string(kv, "password", password);
@@ -188,12 +192,39 @@ gm_user_register(id, const password[])
 
 gm_user_login(id, const password[])
 {
+	new szUserName[32], szFileDir[128]
+	get_user_name(id, szUserName, charsmax(szUserName))
+	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)
+	new kv = kv_create();
+	kv_load_from_file(kv, szFileDir)
 	
+	new save_pw[12]
+	kv_find_key(kv, szUserName)
+	kv_get_string(kv, "password", save_pw, charsmax(save_pw))
+	
+	if(equal(save_pw, password))
+	{
+		client_color_print(id, "^x04登录成功, %s 欢迎回来", szUserName)
+		set_bit(g_isLogin, id-1)
+	}
+	else
+		client_color_print(id, "^x04登录失败,密码错误")
 }
 
 gm_user_load(id)
 {
-	player_get_key
+	new szUserName[32], szFileDir[128]
+	get_user_name(id, szUserName, charsmax(szUserName))
+	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)
+	new kv = kv_create();
+	kv_load_from_file(kv, szFileDir)
+	kv_find_key(kv, szUserName)
+	
+	if(kv_is_empty(kv))
+		return
+	
+	//检测是否注册
+	set_bit(g_isRegister, id-1)
 }
 
 gm_create_fog()
