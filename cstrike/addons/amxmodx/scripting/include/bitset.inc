@@ -1,22 +1,9 @@
-#if defined _bit_included
+#if defined _bitset_included
     #endinput
 #endif
-#define _bit_included
-stock set_bit(num, bit)
-{
-    return (num | (1 << bit))
-}
-stock delete_bit(num, bit)
-{
-    return (num & ~(1 << bit))
-}
-stock get_bit(num, bit)
-{
-    new temp = (num & (1 << bit))
-    if(temp) return 1
-    return 0
-}
-stock clear_bit(num)
-{
-    return 0
-}
+#define _bitset_included
+
+#define set_bit(%1,%2) %1|=(1 << %2)
+#define get_bit(%1,%2 %1&(1 << %2)?0:1
+#define delete_bit(%1,%2) %1=%1&~(1<<%2)
+#define clear_bit(%1) %1=0
