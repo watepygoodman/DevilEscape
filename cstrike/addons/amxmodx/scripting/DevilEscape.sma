@@ -30,6 +30,8 @@ log:
 				 常量
 
 ================== */
+#define bit_id (id-1)
+
 enum
 {
 	FM_CS_TEAM_UNASSIGNED = 0,
@@ -38,18 +40,35 @@ enum
 	FM_CS_TEAM_SPECTATOR
 }
 
+enum(+=100)
+{
+	TASK_BOTHAM = 100,
+	TASK_USERLOGIN,
+	TASK_PWCHANGE
+}
+
 new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
 new const g_fog_color[] = "128 128 128";
 new const g_fog_denisty[] = "0.002";
 
 /* ================== 
 
-				变量
+				Vars
 				
 ================== */
+new bool:g_hasBot;
+
 new g_savesDir[128];
-new g_isRegister = 0;
-new g_isLogin = 0;
+//Game
+new g_isRegister;
+new g_isLogin;
+new g_isConnect;
+new g_isChangingPW;
+new g_whoBoss;
+
+new g_LoginTime[33];
+//Msg Hud
+new g_Msg_Center;
 
 
 public plugin_precache()
@@ -57,6 +76,7 @@ public plugin_precache()
 	//天气
 	gm_create_fog();
 	engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_rain"));
+	//Get saves' dir
 	get_localinfo("amxx_configsdir", g_savesDir, charsmax(g_savesDir));
 	formatex(g_savesDir, charsmax(g_savesDir), "%s/saves", g_savesDir)
 }
@@ -71,43 +91,60 @@ public plugin_init()
 	register_logevent("logevent_round_end", 2, "1=Round_End");
 	
 	register_forward(FM_ClientCommand, "fw_ClientCommand") ;
+	register_forward(FM_ClientDisconnect, "fw_ClientDisconnect");
 	
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
 	RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1);
 	
-	
+	g_Msg_Center = CreateHudSyncObj();
 }
 
-//进入服务器
-public client_putinserver(id)
-{
-	delete_bit(g_isRegister, id-1)
-	delete_bit(g_isLogin, id-1)
-	gm_user_load(id)
-}
+/* =====================
 
-//回合开始
+			  Event
+			 
+===================== */
+
+//Round_Strat
 public event_round_start()
 {
 	//Light
 	engfunc(EngFunc_LightStyle, 0, 'h')
+	
+	set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
 }
 
+//Round_End
 public logevent_round_end()
 {
 	
 }
 
+/* =====================
+
+			 Forward
+			 
+===================== */
+
+//Spawn
 public fw_PlayerSpawn_Post(id)
 {
 	
 }
 
+
+//Damage
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
 	
 }
 
+//Disconnect
+public fw_ClientDisconnect(id)
+{
+	delete_bit(g_isConnect, bit_id)
+}
 
 //客户端命令
 public fw_ClientCommand(id)
@@ -116,18 +153,33 @@ public fw_ClientCommand(id)
 	read_argv(0, szCommand, charsmax(szCommand));
 	read_argv(1, szText, charsmax(szText));
 	
-	if(!get_bit(g_isLogin, id-1))
+	//未登录时
+	if(!get_bit(g_isLogin, bit_id))
 	{
 		if(!strcmp(szCommand, "say"))
 		{
 			//注册与登录
-			if(!get_bit(g_isRegister, id-1))
+			if(!get_bit(g_isRegister, bit_id))
 				gm_user_register(id, szText);
 			else
 				gm_user_login(id, szText);
+		}
+		return FMRES_SUPERCEDE;
+	}
+	
+	if(!strcmp(szCommand, "say"))
+	{
+		if(equal(szText, "/pwchange"))
+		{
+			set_task(1.0, "task_pw_change", id+TASK_PWCHANGE, _, _, "b")
+			set_bit(g_isChangingPW, bit_id)
 			return FMRES_SUPERCEDE;
 		}
-		return FMRES_IGNORED;
+		if(get_bit(g_isChangingPW, bit_id))
+		{
+			gm_user_register(id, szText)
+			return FMRES_SUPERCEDE;
+		}
 	}
 	
 	//Chooseteam
@@ -146,9 +198,94 @@ public fw_ClientCommand(id)
 	
 	return FMRES_IGNORED;
 }
+
 /* =====================
 
-			 Game
+			 Client
+			 
+===================== */
+
+//进入服务器
+public client_putinserver(id)
+{
+	set_bit(g_isConnect, bit_id)
+	if(is_user_bot(id) && !g_hasBot)
+	{
+			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
+			return
+	}
+	g_LoginTime[id] = 180
+	delete_bit(g_isRegister, bit_id)
+	delete_bit(g_isLogin, bit_id)
+	gm_user_load(id)
+	set_task(1.0, "task_user_login", id+TASK_USERLOGIN, _, _, "b")
+}
+
+/* =====================
+
+			 Tasks
+			 
+===================== */
+public task_user_login(id)
+{
+	id-=TASK_USERLOGIN
+	g_LoginTime[id] --
+	msg_screen_fade(id, 0, 0, 0, 255)
+	
+	if(get_bit(g_isLogin, bit_id))
+	{
+		msg_screen_fade(id, 255, 255, 255, 0)
+		remove_task(id+TASK_USERLOGIN)
+	}
+	
+	if(!get_bit(g_isRegister, bit_id))
+	{
+		set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
+		ShowSyncHudMsg(id, g_Msg_Center, "%L", LANG_PLAYER, "HUD_NO_REGISTER", g_LoginTime[id])
+	}
+	else
+	{
+		set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
+		ShowSyncHudMsg(id, g_Msg_Center, "%L", LANG_PLAYER, "HUD_NO_LOGIN", g_LoginTime[id])
+	}
+	
+	if(g_LoginTime[id] <= 0)
+	{
+		new Name[32]
+		get_user_name(id, Name, charsmax(Name))
+		server_cmd("kick %s", Name)
+		remove_task(id+TASK_USERLOGIN)
+	}
+	
+}
+
+public task_pw_change(id)
+{
+	id-=TASK_PWCHANGE
+	msg_screen_fade(id, 0, 0, 0, 255)
+	set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
+	ShowSyncHudMsg(id, g_Msg_Center, "%L", LANG_PLAYER, "HUD_CHANGING_PW")
+	if(!get_bit(g_isChangingPW, bit_id))
+	{
+		msg_screen_fade(id, 255, 255, 255, 0)
+		remove_task(id+TASK_PWCHANGE)
+	}
+		
+}
+
+public task_bots_ham(id)
+{
+	id-=TASK_BOTHAM
+	if (!get_bit(g_isConnect, bit_id))
+		return;
+	
+	RegisterHamFromEntity(Ham_Spawn, id, "fw_PlayerSpawn_Post", 1)
+	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage")
+}
+
+/* =====================
+
+			 Game Function
 			 
 ===================== */
 
@@ -157,7 +294,7 @@ gm_user_register(id, const password[])
 	new pw_len = strlen(password)
 	if( pw_len > 12 || pw_len < 6)
 	{
-		client_color_print(id, "^x04[DevilEscape]%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
 		return;
 	}
 	
@@ -167,7 +304,7 @@ gm_user_register(id, const password[])
 		{
 			if( password[i] == InvalidChars[j])
 			{
-				client_color_print(id, "^x04[DevilEscape]%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
 				return;
 			}
 		}
@@ -178,7 +315,8 @@ gm_user_register(id, const password[])
 	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
 	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
 	
-	set_bit(g_isRegister, id-1)
+	set_bit(g_isRegister, bit_id)
+	delete_bit(g_isChangingPW, bit_id)
 	
 	//储存密码
 	new szFileDir[128], szUserName[32];
@@ -207,13 +345,14 @@ gm_user_login(id, const password[])
 	
 	if(equal(save_pw, password))
 	{
-		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		set_bit(g_isLogin, id-1)
+		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		set_bit(g_isLogin, bit_id)
+		client_cmd(id, "chooseteam")
 	}
 	else
-		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_FAILED")
+		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_FAILED")
 }
 
 gm_user_load(id)
@@ -225,11 +364,9 @@ gm_user_load(id)
 	kv_load_from_file(kv, szFileDir)
 	kv_find_key(kv, szUserName)
 	
-	if(kv_is_empty(kv))
-		return
-	
 	//检测是否注册
-	set_bit(g_isRegister, id-1)
+	if(!kv_is_empty(kv))
+		set_bit(g_isRegister, bit_id)
 }
 
 gm_create_fog()
@@ -242,6 +379,12 @@ gm_create_fog()
 		fm_set_kvd(ent, "rendercolor", g_fog_color, "env_fog")
 	}
 }
+
+/* ==========================
+
+					[Stocks]
+			 
+==========================*/
 
 
 /* =====================
@@ -289,6 +432,25 @@ stock fm_set_kvd(entity, const key[], const value[], const classname[])
 	set_kvd(0, KV_fHandled, 0)
 
 	dllfunc(DLLFunc_KeyValue, entity, 0)
+}
+
+/* =====================
+
+			 Msg
+			 
+===================== */
+stock msg_screen_fade(id, red, green, blue, alpha)
+{
+	
+	message_begin(MSG_ONE, get_user_msgid("ScreenFade"), _, id)
+	write_short(0)// Duration
+	write_short(0)// Hold time
+	write_short(( 1<<0 ) | ( 1<<2 ) )// Fade type
+	write_byte (red)// Red
+	write_byte (green)// Green
+	write_byte (blue)// Blue
+	write_byte (alpha)// Alpha
+	message_end()
 }
 
 /* =====================
