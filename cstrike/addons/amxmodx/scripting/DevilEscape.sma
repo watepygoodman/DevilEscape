@@ -157,7 +157,7 @@ gm_user_register(id, const password[])
 	new pw_len = strlen(password)
 	if( pw_len > 12 || pw_len < 6)
 	{
-		client_color_print(id, "^x04错误:您的密码过长或过短");
+		client_color_print(id, "^x04[DevilEscape]%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
 		return;
 	}
 	
@@ -167,14 +167,17 @@ gm_user_register(id, const password[])
 		{
 			if( password[i] == InvalidChars[j])
 			{
-				client_color_print(id, "^x04错误:您的密码含有非法字符");
+				client_color_print(id, "^x04[DevilEscape]%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
 				return;
 			}
 		}
 	}
 	
-	client_color_print(id, "^x04注册成功,你的密码是:%s", password)
-	client_color_print(id, "^x04注册成功,你的密码是:%s", password)
+	//重要的事情说三遍
+	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	
 	set_bit(g_isRegister, id-1)
 	
 	//储存密码
@@ -204,11 +207,13 @@ gm_user_login(id, const password[])
 	
 	if(equal(save_pw, password))
 	{
-		client_color_print(id, "^x04登录成功, %s 欢迎回来", szUserName)
+		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		set_bit(g_isLogin, id-1)
 	}
 	else
-		client_color_print(id, "^x04登录失败,密码错误")
+		client_color_print(id, "^x04[DevilEscape]%L",  LANG_PLAYER, "LOGIN_FAILED")
 }
 
 gm_user_load(id)
