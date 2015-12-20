@@ -25,6 +25,8 @@ log:
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "w&a"
 
+#define Game_Description "魔王 1.0"
+
 /* ==================
 	
 				 常量
@@ -42,33 +44,63 @@ enum
 
 enum(+=100)
 {
-	TASK_BOTHAM = 100,
-	TASK_USERLOGIN,
-	TASK_PWCHANGE
+	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
+	TASK_ROUNDSTART, TASK_BALANCE
 }
+
+//offset
+const m_CsTeam = 114 				//队伍
+const m_MapZone = 235				//所在区域
+const m_ModelIndex = 491 				//模型索引
 
 new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
 new const g_fog_color[] = "128 128 128";
 new const g_fog_denisty[] = "0.002";
+
+new const g_RemoveEnt[][] = {
+	"func_hostage_rescue", "info_hostage_rescue", "func_bomb_target", "info_bomb_target",
+	"hostage_entity", "info_vip_start", "func_vip_safetyzone", "func_escapezone"
+}
+
+new const mdl_player_devil1[] = "models/player/devil1/devil1.mdl"
+
+new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
+
+new const snd_human_win[] = "DevilEscape/Human_Win.wav"
+new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 
 /* ================== 
 
 				Vars
 				
 ================== */
-new bool:g_hasBot;
 
-new g_savesDir[128];
+//Cvar
+new cvar_LoginTime, cvar_DevilHea;
+
 //Game
 new g_isRegister;
 new g_isLogin;
 new g_isConnect;
 new g_isChangingPW;
-new g_whoBoss;
+new g_isModeled;
 
+new g_whoBoss;
+new g_MaxPlayer;
 new g_LoginTime[33];
-//Msg Hud
-new g_Msg_Center;
+new g_savesDir[128];
+new g_PlayerModel[33][64]
+
+new bool:g_hasBot;
+
+//Hud
+new g_Hud_Center;
+
+//Msg
+new g_Msg_VGUI, g_Msg_ShowMenu;
+
+//Forward Handle
+new g_fwSpawn;
 
 
 public plugin_precache()
@@ -79,6 +111,20 @@ public plugin_precache()
 	//Get saves' dir
 	get_localinfo("amxx_configsdir", g_savesDir, charsmax(g_savesDir));
 	formatex(g_savesDir, charsmax(g_savesDir), "%s/saves", g_savesDir)
+	
+	g_fwSpawn = register_forward(FM_Spawn, "fw_Spawn");
+	
+	engfunc(EngFunc_PrecacheModel, mdl_player_devil1)
+	
+	engfunc(EngFunc_PrecacheModel, mdl_v_devil1)
+	
+	engfunc(EngFunc_PrecacheSound, snd_human_win)
+	engfunc(EngFunc_PrecacheSound, snd_devil_win)
+	
+	//Cvar
+	cvar_LoginTime = register_cvar("de_logintime","120")
+	cvar_DevilHea = register_cvar("de_devilhea","50000")
+	
 }
 
 public plugin_init()
@@ -86,17 +132,45 @@ public plugin_init()
 	register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_dictionary("devilescape.txt");
 	
+	//Event
 	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
+	register_logevent("event_round_end", 2, "1=Round_End");
 	
-	register_logevent("logevent_round_end", 2, "1=Round_End");
-	
+	//Forward
 	register_forward(FM_ClientCommand, "fw_ClientCommand") ;
 	register_forward(FM_ClientDisconnect, "fw_ClientDisconnect");
+	register_forward(FM_SetClientKeyValue, "fw_SetClientKeyValue");
+	register_forward(FM_ClientUserInfoChanged,"fw_ClientUserInfoChanged")
+	register_forward(FM_GetGameDescription, "fw_GetGameDescription")
 	
+	//Ham
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
 	RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1);
 	
-	g_Msg_Center = CreateHudSyncObj();
+	//Msg
+	g_Msg_VGUI = get_user_msgid("VGUIMenu")
+	g_Msg_ShowMenu = get_user_msgid("ShowMenu")
+	
+	register_message(g_Msg_ShowMenu, "msg_show_menu")
+	register_message(g_Msg_VGUI, "msg_vgui_menu")
+	register_message(get_user_msgid( "StatusIcon" ), "msg_statusicon");
+	register_message(get_user_msgid("Health"), "msg_health")
+	register_message(get_user_msgid("TextMsg"), "msg_textmsg")
+	register_message(get_user_msgid("SendAudio"), "msg_sendaudio")
+	
+	//Menu
+	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
+	
+	//Hud
+	g_Hud_Center = CreateHudSyncObj();
+	
+	//Unregister
+	unregister_forward(FM_Spawn, g_fwSpawn)
+	
+	//Vars
+	g_MaxPlayer = get_maxplayers()
+	
+	server_cmd("mp_autoteambalance 0")
 }
 
 /* =====================
@@ -113,12 +187,16 @@ public event_round_start()
 	
 	set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
+	
+	remove_task(TASK_ROUNDSTART)
+	set_task(10.0, "task_round_start", TASK_ROUNDSTART)
 }
 
 //Round_End
-public logevent_round_end()
+public event_round_end()
 {
-	
+	remove_task(TASK_BALANCE)
+	set_task(0.2, "task_balance", TASK_BALANCE)
 }
 
 /* =====================
@@ -127,10 +205,32 @@ public logevent_round_end()
 			 
 ===================== */
 
-//Spawn
+//Entity Spawn
+public fw_Spawn(entity)
+{
+	// Invalid entity
+	if (!pev_valid(entity)) return FMRES_IGNORED;
+	new classname[32]
+	// Get classname
+	pev(entity, pev_classname, classname, charsmax(classname))
+	for(new i = 0; i < sizeof g_RemoveEnt; i ++)
+	{
+		if(equal(classname, g_RemoveEnt[i]))
+		{
+			//Remove Ent
+			engfunc(EngFunc_RemoveEntity, entity)
+			return FMRES_SUPERCEDE;
+		}
+	}
+	return FMRES_IGNORED;
+}
+
+//Player Spawn Post
 public fw_PlayerSpawn_Post(id)
 {
-	
+	fm_strip_user_weapons(id)
+	give_item( id, "weapon_knife")
+	fm_reset_user_model(id)
 }
 
 
@@ -199,6 +299,36 @@ public fw_ClientCommand(id)
 	return FMRES_IGNORED;
 }
 
+public fw_ClientUserInfoChanged(id)
+{
+	//玩家是否使用自定义模型
+	if(!get_bit(g_isModeled, bit_id))
+		return FMRES_IGNORED;
+	
+	static RightModel[32]
+	fm_get_user_model(id, RightModel, sizeof RightModel - 1)
+	
+	if(!equal(g_PlayerModel[id], RightModel))
+		fm_set_user_model(id,g_PlayerModel[id])
+	
+	return FMRES_IGNORED;
+}
+
+public fw_SetClientKeyValue(id, const infobuffer[], const key[])
+{
+	// 阻止CS换模型
+	if (get_bit(g_isModeled, bit_id) && equal(key, "model"))
+		return FMRES_SUPERCEDE;
+	
+	return FMRES_IGNORED;
+}
+
+public fw_GetGameDescription()
+{
+	forward_return(FMV_STRING, Game_Description)
+	return FMRES_SUPERCEDE;
+}
+
 /* =====================
 
 			 Client
@@ -214,7 +344,7 @@ public client_putinserver(id)
 			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
 			return
 	}
-	g_LoginTime[id] = 180
+	g_LoginTime[id] = get_pcvar_num(cvar_LoginTime)
 	delete_bit(g_isRegister, bit_id)
 	delete_bit(g_isLogin, bit_id)
 	gm_user_load(id)
@@ -226,6 +356,39 @@ public client_putinserver(id)
 			 Tasks
 			 
 ===================== */
+public task_round_start()
+{
+	new id = gm_choose_boss()
+	g_whoBoss = id
+	
+	fm_set_user_health(id, get_pcvar_num(cvar_DevilHea))
+	fm_cs_set_user_team(id, FM_CS_TEAM_T)
+	
+	fm_strip_user_weapons(id)
+	give_item( id, "weapon_knife")
+
+	set_pev(id, pev_viewmodel2, "models/v_devil_hand1.mdl")
+	set_pev(id, pev_weaponmodel2, "")
+	
+	fm_set_user_model(id, "devil1")
+}
+
+public task_balance()
+{
+	new team
+	for(new id = 1; id <= g_MaxPlayer; id++)
+	{
+		if(!get_bit(g_isConnect, bit_id))
+			continue
+		
+		team = fm_cs_get_user_team(id)
+		if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
+			continue
+		
+		fm_cs_set_user_team(id, FM_CS_TEAM_CT)
+	}
+}
+
 public task_user_login(id)
 {
 	id-=TASK_USERLOGIN
@@ -241,12 +404,12 @@ public task_user_login(id)
 	if(!get_bit(g_isRegister, bit_id))
 	{
 		set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
-		ShowSyncHudMsg(id, g_Msg_Center, "%L", LANG_PLAYER, "HUD_NO_REGISTER", g_LoginTime[id])
+		ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_NO_REGISTER", g_LoginTime[id])
 	}
 	else
 	{
 		set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
-		ShowSyncHudMsg(id, g_Msg_Center, "%L", LANG_PLAYER, "HUD_NO_LOGIN", g_LoginTime[id])
+		ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_NO_LOGIN", g_LoginTime[id])
 	}
 	
 	if(g_LoginTime[id] <= 0)
@@ -264,7 +427,7 @@ public task_pw_change(id)
 	id-=TASK_PWCHANGE
 	msg_screen_fade(id, 0, 0, 0, 255)
 	set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
-	ShowSyncHudMsg(id, g_Msg_Center, "%L", LANG_PLAYER, "HUD_CHANGING_PW")
+	ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_CHANGING_PW")
 	if(!get_bit(g_isChangingPW, bit_id))
 	{
 		msg_screen_fade(id, 255, 255, 255, 0)
@@ -289,12 +452,25 @@ public task_bots_ham(id)
 			 
 ===================== */
 
+gm_choose_boss()
+{
+	new id
+	while(!is_user_alive(id) || !get_bit(g_isConnect, bit_id))
+		id = random_num(1, g_MaxPlayer)
+	
+	return id
+}
+
 gm_user_register(id, const password[])
 {
+	msg_change_team_info(id, "SPECTATOR")
+	new iteam[10]
+	get_user_team(id, iteam, 9)
+	
 	new pw_len = strlen(password)
 	if( pw_len > 12 || pw_len < 6)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
+		client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
 		return;
 	}
 	
@@ -304,16 +480,17 @@ gm_user_register(id, const password[])
 		{
 			if( password[i] == InvalidChars[j])
 			{
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
+				client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
 				return;
 			}
 		}
 	}
 	
 	//重要的事情说三遍
-	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-	client_color_print(id, "^x04[DevilEscape]%L^x01%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	msg_change_team_info(id, iteam)
 	
 	set_bit(g_isRegister, bit_id)
 	delete_bit(g_isChangingPW, bit_id)
@@ -342,17 +519,22 @@ gm_user_login(id, const password[])
 	new save_pw[12]
 	kv_find_key(kv, szUserName)
 	kv_get_string(kv, "password", save_pw, charsmax(save_pw))
+	static iteam[10]
+	get_user_team(id, iteam, 9)
+	msg_change_team_info(id, "SPECTATOR")
 	
 	if(equal(save_pw, password))
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		set_bit(g_isLogin, bit_id)
 		client_cmd(id, "chooseteam")
 	}
 	else
-		client_color_print(id, "^x04[DevilEscape]^x01%L",  LANG_PLAYER, "LOGIN_FAILED")
+		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_FAILED")
+	
+	msg_change_team_info(id, iteam)
 }
 
 gm_user_load(id)
@@ -379,6 +561,110 @@ gm_create_fog()
 		fm_set_kvd(ent, "rendercolor", g_fog_color, "env_fog")
 	}
 }
+/* =====================
+
+			 Message
+			 
+===================== */
+public msg_health(msg_id, msg_dest, msg_entity)
+{
+	// Get player's health
+	static health
+	health = get_msg_arg_int(1)
+	
+	// Don't bother
+	if (health < 256) return;
+	
+	// Check if we need to fix it
+	if (health % 256 == 0)
+		fm_set_user_health(msg_entity, pev(msg_entity, pev_health) + 1)
+	
+	// HUD can only show as much as 255 hp
+	set_msg_arg_int(1, get_msg_argtype(1), 255)
+}
+
+// 阻止一些textmsg
+public msg_textmsg()
+{
+	static textmsg[32]
+	get_msg_arg_string(2, textmsg, sizeof textmsg - 1)
+	
+	if (equal(textmsg, "#Hostages_Not_Rescued") || equal(textmsg, "#Round_Draw") || equal(textmsg, "#Terrorists_Win") || equal(textmsg, "#CTs_Win") || 
+	equal(textmsg, "#C4_Arming_Cancelled") || equal(textmsg, "#C4_Plant_At_Bomb_Spot") || equal(textmsg, "#Killed_Hostage") || equal(textmsg, "#Game_will_restart_in") )
+		return PLUGIN_HANDLED
+		
+	return PLUGIN_CONTINUE;
+}
+
+//阻止cs胜利/失败音效
+public msg_sendaudio()
+{
+	static audio[17]
+	get_msg_arg_string(2, audio, charsmax(audio))
+	
+	if(equal(audio[7], "terwin") || equal(audio[7], "ctwin") || equal(audio[7], "rounddraw"))
+		return PLUGIN_HANDLED;
+	
+	return PLUGIN_CONTINUE;
+}
+
+public msg_statusicon(msgid, dest, id)
+{
+	static szMsg[8]
+	static const BuyMsg[] = "buyzone"
+	get_msg_arg_string(2, szMsg, 7)
+	
+	if(equal(szMsg, BuyMsg))
+	{
+		set_pdata_int(id, m_MapZone, get_pdata_int(id, m_MapZone)& ~( 1<<0 ));
+		return PLUGIN_HANDLED
+	}
+	
+	return PLUGIN_CONTINUE
+}
+
+
+public msg_show_menu(msgid, dest, id)
+{
+	static team_select[] = "#Team_Select_Spect"
+	static menu_text_code[sizeof team_select]
+	get_msg_arg_string(4, menu_text_code, sizeof menu_text_code - 1)
+	
+	client_print(id, print_center, "%s", menu_text_code)
+	
+	if (!equal(menu_text_code, team_select))
+		return PLUGIN_CONTINUE
+	
+	return PLUGIN_HANDLED
+}
+
+public msg_vgui_menu(msgid, dest, id)
+{
+	if (get_msg_arg_int(1) != 2)
+		return PLUGIN_CONTINUE
+	
+	show_menu(id, 51, "#Team_Select_Spect", -1)
+	return PLUGIN_HANDLED
+}
+
+public menu_team_select(id, key)
+{
+	switch(key)
+	{
+		case 0:	//T
+		{
+			team_join(id,"2")
+			return PLUGIN_HANDLED;
+		}
+		case 4:	//Auto
+		{
+			team_join(id,"2")
+			return PLUGIN_HANDLED;
+		}
+	}
+	return PLUGIN_CONTINUE;
+}
+
 
 /* ==========================
 
@@ -394,13 +680,12 @@ gm_create_fog()
 ===================== */
 stock fm_cs_get_user_team(id)
 {
-	return get_pdata_int(id, 114);
+	return get_pdata_int(id, m_CsTeam);
 }
 
-stock fm_cs_set_user_team(id, team)
+stock fm_get_user_model(id, model[], len)
 {
-	set_pdata_int(id, 114, team)
-	fm_cs_set_user_team_msg(id)
+	return engfunc(EngFunc_InfoKeyValue, engfunc(EngFunc_GetInfoKeyBuffer, id), "model", model, len)
 }
 
 /* =====================
@@ -408,6 +693,11 @@ stock fm_cs_set_user_team(id, team)
 			 Setter
 			 
 ===================== */
+stock fm_cs_set_user_team(id, team)
+{
+	set_pdata_int(id, m_CsTeam, team)
+	fm_cs_set_user_team_msg(id)
+}
 
 stock fm_cs_set_user_team_msg(id)
 {
@@ -417,6 +707,42 @@ stock fm_cs_set_user_team_msg(id)
 	write_string(team_names[fm_cs_get_user_team(id)]) // team
 	message_end()
 }
+
+stock fm_set_user_health(id, health)
+{
+	if(get_bit(g_isConnect, bit_id))
+		(health > 0 ) ? set_pev(id, pev_health, float(health)) : dllfunc(DLLFunc_ClientKill, id);
+	else return;
+}
+
+//设定模型
+stock fm_cs_set_user_model(id, const model[])
+{
+	set_user_info(id, "model", model)
+}
+
+//设定模型2
+stock fm_set_user_model(id, const model[])
+{
+	set_bit(g_isModeled, bit_id)
+	engfunc(EngFunc_SetClientKeyValue, id, engfunc(EngFunc_GetInfoKeyBuffer, id), "model", model)
+	copy(g_PlayerModel[id], sizeof g_PlayerModel[] - 1, model)
+	
+	// static ModelPath[64]
+	// formatex(ModelPath, charsmax(ModelPath), "models/player/%s", model)
+	// set_pdata_int(id, m_ModelIndex, engfunc(EngFunc_ModelIndex, ModelPath))
+}
+
+//重置模型
+stock fm_reset_user_model(id)
+{
+	if (!get_bit(g_isConnect, bit_id))
+		return
+
+	delete_bit(g_isModeled, bit_id)
+	dllfunc(DLLFunc_ClientUserInfoChanged, id, engfunc(EngFunc_GetInfoKeyBuffer, id))
+}
+
 
 /* =====================
 
@@ -434,6 +760,19 @@ stock fm_set_kvd(entity, const key[], const value[], const classname[])
 	dllfunc(DLLFunc_KeyValue, entity, 0)
 }
 
+stock fm_strip_user_weapons( index )
+{
+   new iEnt = engfunc( EngFunc_CreateNamedEntity, engfunc( EngFunc_AllocString, "player_weaponstrip" ) );
+   if( !pev_valid( iEnt ) )
+      return 0;
+
+   dllfunc( DLLFunc_Spawn, iEnt );
+   dllfunc( DLLFunc_Use, iEnt, index );
+   engfunc( EngFunc_RemoveEntity, iEnt );
+
+   return 1;
+}
+
 /* =====================
 
 			 Msg
@@ -441,7 +780,6 @@ stock fm_set_kvd(entity, const key[], const value[], const classname[])
 ===================== */
 stock msg_screen_fade(id, red, green, blue, alpha)
 {
-	
 	message_begin(MSG_ONE, get_user_msgid("ScreenFade"), _, id)
 	write_short(0)// Duration
 	write_short(0)// Hold time
@@ -453,13 +791,20 @@ stock msg_screen_fade(id, red, green, blue, alpha)
 	message_end()
 }
 
+stock msg_change_team_info(id, team[])
+{
+	message_begin (MSG_ONE, get_user_msgid ("TeamInfo"), _, id)	// Tells to to modify teamInfo (Which is responsable for which time player is)
+	write_byte (id)				// Write byte needed
+	write_string (team)				// Changes player's team
+	message_end()					// Also Needed
+}
 /* =====================
 
 			 Other
 			 
 ===================== */
 
-stock client_color_print(target, const message[], any:...)
+stock client_color_print(target,  const message[], any:...)
 {
 	static buffer[512], i, argscount
 	argscount = numargs()
@@ -467,11 +812,11 @@ stock client_color_print(target, const message[], any:...)
 	if (!target)
 	{
 		static player
-		for (player = 1; player <= get_maxplayers(); player++)
+		for (player = 1; player <= g_MaxPlayer; player++)
 		{
 			// 断线
-			// if (!g_isconnect[player])
-				// continue;
+			if (!get_bit(g_isConnect, player-1))
+				continue;
 			
 			// 记住变化的变量
 			static changed[5], changedcount // [5] = max LANG_PLAYER occurencies
@@ -511,4 +856,12 @@ stock client_color_print(target, const message[], any:...)
 		write_string(buffer)
 		message_end()
 	}
+}
+
+team_join(id, team[] = "5")
+{
+	new msg_block = get_msg_block(g_Msg_ShowMenu)
+	set_msg_block(g_Msg_ShowMenu, BLOCK_SET)
+	engclient_cmd(id, "jointeam", team)
+	set_msg_block(g_Msg_ShowMenu, msg_block)
 }
