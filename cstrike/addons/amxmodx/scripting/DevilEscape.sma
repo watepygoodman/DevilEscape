@@ -33,6 +33,7 @@ log:
 
 ================== */
 #define bit_id (id-1)
+#define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
 
 enum
 {
@@ -45,7 +46,7 @@ enum
 enum(+=100)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
-	TASK_ROUNDSTART, TASK_BALANCE
+	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD
 }
 
 //offset
@@ -84,17 +85,25 @@ new g_isLogin;
 new g_isConnect;
 new g_isChangingPW;
 new g_isModeled;
-
 new g_whoBoss;
 new g_MaxPlayer;
-new g_LoginTime[33];
-new g_savesDir[128];
-new g_PlayerModel[33][64]
 
+new g_Level[33];
+new g_Coin[33];
+new g_Gash[33];
+new g_Xp[33];
+new Float:g_Damage[33];
+new g_LoginTime[33];
+
+new g_savesDir[128];
+new g_PlayerModel[33][32]
+
+new Float:g_TSpawn[32][3]
+new Float:g_CTSpawn[32][3]
 new bool:g_hasBot;
 
 //Hud
-new g_Hud_Center;
+new g_Hud_Center, g_Hud_Status
 
 //Msg
 new g_Msg_VGUI, g_Msg_ShowMenu;
@@ -105,8 +114,9 @@ new g_fwSpawn;
 
 public plugin_precache()
 {
-	//天气
+	//载入
 	gm_create_fog();
+	gm_init_spawnpoint();
 	engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_rain"));
 	//Get saves' dir
 	get_localinfo("amxx_configsdir", g_savesDir, charsmax(g_savesDir));
@@ -163,6 +173,7 @@ public plugin_init()
 	
 	//Hud
 	g_Hud_Center = CreateHudSyncObj();
+	g_Hud_Status = CreateHudSyncObj();
 	
 	//Unregister
 	unregister_forward(FM_Spawn, g_fwSpawn)
@@ -231,6 +242,8 @@ public fw_PlayerSpawn_Post(id)
 	fm_strip_user_weapons(id)
 	give_item( id, "weapon_knife")
 	fm_reset_user_model(id)
+	
+	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
 }
 
 
@@ -387,6 +400,15 @@ public task_balance()
 		
 		fm_cs_set_user_team(id, FM_CS_TEAM_CT)
 	}
+}
+
+public task_showhud(id)
+{
+	id -= TASK_SHOWHUD
+	
+	set_hudmessage(25, 255, 25, 0.57, 0.75, 1, 6.0, 1.1, 0.0, 0.0, 0)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^nXP:%d/%d  |  累计伤害:%f",
+	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Xp[id], g_NeedXp[id], g_Damage[id])
 }
 
 public task_user_login(id)
@@ -559,6 +581,24 @@ gm_create_fog()
 	{
 		fm_set_kvd(ent, "density", g_fog_denisty, "env_fog")
 		fm_set_kvd(ent, "rendercolor", g_fog_color, "env_fog")
+	}
+}
+
+
+gm_init_spawnpoint()
+{
+	new SpawnCount, ent
+	while ((engfunc(EngFunc_FindEntityByString, ent, "classname", "info_player_start")) != 0)
+	{
+		pev(ent, pev_origin, g_CTSpawn[SpawnCount]);
+		SpawnCount ++
+		if(SpawnCount > sizeof g_CTSpawn) break;
+	}
+	while ((engfunc(EngFunc_FindEntityByString, ent, "classname", "info_player_deathmatch")) != 0)
+	{
+		pev(ent, pev_origin, g_TSpawn[SpawnCount]);
+		SpawnCount ++
+		if(SpawnCount > sizeof g_TSpawn) break;
 	}
 }
 /* =====================
