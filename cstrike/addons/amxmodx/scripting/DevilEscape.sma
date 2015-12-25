@@ -25,15 +25,31 @@ log:
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "w&a"
 
-#define Game_Description "魔王 1.0"
-
 /* ==================
 	
 				 常量
 
 ================== */
+
 #define bit_id (id-1)
 #define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
+
+#define Game_Description "魔王 1.0"
+
+//弹药类型武器
+new const AMMOWEAPON[] = { 0, CSW_AWP, CSW_SCOUT, CSW_M249, 
+			CSW_AUG, CSW_XM1014, CSW_MAC10, CSW_FIVESEVEN, CSW_DEAGLE, 
+			CSW_P228, CSW_ELITE, CSW_FLASHBANG, CSW_HEGRENADE, 
+			CSW_SMOKEGRENADE, CSW_C4 }
+
+//弹药名
+new const AMMOTYPE[][] = { "", "357sig", "", "762nato", "", "buckshot", "", "45acp", "556nato", "", "9mm", "57mm", "45acp",
+		"556nato", "556nato", "556nato", "45acp", "9mm", "338magnum", "9mm", "556natobox", "buckshot",
+			"556nato", "9mm", "762nato", "", "50ae", "556nato", "762nato", "", "57mm" }
+			
+//最大后背弹药
+new const MAXBPAMMO[] = { -1, 52, -1, 90, 1, 32, 1, 100, 90, 1, 120, 100, 100, 90, 90, 90, 100, 120,
+				30, 120, 200, 32, 90, 120, 90, 2, 35, 90, 90, -1, 100 }
 
 enum
 {
@@ -77,9 +93,10 @@ new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 ================== */
 
 //Cvar
-new cvar_LoginTime, cvar_DevilHea;
+new cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg;
 
 //Game
+new g_plrTeam;
 new g_isRegister;
 new g_isLogin;
 new g_isConnect;
@@ -137,6 +154,7 @@ public plugin_precache()
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
 	cvar_DevilHea = register_cvar("de_devilhea","50000")
+	cvar_DevilSlashDmg = register_cvar("de_devilslashdmg", "50")
 	
 }
 
@@ -147,6 +165,7 @@ public plugin_init()
 	
 	//Event
 	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
+	register_event("AmmoX", "event_ammo_x", "be");
 	register_logevent("event_round_end", 2, "1=Round_End");
 	
 	//Forward
@@ -202,6 +221,8 @@ public event_round_start()
 	//Light
 	engfunc(EngFunc_LightStyle, 0, 'h')
 	
+	gm_reset_vars()
+	
 	set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
 	
@@ -216,6 +237,41 @@ public event_round_end()
 	set_task(0.2, "task_balance", TASK_BALANCE)
 }
 
+public event_ammo_x(id)
+{
+	//Human only
+	if(id == g_whoBoss)
+		return;
+	
+	static type
+	type = read_data(1)
+	
+	// Unknown ammo type
+	if (type >= sizeof AMMOWEAPON)
+		return;
+	
+	// Get weapon's id
+	static weapon
+	weapon = AMMOWEAPON[type]
+	
+	// Primary and secondary only
+	if (MAXBPAMMO[weapon] <= 2)
+		return;
+	
+	// Get ammo amount
+	static amount
+	amount = read_data(2)
+	
+	if (amount < MAXBPAMMO[weapon])
+	{
+	// The BP Ammo refill code causes the engine to send a message, but we
+	// can't have that in this forward or we risk getting some recursion bugs.
+	// For more info see: https://bugs.alliedmods.net/show_bug.cgi?id=3664
+		static args[1]
+		args[0] = weapon
+		set_task(0.1, "task_refill_bpammo", id, args, sizeof args)
+	}
+}
 /* =====================
 
 			 Forward
@@ -245,8 +301,19 @@ public fw_Spawn(entity)
 //Player Spawn Post
 public fw_PlayerSpawn_Post(id)
 {
+	static team
+	team = fm_cs_get_user_team(id)
+	switch(team)
+	{
+		case FM_CS_TEAM_CT:
+			set_bit(g_plrTeam, bit_id)
+		case FM_CS_TEAM_T:
+			delete_bit(g_plrTeam, bit_id)
+	}
+	
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
 	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
+	
 }
 
 
@@ -311,7 +378,14 @@ public fw_PlayerPreThink(id)
 //Damage
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
-	
+	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
+	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
+		return FMRES_IGNORED;
+		
+	g_Damage[attacker] += damage;
+	if(g_whoBoss == attacker)
+		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
+	return FMRES_IGNORED;
 }
 
 //Disconnect
@@ -476,8 +550,8 @@ public task_balance()
 		team = fm_cs_get_user_team(id)
 		if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
 			continue
-		
 		fm_cs_set_user_team(id, FM_CS_TEAM_CT)
+		
 	}
 }
 
@@ -485,9 +559,9 @@ public task_showhud(id)
 {
 	id -= TASK_SHOWHUD
 	
-	set_hudmessage(25, 255, 25, 0.57, 0.75, 1, 6.0, 1.1, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^nXP:%d/%d  |  累计伤害:%f",
-	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Xp[id], g_NeedXp[id], g_Damage[id])
+	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d",
+	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Damage[id], g_Xp[id], g_NeedXp[id])
 }
 
 public task_plrspawn(id)
@@ -556,12 +630,22 @@ public task_bots_ham(id)
 	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage")
 }
 
+public task_refill_bpammo(const args[], id)
+{
+	if (!is_user_alive(id) || id == g_whoBoss)
+		return;
+	
+	set_msg_block(get_user_msgid("AmmoPickup"), BLOCK_ONCE)
+	ExecuteHamB(Ham_GiveAmmo, id, MAXBPAMMO[args[0]], AMMOTYPE[args[0]], MAXBPAMMO[args[0]])
+}
+
 /* =====================
 
 			 Game Function
 			 
 ===================== */
 
+//选BOSS
 gm_choose_boss()
 {
 	new id
@@ -569,6 +653,16 @@ gm_choose_boss()
 		id = random_num(1, g_MaxPlayer)
 	
 	return id
+}
+
+//重设变量
+gm_reset_vars()
+{
+	g_whoBoss = 0;
+	for(new i = 1 ; i <= g_MaxPlayer; i++)
+	{
+		g_Damage[i] = 0.0;
+	}
 }
 
 gm_user_register(id, const password[])
@@ -825,6 +919,13 @@ stock fm_cs_set_user_team(id, team)
 {
 	set_pdata_int(id, m_CsTeam, team)
 	fm_cs_set_user_team_msg(id)
+	switch(team)
+	{
+		case FM_CS_TEAM_CT:
+			set_bit(g_plrTeam, bit_id)
+		case FM_CS_TEAM_T:
+			delete_bit(g_plrTeam, bit_id)
+	}
 }
 
 stock fm_cs_set_user_team_msg(id)
