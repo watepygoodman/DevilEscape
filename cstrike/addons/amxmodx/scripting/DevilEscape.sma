@@ -85,8 +85,8 @@ new g_isLogin;
 new g_isConnect;
 new g_isChangingPW;
 new g_isModeled;
-new g_isSemiclip;
-new g_isSolid;
+// new g_isSemiclip;
+// new g_isSolid;
 new g_whoBoss;
 new g_MaxPlayer;
 new bool:g_hasBot;
@@ -101,7 +101,7 @@ new g_LoginTime[33];
 new g_savesDir[128];
 new g_PlayerModel[33][32]
 
-new Float:g_PlrOrg[33][3]
+// new Float:g_PlrOrg[33][3]
 new Float:g_TSpawn[32][3]
 new Float:g_CTSpawn[32][3]
 
@@ -253,59 +253,60 @@ public fw_PlayerSpawn_Post(id)
 //PreThink
 public fw_PlayerPreThink(id)
 {
-	fw_SetPlayerSoild(id)
+	// fw_SetPlayerSoild(id)
 }
 
-public fw_FristThink()
-{
-	for(new i = 1; i <= g_MaxPlayer; i++)
-	{
-		if(!is_user_alive(i))
-		{
-			delete_bit(g_isSolid, i-1)
-			continue
-		}
-		else pev(i, pev_origin, g_PlrOrg[i]);
+// public fw_FristThink()
+// {
+	// for(new i = 1; i <= g_MaxPlayer; i++)
+	// {
+		// if(!is_user_alive(i))
+		// {
+			// delete_bit(g_isSolid, i-1)
+			// continue
+		// }
+		// pev(i, pev_origin, g_PlrOrg[i]);
 		
-		if(pev(i, pev_solid) == SOLID_SLIDEBOX) set_bit(g_isSolid, i-1)
-		else delete_bit(g_isSolid, i-1)
-	}
-}
+		// if(pev(i, pev_solid) == SOLID_SLIDEBOX) 
+			// set_bit(g_isSolid, i-1)
+		// else delete_bit(g_isSolid, i-1)
+	// }
+// }
 
-public fw_SetPlayerSoild(id)
-{
-	static plr, lastthink, team
-	if(lastthink>id)
-		fw_FristThink()
-	lastthink = id
+// public fw_SetPlayerSoild(id)
+// {
+	// static plr, lastthink, team
+	// if(lastthink>id)
+		// fw_FristThink()
+	// lastthink = id
 	
-	if(!get_bit(g_isSolid, bit_id)) return
-	team = fm_cs_get_user_team(id)
+	// if(!get_bit(g_isSolid, bit_id)) return
+	// team = fm_cs_get_user_team(id)
 	
-	for(plr = 1; plr<= g_MaxPlayer; plr++)
-	{
-		if(id==plr) continue
-		if((team == FM_CS_TEAM_CT || team == FM_CS_TEAM_T) && fm_cs_get_user_team(plr) == team)
-		{
-			set_pev(plr, pev_solid, SOLID_NOT)
-			set_bit(g_isSemiclip, plr-1)
-		}
-	}
-}
+	// for(plr = 1; plr<= g_MaxPlayer; plr++)
+	// {
+		// if(id==plr) continue
+		// if((team == FM_CS_TEAM_CT || team == FM_CS_TEAM_T) && fm_cs_get_user_team(plr) == team)
+		// {
+			// set_pev(plr, pev_solid, SOLID_NOT)
+			// set_bit(g_isSemiclip, plr-1)
+		// }
+	// }
+// }
 
 //Post Think
-public fw_PlayerPostThink(id)
-{
-	static plr
-	for(plr = 1; plr<= g_MaxPlayer; plr++)
-	{
-		if(get_bit(g_isSemiclip, plr-1))
-		{
-			set_pev(plr, pev_solid, SOLID_SLIDEBOX)
-			delete_bit(g_isSemiclip, plr-1)
-		}
-	}
-}
+// public fw_PlayerPostThink(id)
+// {
+	// static plr
+	// for(plr = 1; plr<= g_MaxPlayer; plr++)
+	// {
+		// if(get_bit(g_isSemiclip, plr-1))
+		// {
+			// set_pev(plr, pev_solid, SOLID_SLIDEBOX)
+			// delete_bit(g_isSemiclip, plr-1)
+		// }
+	// }
+// }
 
 //Damage
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
@@ -372,23 +373,23 @@ public fw_ClientCommand(id)
 	return FMRES_IGNORED;
 }
 
-public fw_AddToFullPack_Post(es_handle, e, ent, host, hostflags, player, pset )
-{
-	if( player )
-	{
-		if( get_bit(g_isSolid, host-1) && get_bit(g_isSolid, ent-1) && get_distance_f(g_PlrOrg[host], g_PlrOrg[ent] ) <= 120 )
-		{
-			if( fm_cs_get_user_team(host) != fm_cs_get_user_team(ent))
-				return FMRES_IGNORED
+// public fw_AddToFullPack_Post(es_handle, e, ent, host, hostflags, player, pset )
+// {
+	// if( player )
+	// {
+		// if( get_bit(g_isSolid, host-1) && get_bit(g_isSolid, ent-1) && get_distance_f(g_PlrOrg[host], g_PlrOrg[ent] ) <= 120 )
+		// {
+			// if( fm_cs_get_user_team(host) != fm_cs_get_user_team(ent))
+				// return FMRES_IGNORED
 				
-			set_es( es_handle, ES_Solid, SOLID_NOT ) // makes semiclip flawless
-			set_es( es_handle, ES_RenderMode, kRenderTransAlpha )
-			set_es( es_handle, ES_RenderAmt, 85 )
-		}
-	}
+			// set_es( es_handle, ES_Solid, SOLID_NOT ) // makes semiclip flawless
+			// set_es( es_handle, ES_RenderMode, kRenderTransAlpha )
+			// set_es( es_handle, ES_RenderAmt, 85 )
+		// }
+	// }
 	
-	return FMRES_IGNORED
-}
+	// return FMRES_IGNORED
+// }
 
 public fw_ClientUserInfoChanged(id)
 {
