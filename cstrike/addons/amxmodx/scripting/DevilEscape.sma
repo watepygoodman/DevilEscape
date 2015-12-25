@@ -108,6 +108,7 @@ new g_isModeled;
 // new g_isSolid;
 new g_whoBoss;
 new g_MaxPlayer;
+new g_online;
 new bool:g_hasBot;
 
 new g_Level[33];
@@ -161,7 +162,7 @@ public plugin_precache()
 	cvar_RewardXp = register_cvar("de_reward_xp", "200")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	cvar_LoginTime = register_cvar("de_logintime","120")
-	cvar_DevilHea = register_cvar("de_devilhea","50000")
+	cvar_DevilHea = register_cvar("de_devilbasehea","2046")
 	cvar_DevilSlashDmg = register_cvar("de_devilslashdmg", "50")
 	
 	
@@ -232,7 +233,7 @@ public plugin_init()
 public event_round_start()
 {
 	//Light
-	engfunc(EngFunc_LightStyle, 0, 'h')
+	engfunc(EngFunc_LightStyle, 0, 'f')
 	
 	gm_reset_vars()
 	remove_task(TASK_BALANCE)
@@ -326,7 +327,6 @@ public fw_PlayerSpawn_Post(id)
 		case FM_CS_TEAM_T:
 			delete_bit(g_plrTeam, bit_id)
 	}
-	
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
 	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
 	
@@ -371,7 +371,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
 		
 	g_Dmg[attacker] += damage;
-	g_DmgDealt[attacker] += damage
+	g_DmgDealt[attacker] += damage;
 	
 	if(g_DmgDealt[attacker] > get_pcvar_num(cvar_DmgReward))
 	{
@@ -527,8 +527,15 @@ public task_round_start()
 {
 	new id = gm_choose_boss()
 	g_whoBoss = id
-	
-	fm_set_user_health(id, get_pcvar_num(cvar_DevilHea))
+	for(new id = 1; id <= g_MaxPlayer; id++)
+	{
+		if(!get_bit(g_isConnect, bit_id) || g_whoBoss == id)
+			continue
+		g_online++;
+	}
+	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_online) * (g_online - 1))
+	new addhealth = floatround(floatpower(((760.8 + g_online)*(g_online - 1)), 1.0341)) + get_pcvar_float(cvar_DevilHea);
+	fm_set_user_health(id, addhealth)
 	fm_cs_set_user_team(id, FM_CS_TEAM_T)
 	
 	fm_strip_user_weapons(id)
@@ -561,8 +568,8 @@ public task_showhud(id)
 	id -= TASK_SHOWHUD
 	
 	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d",
-	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Dmg[id], g_Xp[id], g_NeedXp[id])
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d^nBossHP:%d  |  g_online:%d",
+	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Dmg[id], g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_online)
 }
 
 public task_plrspawn(id)
@@ -660,6 +667,7 @@ gm_choose_boss()
 gm_reset_vars()
 {
 	g_whoBoss = 0;
+	g_online = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -942,7 +950,7 @@ stock fm_cs_set_user_team_msg(id)
 stock fm_set_user_health(id, health)
 {
 	if(get_bit(g_isConnect, bit_id))
-		(health > 0 ) ? set_pev(id, pev_health, float(health)) : dllfunc(DLLFunc_ClientKill, id);
+		(health > 0 ) ? set_pev(id, pev_health, health) : dllfunc(DLLFunc_ClientKill, id);
 	else return;
 }
 
