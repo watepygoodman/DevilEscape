@@ -33,6 +33,7 @@ log:
 
 #define bit_id (id-1)
 #define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
+#define is_user_valid_connected(%1) (1 <= %1 <= g_MaxPlayer && get_bit(g_isConnect, %1-1))
 
 #define Game_Description "魔王 Alpha"
 
@@ -168,7 +169,6 @@ public plugin_init()
 	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
 	register_event("AmmoX", "event_ammo_x", "be");
 	register_logevent("event_round_end", 2, "1=Round_End");
-	register_event( "WeapPickup", "event_boss_pickup", "be" )
 	
 	//Forward
 	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink");
@@ -183,6 +183,9 @@ public plugin_init()
 	//Ham
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
 	RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1);
+	RegisterHam(Ham_Touch, "weapon_hegrenade", "fw_TouchWeapon")
+	RegisterHam(Ham_Touch, "weaponbox", "fw_TouchWeapon")
+	RegisterHam(Ham_Touch, "armoury_entity", "fw_TouchWeapon")
 	
 	//Msg
 	g_Msg_VGUI = get_user_msgid("VGUIMenu")
@@ -274,12 +277,6 @@ public event_ammo_x(id)
 		args[0] = weapon
 		set_task(0.1, "task_refill_bpammo", id, args, sizeof args)
 	}
-}
-
-public event_boss_pickup(id)
-{
-	if(id == g_whoBoss)
-		return;
 }
 
 /* =====================
@@ -396,6 +393,17 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	if(g_whoBoss == attacker)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
 	return FMRES_IGNORED;
+}
+
+public fw_TouchWeapon(weapon, id)
+{
+	if(!is_user_valid_connected(id))
+		return HAM_IGNORED;
+	
+	if(id == g_whoBoss)
+		return HAM_SUPERCEDE;
+	
+	return HAM_IGNORED;
 }
 
 //Disconnect
