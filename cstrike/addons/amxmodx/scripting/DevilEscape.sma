@@ -43,10 +43,10 @@ enum
 	FM_CS_TEAM_SPECTATOR
 }
 
-enum(+=100)
+enum(+=40)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
-	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD
+	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN
 }
 
 //offset
@@ -85,8 +85,11 @@ new g_isLogin;
 new g_isConnect;
 new g_isChangingPW;
 new g_isModeled;
+new g_isSemiclip;
+new g_isSolid;
 new g_whoBoss;
 new g_MaxPlayer;
+new bool:g_hasBot;
 
 new g_Level[33];
 new g_Coin[33];
@@ -98,9 +101,9 @@ new g_LoginTime[33];
 new g_savesDir[128];
 new g_PlayerModel[33][32]
 
+new Float:g_PlrOrg[33][3]
 new Float:g_TSpawn[32][3]
 new Float:g_CTSpawn[32][3]
-new bool:g_hasBot;
 
 //Hud
 new g_Hud_Center, g_Hud_Status
@@ -147,11 +150,14 @@ public plugin_init()
 	register_logevent("event_round_end", 2, "1=Round_End");
 	
 	//Forward
+	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink");
+	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink");
 	register_forward(FM_ClientCommand, "fw_ClientCommand") ;
 	register_forward(FM_ClientDisconnect, "fw_ClientDisconnect");
 	register_forward(FM_SetClientKeyValue, "fw_SetClientKeyValue");
 	register_forward(FM_ClientUserInfoChanged,"fw_ClientUserInfoChanged")
 	register_forward(FM_GetGameDescription, "fw_GetGameDescription")
+	register_forward(FM_AddToFullPack, "fw_AddToFullPack_Post", 1 );
 	
 	//Ham
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
@@ -239,13 +245,67 @@ public fw_Spawn(entity)
 //Player Spawn Post
 public fw_PlayerSpawn_Post(id)
 {
-	fm_strip_user_weapons(id)
-	give_item( id, "weapon_knife")
-	fm_reset_user_model(id)
-	
+	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
 	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
 }
 
+
+//PreThink
+public fw_PlayerPreThink(id)
+{
+	fw_SetPlayerSoild(id)
+}
+
+public fw_FristThink()
+{
+	for(new i = 1; i <= g_MaxPlayer; i++)
+	{
+		if(!is_user_alive(i))
+		{
+			delete_bit(g_isSolid, i-1)
+			continue
+		}
+		else pev(i, pev_origin, g_PlrOrg[i]);
+		
+		if(pev(i, pev_solid) == SOLID_SLIDEBOX) set_bit(g_isSolid, i-1)
+		else delete_bit(g_isSolid, i-1)
+	}
+}
+
+public fw_SetPlayerSoild(id)
+{
+	static plr, lastthink, team
+	if(lastthink>id)
+		fw_FristThink()
+	lastthink = id
+	
+	if(!get_bit(g_isSolid, bit_id)) return
+	team = fm_cs_get_user_team(id)
+	
+	for(plr = 1; plr<= g_MaxPlayer; plr++)
+	{
+		if(id==plr) continue
+		if((team == FM_CS_TEAM_CT || team == FM_CS_TEAM_T) && fm_cs_get_user_team(plr) == team)
+		{
+			set_pev(plr, pev_solid, SOLID_NOT)
+			set_bit(g_isSemiclip, plr-1)
+		}
+	}
+}
+
+//Post Think
+public fw_PlayerPostThink(id)
+{
+	static plr
+	for(plr = 1; plr<= g_MaxPlayer; plr++)
+	{
+		if(get_bit(g_isSemiclip, plr-1))
+		{
+			set_pev(plr, pev_solid, SOLID_SLIDEBOX)
+			delete_bit(g_isSemiclip, plr-1)
+		}
+	}
+}
 
 //Damage
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
@@ -310,6 +370,24 @@ public fw_ClientCommand(id)
 	} 
 	
 	return FMRES_IGNORED;
+}
+
+public fw_AddToFullPack_Post(es_handle, e, ent, host, hostflags, player, pset )
+{
+	if( player )
+	{
+		if( get_bit(g_isSolid, host-1) && get_bit(g_isSolid, ent-1) && get_distance_f(g_PlrOrg[host], g_PlrOrg[ent] ) <= 120 )
+		{
+			if( fm_cs_get_user_team(host) != fm_cs_get_user_team(ent))
+				return FMRES_IGNORED
+				
+			set_es( es_handle, ES_Solid, SOLID_NOT ) // makes semiclip flawless
+			set_es( es_handle, ES_RenderMode, kRenderTransAlpha )
+			set_es( es_handle, ES_RenderAmt, 85 )
+		}
+	}
+	
+	return FMRES_IGNORED
 }
 
 public fw_ClientUserInfoChanged(id)
@@ -409,6 +487,15 @@ public task_showhud(id)
 	set_hudmessage(25, 255, 25, 0.57, 0.75, 1, 6.0, 1.1, 0.0, 0.0, 0)
 	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^nXP:%d/%d  |  累计伤害:%f",
 	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Xp[id], g_NeedXp[id], g_Damage[id])
+}
+
+public task_plrspawn(id)
+{
+	id -= TASK_PLRSPAWN
+	fm_reset_user_model(id)
+	fm_strip_user_weapons(id)
+	fm_give_item(id, "weapon_knife")
+	remove_task(id+TASK_PLRSPAWN);
 }
 
 public task_user_login(id)
@@ -783,6 +870,20 @@ stock fm_reset_user_model(id)
 	dllfunc(DLLFunc_ClientUserInfoChanged, id, engfunc(EngFunc_GetInfoKeyBuffer, id))
 }
 
+//设置渲染
+stock fm_set_rendering(entity, fx = kRenderFxNone, r = 255, g = 255, b = 255, render = kRenderNormal, amount = 16)
+{
+	static Float:color[3]
+	color[0] = float(r)
+	color[1] = float(g)
+	color[2] = float(b)
+	
+	set_pev(entity, pev_renderfx, fx)
+	set_pev(entity, pev_rendercolor, color)
+	set_pev(entity, pev_rendermode, render)
+	set_pev(entity, pev_renderamt, float(amount))
+}
+
 
 /* =====================
 
@@ -799,6 +900,28 @@ stock fm_set_kvd(entity, const key[], const value[], const classname[])
 
 	dllfunc(DLLFunc_KeyValue, entity, 0)
 }
+
+stock fm_give_item(id, const item[])
+{
+	static ent
+	ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, item))
+	if (!pev_valid(ent)) return;
+	
+	static Float:originF[3]
+	pev(id, pev_origin, originF)
+	set_pev(ent, pev_origin, originF)
+	set_pev(ent, pev_spawnflags, pev(ent, pev_spawnflags) | SF_NORESPAWN)
+	dllfunc(DLLFunc_Spawn, ent)
+	
+	static save
+	save = pev(ent, pev_solid)
+	dllfunc(DLLFunc_Touch, ent, id)
+	if (pev(ent, pev_solid) != save)
+		return;
+	
+	engfunc(EngFunc_RemoveEntity, ent)
+}
+
 
 stock fm_strip_user_weapons( index )
 {
