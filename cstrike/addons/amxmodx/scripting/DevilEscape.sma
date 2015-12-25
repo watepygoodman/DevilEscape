@@ -95,7 +95,7 @@ new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 ================== */
 
 //Cvar
-new cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg;
+new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv;
 
 //Game
 new g_plrTeam;
@@ -114,7 +114,9 @@ new g_Level[33];
 new g_Coin[33];
 new g_Gash[33];
 new g_Xp[33];
-new Float:g_Damage[33];
+new g_Sp[33];
+new Float:g_Dmg[33];
+new Float:g_DmgDealt[33]
 new g_LoginTime[33];
 
 new g_savesDir[128];
@@ -154,9 +156,14 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, snd_devil_win)
 	
 	//Cvar
+	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
+	cvar_RewardCoin = register_cvar("de_reward_coin", "1")
+	cvar_RewardXp = register_cvar("de_reward_xp", "200")
+	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	cvar_LoginTime = register_cvar("de_logintime","120")
 	cvar_DevilHea = register_cvar("de_devilhea","50000")
 	cvar_DevilSlashDmg = register_cvar("de_devilslashdmg", "50")
+	
 	
 }
 
@@ -228,6 +235,8 @@ public event_round_start()
 	engfunc(EngFunc_LightStyle, 0, 'h')
 	
 	gm_reset_vars()
+	remove_task(TASK_BALANCE)
+	set_task(0.2, "task_balance", TASK_BALANCE)
 	
 	set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
@@ -328,45 +337,14 @@ public fw_PlayerSpawn_Post(id)
 public fw_PlayerPreThink(id)
 {
 	// fw_SetPlayerSoild(id)
+	while(g_Xp[id] >= g_NeedXp[id])
+	{
+		g_Xp[id] -= g_NeedXp[id]
+		g_Level[id] ++
+		g_Sp[id] += get_pcvar_num(cvar_SpPreLv)
+		client_print(id, print_center, "此处应HUD升级信息")
+	}
 }
-
-// public fw_FristThink()
-// {
-	// for(new i = 1; i <= g_MaxPlayer; i++)
-	// {
-		// if(!is_user_alive(i))
-		// {
-			// delete_bit(g_isSolid, i-1)
-			// continue
-		// }
-		// pev(i, pev_origin, g_PlrOrg[i]);
-		
-		// if(pev(i, pev_solid) == SOLID_SLIDEBOX) 
-			// set_bit(g_isSolid, i-1)
-		// else delete_bit(g_isSolid, i-1)
-	// }
-// }
-
-// public fw_SetPlayerSoild(id)
-// {
-	// static plr, lastthink, team
-	// if(lastthink>id)
-		// fw_FristThink()
-	// lastthink = id
-	
-	// if(!get_bit(g_isSolid, bit_id)) return
-	// team = fm_cs_get_user_team(id)
-	
-	// for(plr = 1; plr<= g_MaxPlayer; plr++)
-	// {
-		// if(id==plr) continue
-		// if((team == FM_CS_TEAM_CT || team == FM_CS_TEAM_T) && fm_cs_get_user_team(plr) == team)
-		// {
-			// set_pev(plr, pev_solid, SOLID_NOT)
-			// set_bit(g_isSemiclip, plr-1)
-		// }
-	// }
-// }
 
 //Post Think
 // public fw_PlayerPostThink(id)
@@ -389,9 +367,27 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
 		return FMRES_IGNORED;
 		
-	g_Damage[attacker] += damage;
 	if(g_whoBoss == attacker)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
+		
+	g_Dmg[attacker] += damage;
+	g_DmgDealt[attacker] += damage
+	
+	if(g_DmgDealt[attacker] > get_pcvar_num(cvar_DmgReward))
+	{
+		new i = 0;
+		while(g_DmgDealt[attacker] > get_pcvar_num(cvar_DmgReward))
+		{
+			i ++;
+			g_DmgDealt[attacker] -= get_pcvar_num(cvar_DmgReward);
+			g_Coin[attacker] += get_pcvar_num(cvar_RewardCoin);
+			g_Xp[attacker] += get_pcvar_num(cvar_RewardXp);
+		}
+		client_print(attacker, print_center, "这里应该是HUD提示%i*1500经验 %i Coin", i, i)
+	}
+	
+	//这里应该是HUD提示
+	
 	return FMRES_IGNORED;
 }
 
@@ -464,24 +460,6 @@ public fw_ClientCommand(id)
 	
 	return FMRES_IGNORED;
 }
-
-// public fw_AddToFullPack_Post(es_handle, e, ent, host, hostflags, player, pset )
-// {
-	// if( player )
-	// {
-		// if( get_bit(g_isSolid, host-1) && get_bit(g_isSolid, ent-1) && get_distance_f(g_PlrOrg[host], g_PlrOrg[ent] ) <= 120 )
-		// {
-			// if( fm_cs_get_user_team(host) != fm_cs_get_user_team(ent))
-				// return FMRES_IGNORED
-				
-			// set_es( es_handle, ES_Solid, SOLID_NOT ) // makes semiclip flawless
-			// set_es( es_handle, ES_RenderMode, kRenderTransAlpha )
-			// set_es( es_handle, ES_RenderAmt, 85 )
-		// }
-	// }
-	
-	// return FMRES_IGNORED
-// }
 
 public fw_ClientUserInfoChanged(id)
 {
@@ -584,7 +562,7 @@ public task_showhud(id)
 	
 	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
 	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d",
-	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Damage[id], g_Xp[id], g_NeedXp[id])
+	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Dmg[id], g_Xp[id], g_NeedXp[id])
 }
 
 public task_plrspawn(id)
@@ -684,7 +662,7 @@ gm_reset_vars()
 	g_whoBoss = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
-		g_Damage[i] = 0.0;
+		g_Dmg[i] = 0.0;
 	}
 }
 
