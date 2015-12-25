@@ -34,7 +34,7 @@ log:
 #define bit_id (id-1)
 #define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
 
-#define Game_Description "魔王 1.0"
+#define Game_Description "魔王 Alpha"
 
 //弹药类型武器
 new const AMMOWEAPON[] = { 0, CSW_AWP, CSW_SCOUT, CSW_M249, 
@@ -85,6 +85,7 @@ new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
 
 new const snd_human_win[] = "DevilEscape/Human_Win.wav"
 new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
+
 
 /* ================== 
 
@@ -167,6 +168,7 @@ public plugin_init()
 	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
 	register_event("AmmoX", "event_ammo_x", "be");
 	register_logevent("event_round_end", 2, "1=Round_End");
+	register_event( "WeapPickup", "event_boss_pickup", "be" )
 	
 	//Forward
 	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink");
@@ -208,6 +210,7 @@ public plugin_init()
 	
 	server_cmd("mp_autoteambalance 0")
 }
+
 
 /* =====================
 
@@ -272,6 +275,13 @@ public event_ammo_x(id)
 		set_task(0.1, "task_refill_bpammo", id, args, sizeof args)
 	}
 }
+
+public event_boss_pickup(id)
+{
+	if(id == g_whoBoss)
+		return;
+}
+
 /* =====================
 
 			 Forward
@@ -515,6 +525,11 @@ public client_putinserver(id)
 	delete_bit(g_isLogin, bit_id)
 	gm_user_load(id)
 	set_task(1.0, "task_user_login", id+TASK_USERLOGIN, _, _, "b")
+}
+
+public client_weapon_shoot(id)//MOUSE1
+{
+	
 }
 
 /* =====================
@@ -783,6 +798,7 @@ gm_init_spawnpoint()
 		if(SpawnCount > sizeof g_TSpawn) break;
 	}
 }
+
 /* =====================
 
 			 Message
@@ -986,7 +1002,6 @@ stock fm_set_rendering(entity, fx = kRenderFxNone, r = 255, g = 255, b = 255, re
 	set_pev(entity, pev_renderamt, float(amount))
 }
 
-
 /* =====================
 
 			 Entity
@@ -1038,6 +1053,19 @@ stock fm_strip_user_weapons( index )
    return 1;
 }
 
+stock fm_get_entity_index(owner,entclassname[])
+{
+	new ent = 0
+	while ((ent = engfunc(EngFunc_FindEntityByString, ent, "classname", entclassname))!=0 )
+	{
+		if(pev(ent,pev_owner)==owner)
+		{
+			return ent
+		}
+	}
+	return 0
+}
+
 /* =====================
 
 			 Msg
@@ -1063,6 +1091,22 @@ stock msg_change_team_info(id, team[])
 	write_string (team)				// Changes player's team
 	message_end()					// Also Needed
 }
+
+stock msg_trace(const Float:idorigin[3],const Float:targetorigin[3]){
+	new id[3],target[3]
+	FVecIVec(idorigin,id)
+	FVecIVec(targetorigin,target)
+	message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+	write_byte(6)//TE_TRACER
+	write_coord(id[0])
+	write_coord(id[1])
+	write_coord(id[2])
+	write_coord(target[0])
+	write_coord(target[1])
+	write_coord(target[2])
+	message_end()
+}
+
 /* =====================
 
 			 Other
@@ -1130,3 +1174,4 @@ team_join(id, team[] = "5")
 	engclient_cmd(id, "jointeam", team)
 	set_msg_block(g_Msg_ShowMenu, msg_block)
 }
+
