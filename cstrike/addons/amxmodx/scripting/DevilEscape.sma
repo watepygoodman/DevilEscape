@@ -128,7 +128,7 @@ new Float:g_TSpawn[32][3]
 new Float:g_CTSpawn[32][3]
 
 //Hud
-new g_Hud_Center, g_Hud_Status
+new g_Hud_Center, g_Hud_Status, g_Hud_Reward
 
 //Msg
 new g_Msg_VGUI, g_Msg_ShowMenu;
@@ -212,6 +212,7 @@ public plugin_init()
 	//Hud
 	g_Hud_Center = CreateHudSyncObj();
 	g_Hud_Status = CreateHudSyncObj();
+	g_Hud_Reward = CreateHudSyncObj();
 	
 	//Unregister
 	unregister_forward(FM_Spawn, g_fwSpawn)
@@ -337,12 +338,16 @@ public fw_PlayerSpawn_Post(id)
 public fw_PlayerPreThink(id)
 {
 	// fw_SetPlayerSoild(id)
-	while(g_Xp[id] >= g_NeedXp[id])
+	if(g_Xp[id] >= g_NeedXp[id])
 	{
-		g_Xp[id] -= g_NeedXp[id]
-		g_Level[id] ++
-		g_Sp[id] += get_pcvar_num(cvar_SpPreLv)
-		client_print(id, print_center, "此处应HUD升级信息")
+		while(g_Xp[id] >= g_NeedXp[id])
+		{
+			g_Xp[id] -= g_NeedXp[id]
+			g_Level[id] ++
+			g_Sp[id] += get_pcvar_num(cvar_SpPreLv)
+		}
+		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
+		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_LEVEL_UP", g_Level[id])
 	}
 }
 
@@ -383,7 +388,8 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 			g_Coin[attacker] += get_pcvar_num(cvar_RewardCoin);
 			g_Xp[attacker] += get_pcvar_num(cvar_RewardXp);
 		}
-		client_print(attacker, print_center, "这里应该是HUD提示%i*1500经验 %i Coin", i, i)
+		set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
+		ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin))
 	}
 	
 	//这里应该是HUD提示
@@ -667,7 +673,7 @@ gm_choose_boss()
 //重设变量
 gm_reset_vars()
 {
-	g_whoBoss = 0;
+	g_whoBoss = -1;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
