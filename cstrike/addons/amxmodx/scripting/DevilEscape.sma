@@ -108,7 +108,7 @@ new g_isModeled;
 // new g_isSolid;
 new g_whoBoss;
 new g_MaxPlayer;
-new g_online;
+new g_Online;
 new bool:g_hasBot;
 
 new g_Level[33];
@@ -406,6 +406,7 @@ public fw_TouchWeapon(weapon, id)
 public fw_ClientDisconnect(id)
 {
 	delete_bit(g_isConnect, bit_id)
+	g_Online --;
 }
 
 //客户端命令
@@ -501,6 +502,7 @@ public fw_GetGameDescription()
 public client_putinserver(id)
 {
 	set_bit(g_isConnect, bit_id)
+	g_Online ++
 	if(is_user_bot(id) && !g_hasBot)
 	{
 			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
@@ -531,10 +533,9 @@ public task_round_start()
 	{
 		if(!get_bit(g_isConnect, bit_id) || g_whoBoss == id)
 			continue
-		g_online++;
 	}
-	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_online) * (g_online - 1))
-	new addhealth = floatround(floatpower(((760.8 + g_online)*(g_online - 1)), 1.0341)) + get_pcvar_float(cvar_DevilHea);
+	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_Online) * (g_Online - 1))
+	new addhealth = floatround(floatpower(((760.8 + g_Online)*(g_Online - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
 	fm_set_user_health(id, addhealth)
 	fm_cs_set_user_team(id, FM_CS_TEAM_T)
 	
@@ -568,8 +569,8 @@ public task_showhud(id)
 	id -= TASK_SHOWHUD
 	
 	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d^nBossHP:%d  |  g_online:%d",
-	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Dmg[id], g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_online)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d^nBossHP:%d  |  g_Online:%d",
+	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Dmg[id], g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_Online)
 }
 
 public task_plrspawn(id)
@@ -667,7 +668,6 @@ gm_choose_boss()
 gm_reset_vars()
 {
 	g_whoBoss = 0;
-	g_online = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -950,7 +950,7 @@ stock fm_cs_set_user_team_msg(id)
 stock fm_set_user_health(id, health)
 {
 	if(get_bit(g_isConnect, bit_id))
-		(health > 0 ) ? set_pev(id, pev_health, health) : dllfunc(DLLFunc_ClientKill, id);
+		(health > 0 ) ? set_pev(id, pev_health, float(health)) : dllfunc(DLLFunc_ClientKill, id);
 	else return;
 }
 
