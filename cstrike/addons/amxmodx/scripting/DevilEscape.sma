@@ -66,26 +66,29 @@ enum(+=40)
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN
 }
 
-//offset
-const m_CsTeam = 114 				//队伍
-const m_MapZone = 235				//所在区域
-const m_ModelIndex = 491 				//模型索引
-
-new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
-new const g_fog_color[] = "128 128 128";
-new const g_fog_denisty[] = "0.002";
-
 new const g_RemoveEnt[][] = {
 	"func_hostage_rescue", "info_hostage_rescue", "func_bomb_target", "info_bomb_target",
 	"hostage_entity", "info_vip_start", "func_vip_safetyzone", "func_escapezone"
 }
 
+//资源
 new const mdl_player_devil1[] = "models/player/devil1/devil1.mdl"
 
 new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
 
 new const snd_human_win[] = "DevilEscape/Human_Win.wav"
 new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
+
+//offset
+const m_CsTeam = 114 				//队伍
+const m_MapZone = 235				//所在区域
+const m_ModelIndex = 491 				//模型索引
+
+const KEYSMENU = (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
+
+new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
+new const g_fog_color[] = "128 128 128";
+new const g_fog_denisty[] = "0.002";
 
 
 /* ================== 
@@ -173,6 +176,12 @@ public plugin_init()
 	register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_dictionary("devilescape.txt");
 	
+	//Menu
+	register_menu("Main Menu", KEYSMENU, "menu_main")
+	register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
+	register_menu("BossSkill Menu", KEYSMENU, "menu_bossskill")
+	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
+	
 	//Event
 	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
 	register_event("AmmoX", "event_ammo_x", "be");
@@ -199,16 +208,12 @@ public plugin_init()
 	//Msg
 	g_Msg_VGUI = get_user_msgid("VGUIMenu")
 	g_Msg_ShowMenu = get_user_msgid("ShowMenu")
-	
 	register_message(g_Msg_ShowMenu, "msg_show_menu")
 	register_message(g_Msg_VGUI, "msg_vgui_menu")
 	register_message(get_user_msgid( "StatusIcon" ), "msg_statusicon");
 	register_message(get_user_msgid("Health"), "msg_health")
 	register_message(get_user_msgid("TextMsg"), "msg_textmsg")
 	register_message(get_user_msgid("SendAudio"), "msg_sendaudio")
-	
-	//Menu
-	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
 	
 	//Hud
 	g_Hud_Center = CreateHudSyncObj();
@@ -666,6 +671,38 @@ public task_refill_bpammo(const args[], id)
 	set_msg_block(get_user_msgid("AmmoPickup"), BLOCK_ONCE)
 	ExecuteHamB(Ham_GiveAmmo, id, MAXBPAMMO[args[0]], AMMOTYPE[args[0]], MAXBPAMMO[args[0]])
 }
+/* =====================
+
+			 Menu
+			 
+===================== */
+public show_menu_main(id)
+{
+	new Menu[256], Len, 
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, Game_Description)
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_WEAPON")
+	// Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	
+	show_menu(id, KEYSMENU, Menu, -1, "Main Menu")
+	return PLUGIN_HANDLED
+}
+
+public menu_main(id, key)
+{
+	switch(key)
+	{
+		case 0: show_menu_weapon1(id)
+		case 1: show_menu_skill(id)
+		case 2: show_menu_pack(id)
+		case 3: show_menu_equip(id)
+	}
+	
+	return PLUGIN_HANDLED;
+}
+
+
 
 /* =====================
 
