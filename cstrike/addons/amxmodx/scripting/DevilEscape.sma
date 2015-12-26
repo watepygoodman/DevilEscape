@@ -887,6 +887,8 @@ public msg_vgui_menu(msgid, dest, id)
 
 public menu_team_select(id, key)
 {
+	if(!get_bit(g_isLogin, bit_id))
+		return PLUGIN_HANDLED;
 	switch(key)
 	{
 		case 0:	//T
