@@ -534,11 +534,14 @@ public task_round_start()
 {
 	new id = gm_choose_boss()
 	g_whoBoss = id
-	for(new id = 1; id <= g_MaxPlayer; id++)
+	for(new i = 1; i <= g_MaxPlayer; i++)
 	{
-		if(!get_bit(g_isLogin, bit_id) || g_whoBoss == id)
+		if(!is_user_valid_connected(i))
+			continue;
+		new team = fm_cs_get_user_team(i)
+		if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED  || i == g_whoBoss)
 			continue
-		g_Online ++
+		g_Online ++;
 	}
 	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_Online) * (g_Online - 1))
 	new addhealth = floatround(floatpower(((760.8 + g_Online)*(g_Online - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
