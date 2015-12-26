@@ -412,7 +412,6 @@ public fw_TouchWeapon(weapon, id)
 public fw_ClientDisconnect(id)
 {
 	delete_bit(g_isConnect, bit_id)
-	g_Online --;
 }
 
 //客户端命令
@@ -508,7 +507,7 @@ public fw_GetGameDescription()
 public client_putinserver(id)
 {
 	set_bit(g_isConnect, bit_id)
-	g_Online ++
+	
 	if(is_user_bot(id) && !g_hasBot)
 	{
 			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
@@ -537,8 +536,9 @@ public task_round_start()
 	g_whoBoss = id
 	for(new id = 1; id <= g_MaxPlayer; id++)
 	{
-		if(!get_bit(g_isConnect, bit_id) || g_whoBoss == id)
+		if(!get_bit(g_isLogin, bit_id) || g_whoBoss == id)
 			continue
+		g_Online ++
 	}
 	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_Online) * (g_Online - 1))
 	new addhealth = floatround(floatpower(((760.8 + g_Online)*(g_Online - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
@@ -674,6 +674,7 @@ gm_choose_boss()
 gm_reset_vars()
 {
 	g_whoBoss = -1;
+	g_Online = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -888,7 +889,7 @@ public msg_vgui_menu(msgid, dest, id)
 public menu_team_select(id, key)
 {
 	if(!get_bit(g_isLogin, bit_id))
-		return PLUGIN_HANDLED;
+	return PLUGIN_HANDLED;
 	switch(key)
 	{
 		case 0:	//T
