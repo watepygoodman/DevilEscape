@@ -190,6 +190,7 @@ public plugin_init()
 	
 	//Ham
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
+	RegisterHam(Ham_TakeDamage, "player", "fw_SumDamage",1);
 	RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1);
 	RegisterHam(Ham_Touch, "weapon_hegrenade", "fw_TouchWeapon")
 	RegisterHam(Ham_Touch, "weaponbox", "fw_TouchWeapon")
@@ -374,7 +375,16 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		
 	if(g_whoBoss == attacker)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
-		
+
+	return FMRES_IGNORED;
+}
+
+public fw_SumDamage(victim, inflictor, attacker, Float:damage, damage_type)
+{
+	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
+	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
+		return FMRES_IGNORED;
+	
 	g_Dmg[attacker] += damage;
 	g_DmgDealt[attacker] += damage;
 	
@@ -578,8 +588,8 @@ public task_showhud(id)
 	id -= TASK_SHOWHUD
 	
 	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%f  |  XP:%d/%d^nBossHP:%d  |  g_Online:%d",
-	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], g_Dmg[id], g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_Online)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%d  |  XP:%d/%d^nBossHP:%d",
+	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], floatround(g_Dmg[id]), g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_Online)
 }
 
 public task_plrspawn(id)
