@@ -829,10 +829,11 @@ public menu_bossskill(id,key)
 			new success = bossskill_teleport(g_whoBoss)
 			if(success)
 			{
+				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_TELEPORT")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				//扣魔力
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
-				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL");
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
 	}
