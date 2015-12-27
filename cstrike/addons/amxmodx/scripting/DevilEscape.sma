@@ -67,6 +67,12 @@ enum(+=40)
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN
 }
 
+enum{
+	Round_Start=0,			
+	Round_Running,
+	Round_End
+}
+
 new const g_RemoveEnt[][] = {
 	"func_hostage_rescue", "info_hostage_rescue", "func_bomb_target", "info_bomb_target",
 	"hostage_entity", "info_vip_start", "func_vip_safetyzone", "func_escapezone"
@@ -116,6 +122,7 @@ new g_whoBoss;
 new g_MaxPlayer;
 new g_Online;
 new bool:g_hasBot;
+new g_RoundStatus;
 
 new g_Level[33];
 new g_Coin[33];
@@ -245,9 +252,11 @@ public plugin_init()
 			 
 ===================== */
 
-//Round_Strat
+//Round_Start
 public event_round_start()
 {
+	g_RoundStatus = Round_Start;
+	
 	//Light
 	engfunc(EngFunc_LightStyle, 0, 'f')
 	
@@ -265,6 +274,8 @@ public event_round_start()
 //Round_End
 public event_round_end()
 {
+	g_RoundStatus = Round_End;
+	
 	remove_task(TASK_BALANCE)
 	set_task(0.2, "task_balance", TASK_BALANCE)
 }
@@ -610,6 +621,8 @@ public task_round_start()
 	set_pev(id, pev_weaponmodel2, "")
 	
 	fm_set_user_model(id, "devil1")
+	
+	g_RoundStatus = Round_Running;
 }
 
 public task_balance()
@@ -1123,7 +1136,7 @@ public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
 
 public bossskill_teleport(id)
 {
-	if(id > g_MaxPlayer || !is_user_alive(id)) return 0;
+	if(id > g_MaxPlayer || !is_user_alive(id) || g_RoundStatus == Round_End) return 0;
 	
 	new target
 	while(!is_user_alive(target) || g_whoBoss == target)
@@ -1132,6 +1145,7 @@ public bossskill_teleport(id)
 	new idorg[3]
 	
 	get_user_origin(target,idorg)
+	idorg[2] = idorg[2] + 10
 	set_user_origin(id,idorg)
 	
 	g_AttackCooldown[id] = get_gametime() + 1.5;
