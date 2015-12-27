@@ -109,7 +109,8 @@ new const g_fog_denisty[] = "0.002";
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv;
+new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_DevilScareRange, cvar_RewardCoin, 
+cvar_RewardXp, cvar_SpPreLv
 
 //Spr
 new g_spr_ring;
@@ -184,8 +185,9 @@ public plugin_precache()
 	cvar_RewardXp = register_cvar("de_reward_xp", "200")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	cvar_LoginTime = register_cvar("de_logintime","120")
-	cvar_DevilHea = register_cvar("de_devilbasehea","2046")
-	cvar_DevilSlashDmg = register_cvar("de_devilslashdmg", "50")
+	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
+	cvar_DevilSlashDmg = register_cvar("de_devil_slashdmg", "50")
+	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	
 	
 }
@@ -837,7 +839,7 @@ public menu_bossskill(id,key)
 	{
 		case 0:
 		{
-			if(bossskill_angry(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,512.0))
+			if(bossskill_scare(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,get_pcvar_float(cvar_DevilScareRange)))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1120,7 +1122,7 @@ public menu_team_select(id, key)
 			 Skill
 			 
 ===================== */
-public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
+public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
 {
 	if(!is_user_valid_connected(id) || !is_user_alive(id)) return 0;
 	new Float:idorg[3]
