@@ -1143,7 +1143,7 @@ public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
 
 public bossskill_teleport(id)
 {
-	if(i!is_user_valid_connected(id) || !is_user_alive(id) || g_RoundStatus == Round_End) return 0;
+	if(!is_user_valid_connected(id) || !is_user_alive(id) || g_RoundStatus == Round_End) return 0;
 	
 	new target
 	while(!is_user_alive(target) || g_whoBoss == target)
