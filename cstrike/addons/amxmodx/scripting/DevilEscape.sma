@@ -20,6 +20,7 @@ log:
 #include <dhudmessage>
 #include <keyvalues>
 #include <bitset>
+#include <engine>
 
 #define PLUGIN_NAME "DevilEscape"
 #define PLUGIN_VERSION "0.0"
@@ -79,6 +80,8 @@ new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
 new const snd_human_win[] = "DevilEscape/Human_Win.wav"
 new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 
+new const snd_boss_scare[] = "DevilEscape/Boss_Scare.wav"
+
 //offset
 const m_CsTeam = 114 				//队伍
 const m_MapZone = 235				//所在区域
@@ -122,6 +125,7 @@ new g_Sp[33];
 new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
 new g_LoginTime[33];
+new Float:g_AngryTarget[33];
 
 new g_savesDir[128];
 new g_PlayerModel[33][32]
@@ -158,6 +162,7 @@ public plugin_precache()
 	
 	engfunc(EngFunc_PrecacheSound, snd_human_win)
 	engfunc(EngFunc_PrecacheSound, snd_devil_win)
+	engfunc(EngFunc_PrecacheSound, snd_boss_scare)
 	
 	//Cvar
 	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
@@ -178,8 +183,8 @@ public plugin_init()
 	
 	//Menu
 	register_menu("Main Menu", KEYSMENU, "menu_main")
-	register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
-	register_menu("BossSkill Menu", KEYSMENU, "menu_bossskill")
+	//register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
+	register_menu("Skill Menu", KEYSMENU, "menu_skill")
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
 	
 	//Event
@@ -343,6 +348,17 @@ public fw_PlayerSpawn_Post(id)
 //PreThink
 public fw_PlayerPreThink(id)
 {
+	if(g_AngryTarget[id] > get_gametime())
+	{
+		if(!is_user_alive(id)) return FMRES_IGNORED;
+		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
+		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
+	}else{
+		g_AngryTarget[id] = 0.0;
+		set_view(id,CAMERA_NONE)
+	}
+		
+	
 	// fw_SetPlayerSoild(id)
 	if(g_Xp[id] >= g_NeedXp[id])
 	{
@@ -355,6 +371,7 @@ public fw_PlayerPreThink(id)
 		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_LEVEL_UP", g_Level[id])
 	}
+	return FMRES_HANDLED;
 }
 
 //Post Think
@@ -475,7 +492,9 @@ public fw_ClientCommand(id)
 		if (team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
 			return FMRES_IGNORED;
 		
-		//show_menu_main(id)
+		if(get_bit(g_isLogin,bit_id))
+			show_menu_main(id)
+		
 		return FMRES_SUPERCEDE;
 	} 
 	
@@ -525,8 +544,8 @@ public client_putinserver(id)
 	
 	if(is_user_bot(id) && !g_hasBot)
 	{
-			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
-			return
+		set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
+		return
 	}
 	g_LoginTime[id] = get_pcvar_num(cvar_LoginTime)
 	delete_bit(g_isRegister, bit_id)
@@ -671,6 +690,7 @@ public task_refill_bpammo(const args[], id)
 	set_msg_block(get_user_msgid("AmmoPickup"), BLOCK_ONCE)
 	ExecuteHamB(Ham_GiveAmmo, id, MAXBPAMMO[args[0]], AMMOTYPE[args[0]], MAXBPAMMO[args[0]])
 }
+
 /* =====================
 
 			 Menu
@@ -678,11 +698,12 @@ public task_refill_bpammo(const args[], id)
 ===================== */
 public show_menu_main(id)
 {
-	new Menu[256], Len, 
+	new Menu[256],Len;
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, Game_Description)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_WEAPON")
-	// Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SKILL")
+	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	
 	show_menu(id, KEYSMENU, Menu, -1, "Main Menu")
@@ -702,7 +723,67 @@ public menu_main(id, key)
 	return PLUGIN_HANDLED;
 }
 
+public show_menu_weapon1(id)
+{
+	
+}
 
+public show_menu_pack(id)
+{
+	
+}
+
+public show_menu_equip(id)
+{
+	
+}
+
+public show_menu_skill(id)
+{
+	new Menu[250],Len;
+	if(g_whoBoss == id)
+	{
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n",id,"MENU_BOSSSKILL")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"BOSSSKILL_SCARE")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"BOSSSKILL_BLINK")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"BOSSSKILL_TELEPORT")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"BOSSSKILL_GODMODE")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	}else
+	{
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n",id,"MENU_HUMANSKILL")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"HUMANSKILL_FASTRUN")
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"HUMANSKILL_ONLYHEADSHOT")
+
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	}
+	
+	show_menu(id,KEYSMENU,Menu,-1,"Skill Menu")
+	return PLUGIN_HANDLED
+}
+
+public menu_skill(id,key)
+{
+	switch(key)
+	{
+		case 0:
+		if(g_whoBoss == id)
+		{
+			new success = bossskill_angry(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,512.0)
+			if(success)
+			{
+				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				//扣魔力
+			}
+		}
+		else
+		{
+			
+		}
+	}
+}
 
 /* =====================
 
@@ -728,6 +809,7 @@ gm_reset_vars()
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
+		g_AngryTarget[i] = 0.0;
 	}
 }
 
@@ -956,6 +1038,32 @@ public menu_team_select(id, key)
 	return PLUGIN_CONTINUE;
 }
 
+/* =====================
+
+			 Skill
+			 
+===================== */
+public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
+{
+	if(id > g_MaxPlayer || !is_user_alive(id)) return 0;
+	new Float:idorg[3]
+	pev(id,pev_origin,idorg)
+	
+	new Float:nowtime = get_gametime()
+	
+	
+	new target
+	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
+	{
+		if(target==id) continue;
+		
+		g_AngryTarget[target] = nowtime + dealytime;
+		
+		if(!is_user_bot(target)) set_view(target,CAMERA_3RDPERSON);
+	}
+	
+	return 1;
+}
 
 /* ==========================
 
