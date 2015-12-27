@@ -64,7 +64,8 @@ enum
 enum(+=40)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
-	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN
+	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
+	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1
 }
 
 enum{
@@ -109,8 +110,8 @@ new const g_fog_denisty[] = "0.002";
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_DevilScareRange, cvar_RewardCoin, 
-cvar_RewardXp, cvar_SpPreLv
+new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_DevilScareRange, cvar_DevilGodTime,
+cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv
 
 //Spr
 new g_spr_ring;
@@ -122,6 +123,7 @@ new g_isLogin;
 new g_isConnect;
 new g_isChangingPW;
 new g_isModeled;
+new g_isNoDamage
 // new g_isSemiclip;
 // new g_isSolid;
 new g_whoBoss;
@@ -188,6 +190,7 @@ public plugin_precache()
 	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
 	cvar_DevilSlashDmg = register_cvar("de_devil_slashdmg", "50")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
+	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
 	
 	
 }
@@ -422,6 +425,10 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
 		return FMRES_IGNORED;
 		
+	//无敌
+	if(get_bit(g_isNoDamage, victim))
+		return FMRES_SUPERCEDE;
+	
 	if(g_whoBoss == attacker)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
 
@@ -738,6 +745,37 @@ public task_refill_bpammo(const args[], id)
 	ExecuteHamB(Ham_GiveAmmo, id, MAXBPAMMO[args[0]], AMMOTYPE[args[0]], MAXBPAMMO[args[0]])
 }
 
+public task_godmode_light(id)
+{
+	id -= TASK_GODMODE_LIGHT
+	static origin[3]
+	get_user_origin(id, origin)
+	
+	// Colored Aura
+	message_begin(MSG_PVS, SVC_TEMPENTITY, origin)
+	write_byte(TE_DLIGHT) // TE id
+	write_coord(origin[0]) // x
+	write_coord(origin[1]) // y
+	write_coord(origin[2]) // z
+	write_byte(20) // radius
+	write_byte(255) // r
+	write_byte(5) // g
+	write_byte(5) // b
+	write_byte(2) // life
+	write_byte(0) // decay rate
+	message_end()
+}
+
+public task_godmode_off(id)
+{
+	id -= TASK_GODMODE_OFF1
+	
+	set_pev(id, pev_takedamage, 2.0)
+	delete_bit(g_isNoDamage, bit_id)
+	fm_set_rendering(id,kRenderFxNone, 0,0,0, kRenderNormal, 0)
+	remove_task( id+TASK_GODMODE_LIGHT )
+}
+
 /* =====================
 
 			 Menu
@@ -859,6 +897,17 @@ public menu_bossskill(id,key)
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
+		
+		case 3:
+		{
+			if(bossskill_godmode(g_whoBoss))
+			{
+				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_GODMODE")
+				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
+			}
+		}
 	}
 	
 	return PLUGIN_HANDLED;
@@ -885,6 +934,7 @@ gm_reset_vars()
 {
 	g_whoBoss = -1;
 	g_Online = 0;
+	g_isNoDamage = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -1160,6 +1210,19 @@ public bossskill_teleport(id)
 	g_AttackCooldown[id] = get_gametime() + 1.5;
 	
 	return 1;
+}
+
+public bossskill_godmode(id)
+{
+	if(!is_user_valid_connected(id) || !is_user_alive(id)) return 0;
+	
+	set_pev(id, pev_takedamage, 0.0)
+	set_bit(g_isNoDamage, bit_id)
+	fm_set_rendering(id,kRenderFxGlowShell,250,0,0, kRenderNormal, 32);
+	set_task(0.1, "task_godmode_light", id+TASK_GODMODE_LIGHT, _, _, "b")
+	set_task(get_pcvar_float(cvar_DevilGodTime), "task_godmode_off", TASK_GODMODE_OFF1 + id)
+	return 1;
+	
 }
 
 /* ==========================
