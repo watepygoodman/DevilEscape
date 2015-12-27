@@ -13,9 +13,10 @@ HUD_CHANGING_PW = [DevilEscape]^n请按Y输入你的新密码
 HUD_LEVEL_UP = [Lv %d]
 
 DHUD_ROUND_START = 10秒后魔王出现
+DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s
 
-MENU_SKILL = 技能
-MENU_WEAPON = 武器
+MENU_SKILL = 技能菜单
+MENU_WEAPON = 选择武器
 MENU_HUMANSKILL = 人类技能
 MENU_BOSSSKILL = 魔王技能
 

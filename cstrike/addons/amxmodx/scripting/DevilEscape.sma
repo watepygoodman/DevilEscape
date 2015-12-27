@@ -185,6 +185,9 @@ public plugin_init()
 	register_menu("Main Menu", KEYSMENU, "menu_main")
 	//register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
 	register_menu("Skill Menu", KEYSMENU, "menu_skill")
+	register_menu("BossSkill Menu", KEYSMENU, "menu_bossskill")
+	// register_menu("Weapon1 Menu", KEYSMENU, "menu_weapon1")
+	
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
 	
 	//Event
@@ -193,6 +196,7 @@ public plugin_init()
 	register_logevent("event_round_end", 2, "1=Round_End");
 	
 	//Forward
+	register_forward(FM_CmdStart,"fw_CmdStart")
 	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink");
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink");
 	register_forward(FM_ClientCommand, "fw_ClientCommand") ;
@@ -444,6 +448,23 @@ public fw_TouchWeapon(weapon, id)
 public fw_ClientDisconnect(id)
 {
 	delete_bit(g_isConnect, bit_id)
+}
+
+//Command
+public fw_CmdStart(id,uc_handle,seed)
+{
+	new button = get_uc(uc_handle, UC_Buttons);
+	// new old_button = pev(id,pev_oldbuttons);
+	
+	if(button&IN_USE)
+	{
+		if(id != g_whoBoss)
+			return FMRES_IGNORED
+		show_menu_bossskill(id)
+		return FMRES_SUPERCEDE
+	}
+	
+	return FMRES_IGNORED
 }
 
 //客户端命令
@@ -703,6 +724,8 @@ public show_menu_main(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_WEAPON")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_PACK")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_EQUIP")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	
@@ -728,6 +751,11 @@ public show_menu_weapon1(id)
 	
 }
 
+public menu_weapon1(id, key)
+{
+	return PLUGIN_HANDLED;
+}
+
 public show_menu_pack(id)
 {
 	
@@ -741,25 +769,11 @@ public show_menu_equip(id)
 public show_menu_skill(id)
 {
 	new Menu[250],Len;
-	if(g_whoBoss == id)
-	{
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n",id,"MENU_BOSSSKILL")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"BOSSSKILL_SCARE")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"BOSSSKILL_BLINK")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"BOSSSKILL_TELEPORT")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"BOSSSKILL_GODMODE")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
-	}else
-	{
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n",id,"MENU_HUMANSKILL")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"HUMANSKILL_FASTRUN")
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"HUMANSKILL_ONLYHEADSHOT")
-
-		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
-	}
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_HUMANSKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"HUMANSKILL_FASTRUN")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"HUMANSKILL_ONLYHEADSHOT")
 	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id,KEYSMENU,Menu,-1,"Skill Menu")
 	return PLUGIN_HANDLED
 }
@@ -769,20 +783,53 @@ public menu_skill(id,key)
 	switch(key)
 	{
 		case 0:
-		if(g_whoBoss == id)
+		{
+			//....
+		}
+	}
+	return PLUGIN_HANDLED;
+}
+
+public show_menu_bossskill(id)
+{
+	new Menu[250],Len;
+	if(g_whoBoss != id)
+		return PLUGIN_HANDLED;
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_BOSSSKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"BOSSSKILL_SCARE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"BOSSSKILL_BLINK")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"BOSSSKILL_TELEPORT")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"BOSSSKILL_GODMODE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+		
+	show_menu(id,KEYSMENU,Menu,-1,"BossSkill Menu")
+	return PLUGIN_HANDLED
+}
+
+public menu_bossskill(id,key)
+{
+	client_print(0, print_chat, "print")
+	
+	if(g_whoBoss != id)
+		return PLUGIN_HANDLED;
+
+	switch(key)
+	{
+		case 0:
 		{
 			new success = bossskill_angry(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,512.0)
 			if(success)
 			{
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				//扣魔力
+				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL" );
 			}
 		}
-		else
-		{
-			
-		}
 	}
+	
+	return PLUGIN_HANDLED;
 }
 
 /* =====================
