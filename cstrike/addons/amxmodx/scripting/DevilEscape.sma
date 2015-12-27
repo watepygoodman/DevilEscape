@@ -88,6 +88,8 @@ new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 
 new const snd_boss_scare[] = "DevilEscape/Boss_Scare.wav"
 
+new const spr_ring[] = "sprites/shockwave.spr"
+
 //offset
 const m_CsTeam = 114 				//队伍
 const m_MapZone = 235				//所在区域
@@ -108,6 +110,9 @@ new const g_fog_denisty[] = "0.002";
 
 //Cvar
 new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv;
+
+//Spr
+new g_spr_ring;
 
 //Game
 new g_plrTeam;
@@ -166,6 +171,8 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheModel, mdl_player_devil1)
 	
 	engfunc(EngFunc_PrecacheModel, mdl_v_devil1)
+	
+	g_spr_ring = engfunc(EngFunc_PrecacheModel, spr_ring)
 	
 	engfunc(EngFunc_PrecacheSound, snd_human_win)
 	engfunc(EngFunc_PrecacheSound, snd_devil_win)
@@ -354,6 +361,10 @@ public fw_PlayerSpawn_Post(id)
 		case FM_CS_TEAM_T:
 			delete_bit(g_plrTeam, bit_id)
 	}
+	
+	new Float:test[3]
+	pev(id, pev_origin, test)
+	msg_create_lightring(test, {1,1,1})
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
 	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
 	
@@ -1354,6 +1365,32 @@ stock msg_trace(const Float:idorigin[3],const Float:targetorigin[3]){
 	write_coord(target[1])
 	write_coord(target[2])
 	message_end()
+}
+
+stock msg_create_lightring(const Float:originF[3], rgb[3])
+{
+	// Smallest ring
+	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, originF, 0)
+	write_byte(TE_BEAMCYLINDER) // TE id
+	engfunc(EngFunc_WriteCoord, originF[0]) // x
+	engfunc(EngFunc_WriteCoord, originF[1]) // y
+	engfunc(EngFunc_WriteCoord, originF[2]) // z
+	engfunc(EngFunc_WriteCoord, originF[0]) // x axis
+	engfunc(EngFunc_WriteCoord, originF[1]) // y axis
+	engfunc(EngFunc_WriteCoord, originF[2]+100) // z axis
+	write_short(g_spr_ring) // sprite
+	write_byte(98) // startframe
+	write_byte(0) // framerate
+	write_byte(4) // life
+	write_byte(60) // width
+	write_byte(0) // noise
+	write_byte(200) // red
+	write_byte(100) // green
+	write_byte(0) // blue
+	write_byte(200) // brightness
+	write_byte(0) // speed
+	message_end()
+
 }
 
 /* =====================
