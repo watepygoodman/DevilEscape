@@ -185,7 +185,7 @@ public plugin_init()
 	register_menu("Main Menu", KEYSMENU, "menu_main")
 	//register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
 	register_menu("Skill Menu", KEYSMENU, "menu_skill")
-	register_menu("BossSkill Menu", KEYSMENU, "menu_bossskill")
+	register_menu("Bossskill Menu", KEYSMENU, "menu_bossskill")
 	// register_menu("Weapon1 Menu", KEYSMENU, "menu_weapon1")
 	
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
@@ -208,7 +208,7 @@ public plugin_init()
 	
 	//Ham
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
-	RegisterHam(Ham_TakeDamage, "player", "fw_SumDamage",1);
+	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage_Post",1);
 	RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1);
 	RegisterHam(Ham_Touch, "weapon_hegrenade", "fw_TouchWeapon")
 	RegisterHam(Ham_Touch, "weaponbox", "fw_TouchWeapon")
@@ -405,7 +405,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	return FMRES_IGNORED;
 }
 
-public fw_SumDamage(victim, inflictor, attacker, Float:damage, damage_type)
+public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type)
 {
 	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
 	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
@@ -701,6 +701,7 @@ public task_bots_ham(id)
 	
 	RegisterHamFromEntity(Ham_Spawn, id, "fw_PlayerSpawn_Post", 1)
 	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage")
+	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage_Post", 1)
 }
 
 public task_refill_bpammo(const args[], id)
@@ -784,7 +785,7 @@ public menu_skill(id,key)
 	{
 		case 0:
 		{
-			//....
+			client_print(0, print_chat, "skillmenu 0")
 		}
 	}
 	return PLUGIN_HANDLED;
@@ -793,8 +794,6 @@ public menu_skill(id,key)
 public show_menu_bossskill(id)
 {
 	new Menu[250],Len;
-	if(g_whoBoss != id)
-		return PLUGIN_HANDLED;
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_BOSSSKILL")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"BOSSSKILL_SCARE")
@@ -803,17 +802,14 @@ public show_menu_bossskill(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"BOSSSKILL_GODMODE")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 		
-	show_menu(id,KEYSMENU,Menu,-1,"BossSkill Menu")
+	show_menu(id,KEYSMENU,Menu,-1,"Bossskill Menu")
 	return PLUGIN_HANDLED
 }
 
 public menu_bossskill(id,key)
 {
-	client_print(0, print_chat, "print")
-	
-	if(g_whoBoss != id)
-		return PLUGIN_HANDLED;
-
+	new name[32], skillname[10]
+	get_user_name(id, name, charsmax(name))
 	switch(key)
 	{
 		case 0:
@@ -821,10 +817,11 @@ public menu_bossskill(id,key)
 			new success = bossskill_angry(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,512.0)
 			if(success)
 			{
+				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				//扣魔力
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
-				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL" );
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
 			}
 		}
 	}
