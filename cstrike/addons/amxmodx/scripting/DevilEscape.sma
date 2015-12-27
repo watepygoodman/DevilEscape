@@ -364,7 +364,6 @@ public fw_PlayerSpawn_Post(id)
 	
 	new Float:test[3]
 	pev(id, pev_origin, test)
-	msg_create_lightring(test, {1,1,1})
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
 	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
 	
@@ -838,8 +837,7 @@ public menu_bossskill(id,key)
 	{
 		case 0:
 		{
-			new success = bossskill_angry(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,512.0)
-			if(success)
+			if(bossskill_angry(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,512.0))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -850,8 +848,7 @@ public menu_bossskill(id,key)
 		}
 		case 2:
 		{
-			new success = bossskill_teleport(g_whoBoss)
-			if(success)
+			if(bossskill_teleport(g_whoBoss))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_TELEPORT")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1125,10 +1122,10 @@ public menu_team_select(id, key)
 ===================== */
 public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
 {
-	if(id > g_MaxPlayer || !is_user_alive(id)) return 0;
+	if(!is_user_valid_connected(id) || !is_user_alive(id)) return 0;
 	new Float:idorg[3]
 	pev(id,pev_origin,idorg)
-	
+	msg_create_lightring(idorg, radius, {128, 28, 28})
 	new Float:nowtime = get_gametime()
 	
 	
@@ -1141,13 +1138,12 @@ public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
 		
 		if(!is_user_bot(target)) set_view(target,CAMERA_3RDPERSON);
 	}
-	
 	return 1;
 }
 
 public bossskill_teleport(id)
 {
-	if(id > g_MaxPlayer || !is_user_alive(id) || g_RoundStatus == Round_End) return 0;
+	if(i!is_user_valid_connected(id) || !is_user_alive(id) || g_RoundStatus == Round_End) return 0;
 	
 	new target
 	while(!is_user_alive(target) || g_whoBoss == target)
@@ -1367,7 +1363,7 @@ stock msg_trace(const Float:idorigin[3],const Float:targetorigin[3]){
 	message_end()
 }
 
-stock msg_create_lightring(const Float:originF[3], rgb[3])
+stock msg_create_lightring(const Float:originF[3], const Float:radius = 100.0, rgb[3] = {100, 100, 100})
 {
 	// Smallest ring
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, originF, 0)
@@ -1377,16 +1373,16 @@ stock msg_create_lightring(const Float:originF[3], rgb[3])
 	engfunc(EngFunc_WriteCoord, originF[2]) // z
 	engfunc(EngFunc_WriteCoord, originF[0]) // x axis
 	engfunc(EngFunc_WriteCoord, originF[1]) // y axis
-	engfunc(EngFunc_WriteCoord, originF[2]+100) // z axis
+	engfunc(EngFunc_WriteCoord, originF[2]+ radius) // z axis
 	write_short(g_spr_ring) // sprite
-	write_byte(98) // startframe
+	write_byte(0) // startframe
 	write_byte(0) // framerate
 	write_byte(4) // life
-	write_byte(60) // width
+	write_byte(15) // width
 	write_byte(0) // noise
-	write_byte(200) // red
-	write_byte(100) // green
-	write_byte(0) // blue
+	write_byte(rgb[0]) // red
+	write_byte(rgb[1]) // green
+	write_byte(rgb[2]) // blue
 	write_byte(200) // brightness
 	write_byte(0) // speed
 	message_end()
