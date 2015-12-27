@@ -125,7 +125,7 @@ new g_Sp[33];
 new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
 new g_LoginTime[33];
-new Float:g_AngryTarget[33];
+new Float:g_AttackCooldown[33];
 
 new g_savesDir[128];
 new g_PlayerModel[33][32]
@@ -352,13 +352,13 @@ public fw_PlayerSpawn_Post(id)
 //PreThink
 public fw_PlayerPreThink(id)
 {
-	if(g_AngryTarget[id] > get_gametime())
+	if(g_AttackCooldown[id] > get_gametime())
 	{
 		if(!is_user_alive(id)) return FMRES_IGNORED;
 		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
 		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
 	}else{
-		g_AngryTarget[id] = 0.0;
+		g_AttackCooldown[id] = 0.0;
 		set_view(id,CAMERA_NONE)
 	}
 		
@@ -726,7 +726,7 @@ public show_menu_main(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_WEAPON")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SKILL")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_PACK")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_EQUIP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n", id, "MENU_EQUIP")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	
@@ -797,7 +797,7 @@ public show_menu_bossskill(id)
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_BOSSSKILL")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"BOSSSKILL_SCARE")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"BOSSSKILL_BLINK")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"BOSSSKILL_BLIND")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"BOSSSKILL_TELEPORT")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"BOSSSKILL_GODMODE")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
@@ -822,6 +822,17 @@ public menu_bossskill(id,key)
 				//扣魔力
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
+			}
+		}
+		case 2:
+		{
+			new success = bossskill_teleport(g_whoBoss)
+			if(success)
+			{
+				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				//扣魔力
+				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL");
 			}
 		}
 	}
@@ -853,7 +864,7 @@ gm_reset_vars()
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
-		g_AngryTarget[i] = 0.0;
+		g_AttackCooldown[i] = 0.0;
 	}
 }
 
@@ -1101,10 +1112,28 @@ public bossskill_angry(id,Float:force[3],Float:dealytime,Float:radius)
 	{
 		if(target==id) continue;
 		
-		g_AngryTarget[target] = nowtime + dealytime;
+		g_AttackCooldown[target] = nowtime + dealytime;
 		
 		if(!is_user_bot(target)) set_view(target,CAMERA_3RDPERSON);
 	}
+	
+	return 1;
+}
+
+public bossskill_teleport(id)
+{
+	if(id > g_MaxPlayer || !is_user_alive(id)) return 0;
+	
+	new target
+	while(!is_user_alive(target) || g_whoBoss == target)
+		target = random_num(1, g_MaxPlayer)
+	
+	new idorg[3]
+	
+	get_user_origin(target,idorg)
+	set_user_origin(id,idorg)
+	
+	g_AttackCooldown[id] = get_gametime() + 1.5;
 	
 	return 1;
 }
