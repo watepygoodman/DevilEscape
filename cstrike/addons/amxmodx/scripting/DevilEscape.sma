@@ -124,7 +124,7 @@ new const g_fog_denisty[] = "0.002";
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_DevilScareRange, cvar_DevilGodTime,
+new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmgMulti, cvar_DevilScareRange, cvar_DevilGodTime,
 cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti
 
 //Spr
@@ -218,7 +218,7 @@ public plugin_precache()
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	cvar_LoginTime = register_cvar("de_logintime","120")
 	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
-	cvar_DevilSlashDmg = register_cvar("de_devil_slashdmg", "50")
+	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.5")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
 	cvar_HumanCritPercent = register_cvar("de_crit_percent","3")
@@ -498,35 +498,42 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
 	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
 	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
-		return FMRES_IGNORED;
+		return HAM_IGNORED
 		
 	//无敌
 	if(get_bit(g_isNoDamage, victim))
-		return FMRES_SUPERCEDE;
+		return HAM_SUPERCEDE;
+	
+	new Float:TrueDamage = damage;
 	
 	if(g_whoBoss == attacker)
-		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
+	{
+		TrueDamage *= get_pcvar_float(cvar_DevilSlashDmgMulti)
+		SetHamParamFloat(4, TrueDamage)
+		return HAM_HANDLED;
+	}
 	
 	if(get_bit(g_isCrit, attacker-1))
 	{
-		SetHamParamFloat(4, get_pcvar_float(cvar_HumanCritMulti))
+		TrueDamage *= get_pcvar_float(cvar_HumanCritMulti)
 		msg_create_crit(attacker,victim,1)
 	}
-	
-	if(get_bit(g_isMiniCrit, attacker-1))
+	else if(get_bit(g_isMiniCrit, attacker-1))
 	{
-		SetHamParamFloat(4, get_pcvar_float(cvar_HumanMiniCritMulti))
+		TrueDamage *= get_pcvar_float(cvar_HumanMiniCritMulti)
 		msg_create_crit(attacker,victim,2)
 	}
+	
+	SetHamParamFloat(4, TrueDamage)
 		
-	return FMRES_SUPERCEDE;
+	return HAM_HANDLED;
 }
 
 public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type)
 {
 	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
 	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
-		return FMRES_IGNORED;
+		return HAM_IGNORED
 	
 	g_Dmg[attacker] += damage;
 	g_DmgDealt[attacker] += damage;
@@ -547,7 +554,7 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 	
 	//这里应该是HUD提示
 	
-	return FMRES_IGNORED;
+	return HAM_IGNORED
 }
 
 public fw_TouchWeapon(weapon, id)
