@@ -90,6 +90,8 @@ new const snd_human_win[] = "DevilEscape/Human_Win.wav"
 new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 
 new const snd_boss_scare[] = "DevilEscape/Boss_Scare.wav"
+new const snd_boss_tele[] = "DevilEscape/Boss_Teleport.wav"
+new const snd_boss_god[] = "DevilEscape/Boss_God.wav"
 
 new const snd_crit_shoot[] = "DevilEscape/Crit_Shoot.wav"
 new const snd_crit_hit[] = "DevilEscape/Crit_Hit.wav"
@@ -202,6 +204,8 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, snd_human_win)
 	engfunc(EngFunc_PrecacheSound, snd_devil_win)
 	engfunc(EngFunc_PrecacheSound, snd_boss_scare)
+	engfunc(EngFunc_PrecacheSound, snd_boss_tele)
+	engfunc(EngFunc_PrecacheSound, snd_boss_god)
 	engfunc(EngFunc_PrecacheSound, snd_crit_hit)
 	engfunc(EngFunc_PrecacheSound, snd_crit_received)
 	engfunc(EngFunc_PrecacheSound, snd_crit_shoot)
@@ -1010,7 +1014,7 @@ public menu_bossskill(id,key)
 			if(bossskill_teleport(g_whoBoss))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_TELEPORT")
-				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_tele, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				//扣魔力
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
@@ -1022,7 +1026,7 @@ public menu_bossskill(id,key)
 			if(bossskill_godmode(g_whoBoss))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_GODMODE")
-				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_god, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
@@ -1309,7 +1313,7 @@ public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
 		if(target==id) continue;
 		
 		g_AttackCooldown[target] = nowtime + dealytime;
-		
+		msg_show_scare(target)
 		if(!is_user_bot(target)) set_view(target,CAMERA_3RDPERSON);
 	}
 	return 1;
@@ -1642,6 +1646,17 @@ stock msg_create_crit(id, target,type){
 		write_coord(30)
 		message_end()
 	}
+}
+
+stock msg_show_scare(id)
+{
+	message_begin( MSG_ALL, SVC_TEMPENTITY );
+	write_byte(TE_PLAYERATTACHMENT);
+	write_byte(id);
+	write_coord(45);
+	write_short(g_spr_scare); 
+	write_short(5);
+	message_end();
 }
 
 /* =====================
