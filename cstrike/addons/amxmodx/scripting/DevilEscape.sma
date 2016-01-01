@@ -367,26 +367,26 @@ public event_shoot(id)
 		get_user_origin(id, vec2, 4);
 		if(weapon==CSW_M3 || weapon==CSW_XM1014)
 		{
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 
 			vec2[0]+=SHOTGUN_AIMING;
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 			vec2[1]+=SHOTGUN_AIMING;
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 			vec2[2]+=SHOTGUN_AIMING;
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 			vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 			vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-			msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 		}
-		else 
-			msg_trace(vec1,vec2);
+		else
+			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
 		g_users_ammo[id]=ammo;
 		if(get_bit(g_isCrit, bit_id))
 			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1505,6 +1505,18 @@ stock fm_get_entity_index(owner,entclassname[])
 	return 0
 }
 
+stock fm_get_speed_vector(origin1[3],origin2[3],Float:force, new_velocity[3]){
+    new_velocity[0] = origin2[0] - origin1[0]
+    new_velocity[1] = origin2[1] - origin1[1]
+    new_velocity[2] = origin2[2] - origin1[2]
+    new Float:num = floatsqroot(force*force / (new_velocity[0]*new_velocity[0] + new_velocity[1]*new_velocity[1] + new_velocity[2]*new_velocity[2]))
+    new_velocity[0] *= floatround(num)
+    new_velocity[1] *= floatround(num)
+    new_velocity[2] *= floatround(num)
+
+    return 1;
+}
+
 /* =====================
 
 			 Msg
@@ -1531,16 +1543,33 @@ stock msg_change_team_info(id, team[])
 	message_end()					// Also Needed
 }
 
-stock msg_trace(idorigin[3],targetorigin[3]){
-	message_begin(MSG_PAS, SVC_TEMPENTITY,idorigin);
-	write_byte(6);
-	write_coord(idorigin[0]);
-	write_coord(idorigin[1]);
-	write_coord(idorigin[2]);
-	write_coord(targetorigin[0]);
-	write_coord(targetorigin[1]);
-	write_coord(targetorigin[2]);
-	message_end();
+stock msg_trace(idorigin[3],targetorigin[3],crit){
+	if(crit){
+		new velfloat[3]
+		fm_get_speed_vector(idorigin, targetorigin, 4000.0, velfloat)
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(TE_USERTRACER)
+		write_coord(idorigin[0])
+		write_coord(idorigin[1])
+		write_coord(idorigin[2])
+		write_coord(velfloat[0])
+		write_coord(velfloat[1])
+		write_coord(velfloat[2])
+		write_byte(12)
+		write_byte(3)
+		write_byte(25)
+		message_end()
+	}else{
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(6);
+		write_coord(idorigin[0]);
+		write_coord(idorigin[1]);
+		write_coord(idorigin[2]);
+		write_coord(targetorigin[0]);
+		write_coord(targetorigin[1]);
+		write_coord(targetorigin[2]);
+		message_end();
+	}
 }
 
 stock msg_create_lightring(const Float:originF[3], const Float:radius = 100.0, rgb[3] = {100, 100, 100})
