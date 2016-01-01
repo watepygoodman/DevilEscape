@@ -125,7 +125,8 @@ new const g_fog_denisty[] = "0.002";
 
 //Cvar
 new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmgMulti, cvar_DevilScareRange, cvar_DevilGodTime,
-cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti
+cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, 
+cvar_AbilityHeaCost, cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost
 
 //Spr
 new g_spr_ring;
@@ -156,6 +157,11 @@ new g_Coin[33];
 new g_Gash[33];
 new g_Xp[33];
 new g_Sp[33];
+new g_Abi_Hea[33]
+new g_Abi_Str[33];
+new g_Abi_Agi[33];
+new g_Abi_Gra[33];
+
 new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
 new g_LoginTime[33];
@@ -212,19 +218,26 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, snd_minicrit_hit)
 	
 	//Cvar
+	cvar_LoginTime = register_cvar("de_logintime","120")
+	
 	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
 	cvar_RewardCoin = register_cvar("de_reward_coin", "1")
 	cvar_RewardXp = register_cvar("de_reward_xp", "200")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
-	cvar_LoginTime = register_cvar("de_logintime","120")
+	
 	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
 	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.5")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
+	
 	cvar_HumanCritPercent = register_cvar("de_crit_percent","3")
 	cvar_HumanCritMulti = register_cvar("de_crit_multi","3.0")
 	cvar_HumanMiniCritMulti = register_cvar("de_minicrit_multi","1.5")
 	
+	cvar_AbilityHeaCost = register_cvar("de_ability_hea_cost","1")
+	cvar_AbilityAgiCost = register_cvar("de_ability_agi_cost","2")
+	cvar_AbilityStrCost = register_cvar("de_ability_str_cost","4")
+	cvar_AbilityGraCost = register_cvar("de_ability_gra_cost","8")
 }
 
 public plugin_init()
@@ -234,9 +247,10 @@ public plugin_init()
 	
 	//Menu
 	register_menu("Main Menu", KEYSMENU, "menu_main")
-	//register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
+	register_menu("Ability Menu", KEYSMENU, "menu_ability")
 	register_menu("Skill Menu", KEYSMENU, "menu_skill")
 	register_menu("Bossskill Menu", KEYSMENU, "menu_bossskill")
+	//register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
 	// register_menu("Weapon1 Menu", KEYSMENU, "menu_weapon1")
 	
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
@@ -986,6 +1000,45 @@ public menu_skill(id,key)
 		}
 	}
 	return PLUGIN_HANDLED;
+}
+
+public show_menu_ability(id)
+{
+	new Menu[250],Len;
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_ABILITY")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"ABILITY_HEALTH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"ABILITY_AGILITY")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"ABILITY_STRENGTH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"ABILITY_GRAVITY")
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"Ability Menu")
+	return PLUGIN_HANDLED
+}
+
+public menu_ability(id, key)
+{
+	if( key > 3 ) return PLUGIN_HANDLED
+	
+	new Sp_Cost[4]; 
+	Sp_Cost[0] = get_pcvar_num(cvar_AbilityHeaCost); Sp_Cost[1] = get_pcvar_num(cvar_AbilityAgiCost)
+	Sp_Cost[2] = get_pcvar_num(cvar_AbilityStrCost);  Sp_Cost[3] = get_pcvar_num(cvar_AbilityGraCost)
+	
+	if(g_Sp[id] < Sp_Cost[key])
+	{
+		client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "NO_SP");
+		show_menu_ability(id)
+		return PLUGIN_HANDLED
+	}
+			
+	g_Sp[id] -= Sp_Cost[key]		
+	switch(key)
+	{
+		case 0: g_Abi_Hea[id] ++;
+		case 1: g_Abi_Agi[id] ++;
+		case 2: g_Abi_Str[id] ++;
+		case 3: g_Abi_Gra[id] ++;
+	}
 }
 
 public show_menu_bossskill(id)
