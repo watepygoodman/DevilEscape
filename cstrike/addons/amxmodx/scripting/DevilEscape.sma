@@ -363,33 +363,33 @@ public event_shoot(id)
 	new ammo = read_data(3), weapon = read_data(2);
 	if(g_users_ammo[id] > ammo && ammo >= 0 && g_users_weapon[id] == weapon)
 	{
-        new vec1[3], vec2[3];
+		new vec1[3], vec2[3];
 		get_user_origin(id, vec1, 1);
 		get_user_origin(id, vec2, 4);
-        if(weapon==CSW_M3 || weapon==CSW_XM1014)
+		if(weapon==CSW_M3 || weapon==CSW_XM1014)
 		{
-            msg_trace(vec1,vec2);
+			msg_trace(vec1,vec2);
 
-            vec2[0]+=SHOTGUN_AIMING;
-            msg_trace(vec1,vec2);
-            vec2[1]+=SHOTGUN_AIMING;
-            msg_trace(vec1,vec2);
-            vec2[2]+=SHOTGUN_AIMING;
-            msg_trace(vec1,vec2);
-            vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-            vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-            msg_trace(vec1,vec2);
-            vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-            vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-            msg_trace(vec1,vec2);
-            vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-            vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-            msg_trace(vec1,vec2);
-        }else
+			vec2[0]+=SHOTGUN_AIMING;
+			msg_trace(vec1,vec2);
+			vec2[1]+=SHOTGUN_AIMING;
+			msg_trace(vec1,vec2);
+			vec2[2]+=SHOTGUN_AIMING;
+			msg_trace(vec1,vec2);
+			vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+			vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+			msg_trace(vec1,vec2);
+			vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+			vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+			msg_trace(vec1,vec2);
+			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+			msg_trace(vec1,vec2);
+		}else
 		{
             msg_trace(vec1,vec2);
         }
-        g_users_ammo[id]=ammo;
+		g_users_ammo[id]=ammo;
 		if(g_Crit[id])
 		{
 			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -400,7 +400,7 @@ public event_shoot(id)
         g_users_weapon[id]=weapon;
         g_users_ammo[id]=ammo;
     }
-    return PLUGIN_HANDLED;
+	return PLUGIN_HANDLED;
 }
 
 /* =====================
@@ -1535,14 +1535,14 @@ stock msg_change_team_info(id, team[])
 
 stock msg_trace(idorigin[3],targetorigin[3]){
 	message_begin(MSG_PAS, SVC_TEMPENTITY,idorigin);
-    write_byte(6);
-    write_coord(idorigin[0]);
-    write_coord(idorigin[1]);
-    write_coord(idorigin[2]);
-    write_coord(targetorigin[0]);
-    write_coord(targetorigin[1]);
-    write_coord(targetorigin[2]);
-    message_end();
+	write_byte(6);
+	write_coord(idorigin[0]);
+	write_coord(idorigin[1]);
+	write_coord(idorigin[2]);
+	write_coord(targetorigin[0]);
+	write_coord(targetorigin[1]);
+	write_coord(targetorigin[2]);
+	message_end();
 }
 
 stock msg_create_lightring(const Float:originF[3], const Float:radius = 100.0, rgb[3] = {100, 100, 100})
