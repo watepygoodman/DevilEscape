@@ -38,6 +38,8 @@ log:
 
 #define Game_Description "魔王 Alpha"
 
+#define SHOTGUN_AIMING 32
+
 //弹药类型武器
 new const AMMOWEAPON[] = { 0, CSW_AWP, CSW_SCOUT, CSW_M249, 
 			CSW_AUG, CSW_XM1014, CSW_MAC10, CSW_FIVESEVEN, CSW_DEAGLE, 
@@ -65,7 +67,7 @@ enum(+=40)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
-	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1
+	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1,TASK_CRITICAL
 }
 
 enum{
@@ -89,7 +91,17 @@ new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 
 new const snd_boss_scare[] = "DevilEscape/Boss_Scare.wav"
 
+new const snd_crit_shoot[] = "DevilEscape/Crit_Shoot.wav"
+new const snd_crit_hit[] = "DevilEscape/Crit_Hit.wav"
+new const snd_crit_received[] = "DevilEscape/Crit_Received.wav"
+new const snd_minicrit_hit[] = "DevilEscape/MiniCrit_Hit.wav"
+
 new const spr_ring[] = "sprites/shockwave.spr"
+
+new const spr_crit[] = "sprites/DevilEscape/Crit.spr"
+new const spr_minicrit[] = "sprites/DevilEscape/MiniCrit.spr"
+
+new const spr_scare[] = "sprites/DevilEscape/Boss_Scare.spr"
 
 //offset
 const m_CsTeam = 114 				//队伍
@@ -111,10 +123,13 @@ new const g_fog_denisty[] = "0.002";
 
 //Cvar
 new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmg, cvar_DevilScareRange, cvar_DevilGodTime,
-cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv
+cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti
 
 //Spr
 new g_spr_ring;
+new g_spr_crit;
+new g_spr_minicrit;
+new g_spr_scare;
 
 //Game
 new g_plrTeam;
@@ -141,6 +156,8 @@ new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
 new g_LoginTime[33];
 new Float:g_AttackCooldown[33];
+new g_users_ammo[33];
+new g_users_weapon[33]
 
 new g_savesDir[128];
 new g_PlayerModel[33][32]
@@ -148,6 +165,9 @@ new g_PlayerModel[33][32]
 // new Float:g_PlrOrg[33][3]
 new Float:g_TSpawn[32][3]
 new Float:g_CTSpawn[32][3]
+
+new g_Crit[33];
+new g_MiniCrit[33];
 
 //Hud
 new g_Hud_Center, g_Hud_Status, g_Hud_Reward
@@ -176,10 +196,17 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheModel, mdl_v_devil1)
 	
 	g_spr_ring = engfunc(EngFunc_PrecacheModel, spr_ring)
+	g_spr_crit = engfunc(EngFunc_PrecacheModel, spr_crit)
+	g_spr_minicrit = engfunc(EngFunc_PrecacheModel, spr_minicrit)
+	g_spr_scare = engfunc(EngFunc_PrecacheModel, spr_scare)
 	
 	engfunc(EngFunc_PrecacheSound, snd_human_win)
 	engfunc(EngFunc_PrecacheSound, snd_devil_win)
 	engfunc(EngFunc_PrecacheSound, snd_boss_scare)
+	engfunc(EngFunc_PrecacheSound, snd_crit_hit)
+	engfunc(EngFunc_PrecacheSound, snd_crit_received)
+	engfunc(EngFunc_PrecacheSound, snd_crit_shoot)
+	engfunc(EngFunc_PrecacheSound, snd_minicrit_hit)
 	
 	//Cvar
 	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
@@ -191,7 +218,9 @@ public plugin_precache()
 	cvar_DevilSlashDmg = register_cvar("de_devil_slashdmg", "50")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
-	
+	cvar_HumanCritPercent = register_cvar("de_crit_percent","3")
+	cvar_HumanCritMulti = register_cvar("de_crit_multi","300")
+	cvar_HumanMiniCritMulti = register_cvar("de_minicrit_multi","150")
 	
 }
 
@@ -213,6 +242,7 @@ public plugin_init()
 	register_event("HLTV", "event_round_start", "a", "1=0", "2=0");
 	register_event("AmmoX", "event_ammo_x", "be");
 	register_logevent("event_round_end", 2, "1=Round_End");
+	register_event("CurWeapon","event_shoot","be","1=1");
 	
 	//Forward
 	register_forward(FM_CmdStart,"fw_CmdStart")
@@ -328,6 +358,51 @@ public event_ammo_x(id)
 	}
 }
 
+public event_shoot(id)
+{
+	new ammo = read_data(3), weapon = read_data(2);
+	if(g_users_ammo[id] > ammo && ammo >= 0 && g_users_weapon[id] == weapon)
+	{
+        new vec1[3], vec2[3];
+		get_user_origin(id, vec1, 1);
+		get_user_origin(id, vec2, 4);
+        if(weapon==CSW_M3 || weapon==CSW_XM1014)
+		{
+            msg_trace(vec1,vec2);
+
+            vec2[0]+=SHOTGUN_AIMING;
+            msg_trace(vec1,vec2);
+            vec2[1]+=SHOTGUN_AIMING;
+            msg_trace(vec1,vec2);
+            vec2[2]+=SHOTGUN_AIMING;
+            msg_trace(vec1,vec2);
+            vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+            vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+            msg_trace(vec1,vec2);
+            vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+            vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+            msg_trace(vec1,vec2);
+            vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+            vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
+            msg_trace(vec1,vec2);
+        }else
+		{
+            msg_trace(vec1,vec2);
+        }
+        g_users_ammo[id]=ammo;
+		if(g_Crit[id])
+		{
+			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+		}
+    }
+	else
+	{
+        g_users_weapon[id]=weapon;
+        g_users_ammo[id]=ammo;
+    }
+    return PLUGIN_HANDLED;
+}
+
 /* =====================
 
 			 Forward
@@ -431,6 +506,19 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	
 	if(g_whoBoss == attacker)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
+	
+	if(g_Crit[attacker])
+	{
+		damage *= get_pcvar_num(cvar_HumanCritMulti) / 100
+		msg_create_crit(attacker,victim,1)
+	}
+	
+	if(g_MiniCrit[attacker])
+	{
+		damage *= get_pcvar_num(cvar_HumanMiniCritMulti) / 100
+		msg_create_crit(attacker,victim,2)
+	}
+		
 
 	return FMRES_IGNORED;
 }
@@ -776,6 +864,39 @@ public task_godmode_off(id)
 	remove_task( id+TASK_GODMODE_LIGHT )
 }
 
+public func_critical(taskid)
+{
+	static id
+	if(taskid > g_MaxPlayer)
+		id = taskid-TASK_CRITICAL
+	else
+		id = taskid
+	
+	if(g_whoBoss == id)
+	{
+		g_Crit[id] = false
+		return;
+	}
+	
+	if(g_Crit[id])
+	{
+		g_Crit[id] = false
+		func_critical(id)
+		return;
+	}
+	
+	new percent = random_num(1,100)
+	
+	if(percent <= get_pcvar_num(cvar_HumanCritPercent))
+	{
+		g_Crit[id] = true
+		set_task(2.0,"func_critical",id+TASK_CRITICAL)
+		return;
+	}
+	
+	set_task(4.0,"func_critical",id+TASK_CRITICAL)
+}
+
 /* =====================
 
 			 Menu
@@ -871,6 +992,7 @@ public show_menu_bossskill(id)
 
 public menu_bossskill(id,key)
 {
+	if(!is_user_valid_connected(id) || !is_user_alive(id) || g_RoundStatus == Round_End) return PLUGIN_HANDLED;
 	new name[32], skillname[10]
 	get_user_name(id, name, charsmax(name))
 	switch(key)
@@ -939,7 +1061,11 @@ gm_reset_vars()
 	{
 		g_Dmg[i] = 0.0;
 		g_AttackCooldown[i] = 0.0;
+		g_Crit[i] = false;
+		remove_task(i+TASK_CRITICAL)
+		func_critical(i);
 	}
+	
 }
 
 gm_user_register(id, const password[])
@@ -1174,12 +1300,10 @@ public menu_team_select(id, key)
 ===================== */
 public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
 {
-	if(!is_user_valid_connected(id) || !is_user_alive(id)) return 0;
 	new Float:idorg[3]
 	pev(id,pev_origin,idorg)
 	msg_create_lightring(idorg, radius, {128, 28, 28})
 	new Float:nowtime = get_gametime()
-	
 	
 	new target
 	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
@@ -1195,8 +1319,6 @@ public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
 
 public bossskill_teleport(id)
 {
-	if(!is_user_valid_connected(id) || !is_user_alive(id) || g_RoundStatus == Round_End) return 0;
-	
 	new target
 	while(!is_user_alive(target) || g_whoBoss == target)
 		target = random_num(1, g_MaxPlayer)
@@ -1214,15 +1336,13 @@ public bossskill_teleport(id)
 
 public bossskill_godmode(id)
 {
-	if(!is_user_valid_connected(id) || !is_user_alive(id)) return 0;
-	
 	set_pev(id, pev_takedamage, 0.0)
 	set_bit(g_isNoDamage, bit_id)
 	fm_set_rendering(id,kRenderFxGlowShell,250,0,0, kRenderNormal, 32);
 	set_task(0.1, "task_godmode_light", id+TASK_GODMODE_LIGHT, _, _, "b")
 	set_task(get_pcvar_float(cvar_DevilGodTime), "task_godmode_off", TASK_GODMODE_OFF1 + id)
-	return 1;
 	
+	return 1;
 }
 
 /* ==========================
@@ -1413,19 +1533,16 @@ stock msg_change_team_info(id, team[])
 	message_end()					// Also Needed
 }
 
-stock msg_trace(const Float:idorigin[3],const Float:targetorigin[3]){
-	new id[3],target[3]
-	FVecIVec(idorigin,id)
-	FVecIVec(targetorigin,target)
-	message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-	write_byte(6)//TE_TRACER
-	write_coord(id[0])
-	write_coord(id[1])
-	write_coord(id[2])
-	write_coord(target[0])
-	write_coord(target[1])
-	write_coord(target[2])
-	message_end()
+stock msg_trace(idorigin[3],targetorigin[3]){
+	message_begin(MSG_PAS, SVC_TEMPENTITY,idorigin);
+    write_byte(6);
+    write_coord(idorigin[0]);
+    write_coord(idorigin[1]);
+    write_coord(idorigin[2]);
+    write_coord(targetorigin[0]);
+    write_coord(targetorigin[1]);
+    write_coord(targetorigin[2]);
+    message_end();
 }
 
 stock msg_create_lightring(const Float:originF[3], const Float:radius = 100.0, rgb[3] = {100, 100, 100})
@@ -1452,6 +1569,52 @@ stock msg_create_lightring(const Float:originF[3], const Float:radius = 100.0, r
 	write_byte(0) // speed
 	message_end()
 
+}
+
+stock msg_create_crit(id, target,type){
+	if(!is_user_alive(id) || !is_user_alive(target) || id == target) return;
+	if(type == 1)	//大暴击
+	{
+		engfunc(EngFunc_EmitSound,id, CHAN_STATIC,snd_crit_hit, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+		engfunc(EngFunc_EmitSound,target, CHAN_STATIC,snd_crit_received, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+		new iorigin[3], Float:forigin[3]
+		pev(target, pev_origin, forigin)
+		FVecIVec(forigin, iorigin)
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(TE_BUBBLES)
+		write_coord(iorigin[0])//位置
+		write_coord(iorigin[1])
+		write_coord(iorigin[2] + 16)
+		write_coord(iorigin[0])//位置
+		write_coord(iorigin[1])
+		write_coord(iorigin[2] + 32)
+		write_coord(192)
+		write_short(g_spr_crit)
+		write_byte(1)
+		write_coord(30)
+		message_end()
+	}
+	else	//小暴击
+	{
+		engfunc(EngFunc_EmitSound,id, CHAN_STATIC,snd_minicrit_hit, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+		engfunc(EngFunc_EmitSound,target, CHAN_STATIC,snd_minicrit_hit, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+		new iorigin[3], Float:forigin[3]
+		pev(target, pev_origin, forigin)
+		FVecIVec(forigin, iorigin)
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(TE_BUBBLES)
+		write_coord(iorigin[0])//位置
+		write_coord(iorigin[1])
+		write_coord(iorigin[2] + 16)
+		write_coord(iorigin[0])//位置
+		write_coord(iorigin[1])
+		write_coord(iorigin[2] + 32)
+		write_coord(192)
+		write_short(g_spr_minicrit)
+		write_byte(1)
+		write_coord(30)
+		message_end()
+	}
 }
 
 /* =====================
