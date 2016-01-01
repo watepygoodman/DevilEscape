@@ -139,6 +139,8 @@ new g_isConnect;
 new g_isChangingPW;
 new g_isModeled;
 new g_isNoDamage
+new g_isCrit;
+new g_isMiniCrit;
 // new g_isSemiclip;
 // new g_isSolid;
 new g_whoBoss;
@@ -165,9 +167,6 @@ new g_PlayerModel[33][32]
 // new Float:g_PlrOrg[33][3]
 new Float:g_TSpawn[32][3]
 new Float:g_CTSpawn[32][3]
-
-new g_Crit[33];
-new g_MiniCrit[33];
 
 //Hud
 new g_Hud_Center, g_Hud_Status, g_Hud_Reward
@@ -385,15 +384,12 @@ public event_shoot(id)
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			msg_trace(vec1,vec2);
-		}else
-		{
-            msg_trace(vec1,vec2);
-        }
-		g_users_ammo[id]=ammo;
-		if(g_Crit[id])
-		{
-			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 		}
+		else msg_trace(vec1,vec2);
+		
+		g_users_ammo[id]=ammo;
+		if(get_bit(g_isCrit, bit_id))
+			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
     }
 	else
 	{
@@ -507,13 +503,13 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	if(g_whoBoss == attacker)
 		SetHamParamFloat(4, get_pcvar_float(cvar_DevilSlashDmg))
 	
-	if(g_Crit[attacker])
+	if(get_bit(g_isCrit, attacker-1))
 	{
 		damage *= get_pcvar_num(cvar_HumanCritMulti) / 100
 		msg_create_crit(attacker,victim,1)
 	}
 	
-	if(g_MiniCrit[attacker])
+	if(get_bit(g_isMiniCrit, attacker-1))
 	{
 		damage *= get_pcvar_num(cvar_HumanMiniCritMulti) / 100
 		msg_create_crit(attacker,victim,2)
@@ -874,13 +870,14 @@ public func_critical(taskid)
 	
 	if(g_whoBoss == id)
 	{
-		g_Crit[id] = false
+		remove_task(taskid)
+		delete_bit(g_isCrit, bit_id)
 		return;
 	}
 	
-	if(g_Crit[id])
+	if(get_bit(g_isCrit, bit_id))
 	{
-		g_Crit[id] = false
+		delete_bit(g_isCrit, bit_id)
 		func_critical(id)
 		return;
 	}
@@ -889,12 +886,12 @@ public func_critical(taskid)
 	
 	if(percent <= get_pcvar_num(cvar_HumanCritPercent))
 	{
-		g_Crit[id] = true
-		set_task(2.0,"func_critical",id+TASK_CRITICAL)
+		set_bit(g_isCrit, bit_id)
+		set_task(1.0,"func_critical",id+TASK_CRITICAL)
 		return;
 	}
 	
-	set_task(4.0,"func_critical",id+TASK_CRITICAL)
+	set_task(2.0,"func_critical",id+TASK_CRITICAL)
 }
 
 /* =====================
@@ -1057,11 +1054,12 @@ gm_reset_vars()
 	g_whoBoss = -1;
 	g_Online = 0;
 	g_isNoDamage = 0;
+	g_isCrit = 0;
+	g_isMiniCrit = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
 		g_AttackCooldown[i] = 0.0;
-		g_Crit[i] = false;
 		remove_task(i+TASK_CRITICAL)
 		func_critical(i);
 	}
