@@ -496,8 +496,11 @@ public fw_PlayerPreThink(id)
 //Damage
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
-	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
-	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
+	static Vic_team, Att_Team
+	Vic_team = fm_cs_get_user_team(victim)
+	Att_Team = fm_cs_get_user_team(attacker)
+		
+	if(Vic_team == Att_Team)
 		return HAM_IGNORED
 		
 	//无敌
@@ -531,8 +534,11 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 
 public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type)
 {
-	if( (get_bit(g_plrTeam, victim-1) && get_bit(g_plrTeam, attacker-1)) || 
-	!((get_bit(g_plrTeam, victim-1) || get_bit(g_plrTeam, attacker-1))) || victim == attacker)
+	static Vic_team, Att_Team
+	Vic_team = fm_cs_get_user_team(victim)
+	Att_Team = fm_cs_get_user_team(attacker)
+		
+	if(Vic_team == Att_Team)
 		return HAM_IGNORED
 	
 	g_Dmg[attacker] += damage;
