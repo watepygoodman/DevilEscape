@@ -385,8 +385,8 @@ public event_shoot(id)
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			msg_trace(vec1,vec2);
 		}
-		else msg_trace(vec1,vec2);
-		
+		else 
+			msg_trace(vec1,vec2);
 		g_users_ammo[id]=ammo;
 		if(get_bit(g_isCrit, bit_id))
 			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
