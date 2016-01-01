@@ -1655,7 +1655,7 @@ stock msg_show_scare(id)
 	write_byte(id);
 	write_coord(45);
 	write_short(g_spr_scare); 
-	write_short(5);
+	write_short(50);
 	message_end();
 }
 
