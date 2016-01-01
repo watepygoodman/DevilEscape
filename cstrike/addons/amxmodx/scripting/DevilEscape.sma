@@ -222,8 +222,8 @@ public plugin_precache()
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
 	cvar_HumanCritPercent = register_cvar("de_crit_percent","3")
-	cvar_HumanCritMulti = register_cvar("de_crit_multi","300")
-	cvar_HumanMiniCritMulti = register_cvar("de_minicrit_multi","150")
+	cvar_HumanCritMulti = register_cvar("de_crit_multi","3.0")
+	cvar_HumanMiniCritMulti = register_cvar("de_minicrit_multi","1.5")
 	
 }
 
@@ -509,18 +509,17 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	
 	if(get_bit(g_isCrit, attacker-1))
 	{
-		damage *= get_pcvar_num(cvar_HumanCritMulti) / 100
+		SetHamParamFloat(4, get_pcvar_float(cvar_HumanCritMulti))
 		msg_create_crit(attacker,victim,1)
 	}
 	
 	if(get_bit(g_isMiniCrit, attacker-1))
 	{
-		damage *= get_pcvar_num(cvar_HumanMiniCritMulti) / 100
+		SetHamParamFloat(4, get_pcvar_float(cvar_HumanMiniCritMulti))
 		msg_create_crit(attacker,victim,2)
 	}
 		
-
-	return FMRES_IGNORED;
+	return FMRES_SUPERCEDE;
 }
 
 public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type)
