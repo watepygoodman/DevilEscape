@@ -67,7 +67,8 @@ enum(+=40)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
-	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1,TASK_CRITICAL, TASK_SCARE_OFF
+	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1,TASK_CRITICAL, TASK_SCARE_OFF,
+	TASK_AUTOSAVE
 }
 
 enum{
@@ -124,10 +125,10 @@ new const g_fog_denisty[] = "0.002";
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmgMulti, cvar_DevilScareTime, cvar_DevilScareRange, 
-cvar_DevilGodTime, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, 
-cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, 
-cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax
+new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSlashDmgMulti, cvar_DevilScareTime,
+cvar_DevilScareRange, cvar_DevilGodTime, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, 
+cvar_HumanCritPercent, cvar_HumanMiniCritMulti,cvar_AbilityHeaCost, cvar_AbilityAgiCost, cvar_AbilityStrCost, 
+cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax
 
 //Spr
 new g_spr_ring;
@@ -171,6 +172,7 @@ new g_users_ammo[33];
 new g_users_weapon[33]
 
 new g_savesDir[128];
+new g_PlayerPswd[33][12]
 new g_PlayerModel[33][32]
 
 // new Float:g_PlrOrg[33][3]
@@ -220,6 +222,7 @@ public plugin_precache()
 	
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
+	cvar_AutosaveTime = register_cvar("de_autosavetime","120")
 	
 	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
 	cvar_RewardCoin = register_cvar("de_reward_coin", "1")
@@ -596,6 +599,7 @@ public fw_TouchWeapon(weapon, id)
 public fw_ClientDisconnect(id)
 {
 	delete_bit(g_isConnect, bit_id)
+	remove_task(id+TASK_AUTOSAVE)
 }
 
 //Command
@@ -733,6 +737,13 @@ public client_weapon_shoot(id)//MOUSE1
 			 Tasks
 			 
 ===================== */
+public task_autosave(id)
+{
+	id -= TASK_AUTOSAVE
+	gm_user_save(id)
+	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
+}
+
 public task_round_start()
 {
 	new id = gm_choose_boss()
@@ -1019,7 +1030,7 @@ public show_menu_ability(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_ABILITY")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))
 	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityHeaMax))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityAgiMax))
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_STRENGTH", get_pcvar_num(cvar_AbilityStrCost), g_Abi_Str[id], get_pcvar_num(cvar_AbilityStrMax))
 	
@@ -1229,43 +1240,57 @@ gm_user_register(id, const password[])
 	new szFileDir[128], szUserName[32];
 	get_user_name(id, szUserName, charsmax(szUserName))
 	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)
-	
-	new kv = kv_create(szUserName)
-	kv_set_string(kv, "password", password);
-	
-	kv_save_to_file(kv, szFileDir);
-	kv_delete(kv);
+	copy(g_PlayerPswd[id], 11, password)
+	gm_user_save(id)
 	
 }
 
 gm_user_login(id, const password[])
-{
-	new szUserName[32], szFileDir[128]
-	get_user_name(id, szUserName, charsmax(szUserName))
-	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)
-	new kv = kv_create();
-	kv_load_from_file(kv, szFileDir)
-	
-	new save_pw[12]
-	kv_find_key(kv, szUserName)
-	kv_get_string(kv, "password", save_pw, charsmax(save_pw))
+{	
 	static iteam[10]
 	get_user_team(id, iteam, 9)
 	msg_change_team_info(id, "SPECTATOR")
 	
-	if(equal(save_pw, password))
+	if(equal(g_PlayerPswd[id], password))
 	{
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		set_bit(g_isLogin, bit_id)
 		client_cmd(id, "chooseteam")
+		set_task(get_pcvar_float(cvar_AutosaveTime), "task_autosave", id+TASK_AUTOSAVE, _, _, "b")
 	}
 	else
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_FAILED")
 	
 	msg_change_team_info(id, iteam)
 }
+
+gm_user_save(id)
+{
+	new szUserName[32], szFileDir[128]
+	get_user_name(id, szUserName, charsmax(szUserName))
+	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)
+	
+	new kv = kv_create(szUserName)
+	kv_set_string(kv, "Password", g_PlayerPswd[id]);
+	
+	new sta = kv_create("Status");
+	kv_set_int(sta, "Sp", g_Sp[id]); kv_set_int(sta, "Level", g_Level[id]);
+	kv_set_int(sta, "Coin", g_Coin[id]); kv_set_int(sta, "Gash", g_Gash[id]);
+	kv_set_int(sta, "Xp", g_Xp[id]);
+	kv_add_sub_key(kv, sta)
+	
+	new abi = kv_create("Ability");
+	kv_set_int(abi, "Hea", g_Abi_Hea[id]); kv_set_int(abi, "Agi", g_Abi_Agi[id]);
+	kv_set_int(abi, "Str", g_Abi_Str[id]); kv_set_int(abi, "Gra", g_Abi_Gra[id]);
+	kv_add_sub_key(kv, abi)
+	
+	kv_save_to_file(kv, szFileDir);
+	kv_delete(kv);
+	
+}
+
 
 gm_user_load(id)
 {
@@ -1275,10 +1300,23 @@ gm_user_load(id)
 	new kv = kv_create();
 	kv_load_from_file(kv, szFileDir)
 	kv_find_key(kv, szUserName)
-	
 	//检测是否注册
 	if(!kv_is_empty(kv))
+	{
+		kv_get_string(kv, "Password", g_PlayerPswd[id], 11)
 		set_bit(g_isRegister, bit_id)
+	}
+	
+	new sta = kv_find_key(kv, "Status")
+	g_Sp[id] = kv_get_int(sta, "Sp"); g_Level[id] = kv_get_int(sta, "Level")
+	g_Coin[id] = kv_get_int(sta, "Coin"); g_Gash[id] = kv_get_int(sta, "Gash")
+	g_Xp[id] = kv_get_int(sta, "Xp")
+	
+	new abi = kv_find_key(kv, "Ability")
+	g_Abi_Hea[id] = kv_get_int(abi, "Hea"); g_Abi_Agi[id] = kv_get_int(abi, "Agi")
+	g_Abi_Str[id] = kv_get_int(abi, "Str"); g_Abi_Gra[id] = kv_get_int(abi, "Gra")
+	
+	kv_delete(kv)
 }
 
 gm_create_fog()

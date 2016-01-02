@@ -1,4 +1,5 @@
 [cn]
+AUTOSAVE_SUCCESS = 你的数据已自动保存
 
 REGISTER_OUTOFLEN = 注册失败 你的密码过长或过短
 REGISTER_INVAILDCHAR = 注册失败 你的密码含有非法字符
