@@ -67,7 +67,7 @@ enum(+=40)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
-	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1,TASK_CRITICAL
+	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1,TASK_CRITICAL, TASK_SCARE_OFF
 }
 
 enum{
@@ -124,9 +124,10 @@ new const g_fog_denisty[] = "0.002";
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmgMulti, cvar_DevilScareRange, cvar_DevilGodTime,
-cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, 
-cvar_AbilityHeaCost, cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost
+new cvar_DmgReward, cvar_LoginTime, cvar_DevilHea, cvar_DevilSlashDmgMulti, cvar_DevilScareTime, cvar_DevilScareRange, 
+cvar_DevilGodTime, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, 
+cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, 
+cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax
 
 //Spr
 new g_spr_ring;
@@ -164,8 +165,8 @@ new g_Abi_Gra[33];
 
 new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
-new g_LoginTime[33];
 new Float:g_AttackCooldown[33];
+new g_LoginTime[33];
 new g_users_ammo[33];
 new g_users_weapon[33]
 
@@ -228,6 +229,7 @@ public plugin_precache()
 	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
 	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.5")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
+	cvar_DevilScareTime = register_cvar("de_devil_scaretime", "4.5")
 	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
 	
 	cvar_HumanCritPercent = register_cvar("de_crit_percent","3")
@@ -238,6 +240,11 @@ public plugin_precache()
 	cvar_AbilityAgiCost = register_cvar("de_ability_agi_cost","2")
 	cvar_AbilityStrCost = register_cvar("de_ability_str_cost","4")
 	cvar_AbilityGraCost = register_cvar("de_ability_gra_cost","8")
+	
+	cvar_AbilityHeaMax = register_cvar("de_ability_hea_max","100")
+	cvar_AbilityAgiMax = register_cvar("de_ability_agi_max","20")
+	cvar_AbilityStrMax = register_cvar("de_ability_str_max","50")
+	cvar_AbilityGraMax = register_cvar("de_ability_gra_max","4")
 }
 
 public plugin_init()
@@ -472,10 +479,7 @@ public fw_PlayerPreThink(id)
 		if(!is_user_alive(id)) return FMRES_IGNORED;
 		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
 		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
-	}else{
-		g_AttackCooldown[id] = 0.0;
-		set_view(id,CAMERA_NONE)
-	}
+	}else set_view(id,CAMERA_NONE)
 		
 	
 	// fw_SetPlayerSoild(id)
@@ -779,8 +783,8 @@ public task_showhud(id)
 	id -= TASK_SHOWHUD
 	
 	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%d  |  XP:%d/%d^nBossHP:%d",
-	pev(id, pev_health), g_Level[id], g_Coin[id], g_Gash[id], floatround(g_Dmg[id]), g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_Online)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Sp:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%d  |  XP:%d/%d^nBossHP:%d",
+	pev(id, pev_health), g_Level[id], g_Sp[id], g_Coin[id], g_Gash[id], floatround(g_Dmg[id]), g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_Online)
 }
 
 public task_plrspawn(id)
@@ -890,6 +894,13 @@ public task_godmode_off(id)
 	remove_task( id+TASK_GODMODE_LIGHT )
 }
 
+public task_scare_off(id)
+{
+	id -= TASK_SCARE_OFF
+	fm_set_rendering(id,kRenderFxNone, 0,0,0, kRenderNormal, 0)
+	remove_task( id+TASK_SCARE_OFF )
+}
+
 public func_critical(taskid)
 {
 	static id
@@ -950,7 +961,7 @@ public menu_main(id, key)
 	switch(key)
 	{
 		case 0: show_menu_weapon1(id)
-		case 1: show_menu_skill(id)
+		case 1: show_menu_ability(id)
 		case 2: show_menu_pack(id)
 		case 3: show_menu_equip(id)
 	}
@@ -1004,15 +1015,19 @@ public menu_skill(id,key)
 
 public show_menu_ability(id)
 {
-	new Menu[250],Len;
+	new Menu[256],Len;
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_ABILITY")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"ABILITY_HEALTH")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"ABILITY_AGILITY")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"ABILITY_STRENGTH")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"ABILITY_GRAVITY")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityHeaMax))
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_STRENGTH", get_pcvar_num(cvar_AbilityStrCost), g_Abi_Str[id], get_pcvar_num(cvar_AbilityStrMax))
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_GRAVITY", get_pcvar_num(cvar_AbilityGraCost), g_Abi_Gra[id], get_pcvar_num(cvar_AbilityGraMax))
+	
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
-	show_menu(id,KEYSMENU,Menu,-1,"Ability Menu")
+	show_menu(id, KEYSMENU, Menu,-1,"Ability Menu")
 	return PLUGIN_HANDLED
 }
 
@@ -1020,25 +1035,66 @@ public menu_ability(id, key)
 {
 	if( key > 3 ) return PLUGIN_HANDLED
 	
-	new Sp_Cost[4]; 
+	new Sp_Cost[4]
 	Sp_Cost[0] = get_pcvar_num(cvar_AbilityHeaCost); Sp_Cost[1] = get_pcvar_num(cvar_AbilityAgiCost)
 	Sp_Cost[2] = get_pcvar_num(cvar_AbilityStrCost);  Sp_Cost[3] = get_pcvar_num(cvar_AbilityGraCost)
+	// Abi_Max[0] = get_pcvar_num(cvar_AbilityHeaMax); Abi_Max[1] = get_pcvar_num(cvar_AbilityAgiMax)
+	// Abi_Max[2] = get_pcvar_num(cvar_AbilityStrMax); Abi_Max[3] = get_pcvar_num(cvar_AbilityGraMax)
+	
 	
 	if(g_Sp[id] < Sp_Cost[key])
 	{
-		client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "NO_SP");
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_SP");
 		show_menu_ability(id)
 		return PLUGIN_HANDLED
 	}
 			
-	g_Sp[id] -= Sp_Cost[key]		
 	switch(key)
 	{
-		case 0: g_Abi_Hea[id] ++;
-		case 1: g_Abi_Agi[id] ++;
-		case 2: g_Abi_Str[id] ++;
-		case 3: g_Abi_Gra[id] ++;
+		case 0: {
+			if(g_Abi_Hea[id] >= get_pcvar_num(cvar_AbilityHeaMax)) 
+			{
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				show_menu_ability(id)
+				return PLUGIN_HANDLED
+			}
+			else g_Abi_Hea[id] ++;
+		}
+		case 1: {
+			if(g_Abi_Agi[id] >= get_pcvar_num(cvar_AbilityAgiMax)) 
+			{
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				show_menu_ability(id)
+				return PLUGIN_HANDLED
+			}
+			else g_Abi_Agi[id] ++;
+		}
+		case 2: {
+			if(g_Abi_Str[id] >= get_pcvar_num(cvar_AbilityStrMax)) 
+			{
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				show_menu_ability(id)
+				return PLUGIN_HANDLED
+			}
+			else g_Abi_Str[id] ++;
+		}
+		case 3: {
+			if(g_Abi_Gra[id] >= get_pcvar_num(cvar_AbilityGraMax)) 
+			{
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				show_menu_ability(id)
+				return PLUGIN_HANDLED
+			}
+			else g_Abi_Gra[id] ++;
+		}
 	}
+	
+	g_Sp[id] -= Sp_Cost[key]		
+	
+	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_SUCCESS");
+	show_menu_ability(id)
+	
+	return PLUGIN_HANDLED
 }
 
 public show_menu_bossskill(id)
@@ -1065,7 +1121,7 @@ public menu_bossskill(id,key)
 	{
 		case 0:
 		{
-			if(bossskill_scare(g_whoBoss,Float:{4000.0,400.0,1200.0},5.0,get_pcvar_float(cvar_DevilScareRange)))
+			if(bossskill_scare(g_whoBoss,Float:{4000.0,400.0,1200.0},get_pcvar_float(cvar_DevilScareTime),get_pcvar_float(cvar_DevilScareRange)))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1370,15 +1426,16 @@ public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
 	new Float:idorg[3]
 	pev(id,pev_origin,idorg)
 	msg_create_lightring(idorg, radius, {128, 28, 28})
-	new Float:nowtime = get_gametime()
-	
+
 	new target
 	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
 	{
 		if(target==id) continue;
 		
-		g_AttackCooldown[target] = nowtime + dealytime;
+		fm_set_rendering(target,kRenderFxGlowShell,128, 128, 128, kRenderNormal, 32);
+		g_AttackCooldown[target] = get_gametime() + dealytime
 		msg_show_scare(target)
+		set_task(dealytime, "task_scare_off", target+TASK_SCARE_OFF);
 		if(!is_user_bot(target)) set_view(target,CAMERA_3RDPERSON);
 	}
 	return 1;
@@ -1396,7 +1453,7 @@ public bossskill_teleport(id)
 	idorg[2] = idorg[2] + 10
 	set_user_origin(id,idorg)
 	
-	g_AttackCooldown[id] = get_gametime() + 1.5;
+	g_AttackCooldown[id] = get_gametime() + 1.5
 	
 	return 1;
 }

@@ -24,7 +24,9 @@ MENU_PACK = 背包
 MENU_EQUIP = 装备
 MENU_EXIT = 退出
 
-NO_SP = 技能点不足
+SKILL_LEARN_SUCCESS = 技能学习成功！
+SKILL_LEARN_FULL = 该技能已满！
+NO_SP = 你的技能点不足！
 
 ABILITY_HEALTH = 生命
 ABILITY_AGILITY = 敏捷
