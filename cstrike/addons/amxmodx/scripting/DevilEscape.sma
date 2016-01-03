@@ -67,7 +67,7 @@ enum(+=40)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
-	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF1,TASK_CRITICAL, TASK_SCARE_OFF, 
+	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF,TASK_CRITICAL, TASK_SCARE_OFF, 
 	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO
 }
 
@@ -93,6 +93,7 @@ new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 new const snd_boss_scare[] = "DevilEscape/Boss_Scare.wav"
 new const snd_boss_tele[] = "DevilEscape/Boss_Teleport.wav"
 new const snd_boss_god[] = "DevilEscape/Boss_God.wav"
+new const snd_boss_ljump[] = "DevilEscape/Boss_Longjump.wav"
 
 new const snd_crit_shoot[] = "DevilEscape/Crit_Shoot.wav"
 new const snd_crit_hit[] = "DevilEscape/Crit_Hit.wav"
@@ -132,10 +133,10 @@ new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, 
-cvar_DevilManaMax, cvar_DevilSlashDmgMulti, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilScareRange, 
-cvar_DevilBlindRange, cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, cvar_DevilTeleCost, cvar_RewardCoin, 
-cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
+new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
+cvar_DevilSlashDmgMulti,  cvar_DevilDisappearTime, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilLongjumpDistance, 
+cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDisappearCost , cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, 
+cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
 cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv
 
@@ -231,6 +232,7 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, snd_boss_scare)
 	engfunc(EngFunc_PrecacheSound, snd_boss_tele)
 	engfunc(EngFunc_PrecacheSound, snd_boss_god)
+	engfunc(EngFunc_PrecacheSound, snd_boss_ljump)
 	engfunc(EngFunc_PrecacheSound, snd_crit_hit)
 	engfunc(EngFunc_PrecacheSound, snd_crit_received)
 	engfunc(EngFunc_PrecacheSound, snd_crit_shoot)
@@ -255,13 +257,17 @@ public plugin_precache()
 	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.5")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	cvar_DevilBlindRange = register_cvar("de_devil_blindrange", "512.0")
+	cvar_DevilLongjumpDistance = register_cvar("de_devil_longjumpdistance", "300.0")
+	cvar_DevilDisappearTime = register_cvar("de_devil_disappeartime", "4.5")
 	cvar_DevilScareTime = register_cvar("de_devil_scaretime", "4.5")
 	cvar_DevilBlindTime = register_cvar("de_devil_blindtime", "4.5")
 	cvar_DevilGodTime = register_cvar("de_devil_godtime", "7.5")
-	cvar_DevilScareCost = register_cvar("de_devil_scarecost", "600")
-	cvar_DevilBlindCost = register_cvar("de_devil_blindcost", "550")
-	cvar_DevilGodCost = register_cvar("de_devil_godcost", "850")
-	cvar_DevilTeleCost = register_cvar("de_devil_telecost", "500")
+	cvar_DevilLongjumpCost = register_cvar("de_devil_longjumpcost", "333")
+	cvar_DevilDisappearCost = register_cvar("de_devil_disappearcost", "555")
+	cvar_DevilScareCost = register_cvar("de_devil_scarecost", "666")
+	cvar_DevilBlindCost = register_cvar("de_devil_blindcost", "555")
+	cvar_DevilGodCost = register_cvar("de_devil_godcost", "777")
+	cvar_DevilTeleCost = register_cvar("de_devil_telecost", "555")
 	
 	cvar_HumanCritPercent = register_cvar("de_crit_percent","3")
 	cvar_HumanCritMulti = register_cvar("de_crit_multi","3.0")
@@ -804,7 +810,15 @@ public task_round_start()
 	set_pev(id, pev_weaponmodel2, "")
 	
 	fm_set_user_model(id, "devil1")
-	set_pev(id, pev_origin, g_TSpawn[0])
+	// new hull = (pev(id, pev_flags) & FL_DUCKING) ? HULL_HEAD : HULL_HUMAN
+	
+	// for(new i = 0; i < sizeof g_TSpawn; i++)
+	// {
+		// if(!is_hull_vacant(g_TSpawn[i], hull))
+			// continue
+	// engfunc(EngFunc_SetOrigin, id, g_TSpawn[5])
+		// break;
+	// }
 	
 	set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
 	g_RoundStatus = Round_Running;
@@ -922,11 +936,10 @@ public task_devilmana_reco()
 		client_print(g_whoBoss, print_center, "MP:%d/%d", g_BossMana, get_pcvar_num(cvar_DevilManaMax))
 }
 
-public task_godmode_light(id)
+public task_godmode_light()
 {
-	id -= TASK_GODMODE_LIGHT
 	static origin[3]
-	get_user_origin(id, origin)
+	get_user_origin(g_whoBoss, origin)
 	
 	// Colored Aura
 	message_begin(MSG_PVS, SVC_TEMPENTITY, origin)
@@ -943,14 +956,19 @@ public task_godmode_light(id)
 	message_end()
 }
 
-public task_godmode_off(id)
+public task_longjump_off()
 {
-	id -= TASK_GODMODE_OFF1
-	
-	set_pev(id, pev_takedamage, 2.0)
-	delete_bit(g_isNoDamage, bit_id)
-	fm_set_rendering(id,kRenderFxNone, 0,0,0, kRenderNormal, 0)
-	remove_task( id+TASK_GODMODE_LIGHT )
+	delete_bit(g_isNoDamage, g_whoBoss-1)
+	fm_set_rendering(g_whoBoss,kRenderFxNone, 0,0,0, kRenderNormal, 0)
+	set_pev(g_whoBoss, pev_takedamage, 2.0)
+}
+
+public task_godmode_off()
+{
+	set_pev(g_whoBoss, pev_takedamage, 2.0)
+	delete_bit(g_isNoDamage, g_whoBoss-1)
+	fm_set_rendering(g_whoBoss,kRenderFxNone, 0,0,0, kRenderNormal, 0)
+	remove_task( TASK_GODMODE_LIGHT )
 }
 
 public task_scare_off(id)
@@ -966,6 +984,11 @@ public task_blind_off(id)
 	msg_screen_fade(id, 255, 255, 255, 0)
 	fm_set_rendering(id,kRenderFxNone, 0,0,0, kRenderNormal, 0)
 	remove_task( id+TASK_BLIND_OFF )
+}
+
+public task_disappear_off()
+{
+	set_pev(g_whoBoss, pev_rendermode, kRenderNormal)
 }
 
 public func_critical(taskid)
@@ -1109,7 +1132,10 @@ public show_menu_weapon_free(id)
 public menu_weapon_free(id, key)
 {
 	if(key == 9) //Exit
+	{
+		g_Menu_WpnFree_Page[id] = 0;
 		return PLUGIN_HANDLED;
+	}
 	if(key == 8)
 	{
 		if(g_Menu_WpnFree_Page[id] == 1)
@@ -1158,6 +1184,7 @@ public menu_weapon_free(id, key)
 	}
 	task_refill_bpammo(args[0], id)
 	set_bit(g_isBuyWpnMain, bit_id)
+	g_Menu_WpnFree_Page[id] = 0;
 	
 	return PLUGIN_HANDLED
 }
@@ -1328,10 +1355,12 @@ public show_menu_bossskill(id)
 	new Menu[250],Len;
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_BOSSSKILL")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"BOSSSKILL_SCARE")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"BOSSSKILL_BLIND")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"BOSSSKILL_TELEPORT")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"BOSSSKILL_GODMODE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%dMP^n",id,"BOSSSKILL_LONGJUMP", get_pcvar_num(cvar_DevilLongjumpCost))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%dMP^n",id,"BOSSSKILL_SCARE", get_pcvar_num(cvar_DevilScareCost))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%dMP^n",id,"BOSSSKILL_BLIND", get_pcvar_num(cvar_DevilBlindCost))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L \d%dMP^n",id,"BOSSSKILL_TELEPORT", get_pcvar_num(cvar_DevilTeleCost))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w%L \d%dMP^n",id,"BOSSSKILL_GODMODE", get_pcvar_num(cvar_DevilGodCost))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r6. \w%L \d%dMP^n",id,"BOSSSKILL_DISAPPEAR", get_pcvar_num(cvar_DevilDisappearCost))
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 		
 	show_menu(id,KEYSMENU,Menu,-1,"Bossskill Menu")
@@ -1347,7 +1376,17 @@ public menu_bossskill(id,key)
 	{
 		case 0:
 		{
-			if(bossskill_scare(g_whoBoss,Float:{4000.0,400.0,1200.0},get_pcvar_float(cvar_DevilScareTime),get_pcvar_float(cvar_DevilScareRange)))
+			if(bossskill_longjump())
+			{
+				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_LONGJUMP")
+				g_BossMana -= get_pcvar_num(cvar_DevilLongjumpCost)
+				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
+			}
+		}
+		case 1:
+		{
+			if(bossskill_scare(Float:{4000.0,400.0,1200.0},get_pcvar_float(cvar_DevilScareTime),get_pcvar_float(cvar_DevilScareRange)))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1356,9 +1395,9 @@ public menu_bossskill(id,key)
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
 			}
 		}
-		case 1:
+		case 2:
 		{
-			if(bossskill_blind(id))
+			if(bossskill_blind())
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_BLIND")
 				//音效
@@ -1367,9 +1406,9 @@ public menu_bossskill(id,key)
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
-		case 2:
+		case 3:
 		{
-			if(bossskill_teleport(g_whoBoss))
+			if(bossskill_teleport())
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_TELEPORT")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_tele, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1379,13 +1418,24 @@ public menu_bossskill(id,key)
 			}
 		}
 		
-		case 3:
+		case 4:
 		{
-			if(bossskill_godmode(g_whoBoss))
+			if(bossskill_godmode())
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_GODMODE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_god, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				g_BossMana -= get_pcvar_num(cvar_DevilGodCost)
+				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
+			}
+		}
+		case 5:
+		{
+			if(bossskill_disappear())
+			{
+				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_DISAPPEAR")
+				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_god, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				g_BossMana -= get_pcvar_num(cvar_DevilDisappearCost)
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
@@ -1691,19 +1741,37 @@ public menu_team_select(id, key)
 			 Skill
 			 
 ===================== */
-public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
+public bossskill_longjump()
+{
+	if(g_BossMana <= get_pcvar_num(cvar_DevilLongjumpCost))
+		return 0
+	
+	new Float:velocity[3]
+	velocity_by_aim(g_whoBoss, 800, velocity)
+	velocity[2] = get_pcvar_float(cvar_DevilLongjumpDistance)
+	set_pev(g_whoBoss, pev_velocity, velocity)
+	engfunc(EngFunc_EmitSound, g_whoBoss, CHAN_VOICE, snd_boss_ljump, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+	set_bit(g_isNoDamage, g_whoBoss-1)
+	set_pev(g_whoBoss, pev_takedamage, 0.0)
+	fm_set_rendering(g_whoBoss,kRenderFxGlowShell, 255, 25, 25, kRenderNormal, 32);
+	set_task(1.0, "task_longjump_off")
+	
+	return 1
+}
+
+public bossskill_scare(Float:force[3],Float:dealytime,Float:radius)
 {
 	if(g_BossMana <= get_pcvar_num(cvar_DevilScareCost))
 		return 0
 	
 	new Float:idorg[3]
-	pev(id,pev_origin,idorg)
+	pev(g_whoBoss,pev_origin,idorg)
 	msg_create_lightring(idorg, radius, {128, 28, 28})
 
 	new target
 	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
 	{
-		if(target==id) continue;
+		if(target==g_whoBoss) continue;
 		
 		fm_set_rendering(target,kRenderFxGlowShell, 255, 255, 255, kRenderNormal, 32);
 		g_AttackCooldown[target] = get_gametime() + dealytime
@@ -1714,20 +1782,20 @@ public bossskill_scare(id,Float:force[3],Float:dealytime,Float:radius)
 	return 1;
 }
 
-public bossskill_blind(id)
+public bossskill_blind()
 {
 	if(g_BossMana <= get_pcvar_num(cvar_DevilBlindCost))
 		return 0
 	
 	new Float:idorg[3]
-	pev(id,pev_origin,idorg)
+	pev(g_whoBoss,pev_origin,idorg)
 	new Float:radius = get_pcvar_float(cvar_DevilBlindRange)
 	msg_create_lightring(idorg, radius, {128, 128, 128})
 	
 	new target
 	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
 	{
-		if(target==id || !is_user_valid_connected(target)) continue;
+		if(target==g_whoBoss || !is_user_valid_connected(target)) continue;
 		fm_set_rendering(target,kRenderFxGlowShell, 128, 255, 128, kRenderNormal, 32);
 		set_task(get_pcvar_float(cvar_DevilBlindTime), "task_blind_off", target+TASK_BLIND_OFF);
 		if(is_user_bot(target))
@@ -1741,7 +1809,7 @@ public bossskill_blind(id)
 	return 1
 }
 
-public bossskill_teleport(id)
+public bossskill_teleport()
 {
 	if(g_BossMana <= get_pcvar_num(cvar_DevilTeleCost))
 		return 0
@@ -1754,25 +1822,42 @@ public bossskill_teleport(id)
 	
 	get_user_origin(target,idorg)
 	idorg[2] = idorg[2] + 10
-	set_user_origin(id,idorg)
+	set_user_origin(g_whoBoss,idorg)
 	
-	g_AttackCooldown[id] = get_gametime() + 1.5
+	g_AttackCooldown[g_whoBoss] = get_gametime() + 1.5
 	
 	return 1;
 }
 
-public bossskill_godmode(id)
+public bossskill_godmode()
 {
 	if(g_BossMana <= get_pcvar_num(cvar_DevilGodCost))
 		return 0
 	
-	set_pev(id, pev_takedamage, 0.0)
-	set_bit(g_isNoDamage, bit_id)
-	fm_set_rendering(id,kRenderFxGlowShell,250,0,0, kRenderNormal);
-	set_task(0.1, "task_godmode_light", id+TASK_GODMODE_LIGHT, _, _, "b")
-	set_task(get_pcvar_float(cvar_DevilGodTime), "task_godmode_off", TASK_GODMODE_OFF1 + id)
+	set_pev(g_whoBoss, pev_takedamage, 0.0)
+	set_bit(g_isNoDamage, g_whoBoss-1)
+	fm_set_rendering(g_whoBoss,kRenderFxGlowShell,250,0,0, kRenderNormal);
+	set_task(0.1, "task_godmode_light", TASK_GODMODE_LIGHT, _, _, "b")
+	set_task(get_pcvar_float(cvar_DevilGodTime), "task_godmode_off", TASK_GODMODE_OFF)
 	
 	return 1;
+}
+
+public bossskill_disappear()
+{
+	if(g_BossMana <= get_pcvar_num(cvar_DevilDisappearCost))
+		return 0
+	
+	for(new i = 1; i <= g_MaxPlayer; i++)
+	{
+		//Bot
+		if(is_user_bot(i))
+			g_AttackCooldown[i] = get_gametime() + get_pcvar_num(cvar_DevilDisappearTime)
+	}
+	set_pev(g_whoBoss, pev_rendermode, kRenderTransAlpha)
+	set_pev(g_whoBoss, pev_renderamt, 0) //隐
+	set_task(get_pcvar_float(cvar_DevilDisappearTime), "task_disappear_off")
+	return 1
 }
 
 /* ==========================
@@ -2147,6 +2232,15 @@ stock client_color_print(target,  const message[], any:...)
 	}
 }
 
+stock is_hull_vacant(Float:origin[3], hull)
+{
+	engfunc(EngFunc_TraceHull, origin, origin, 0, hull, 0, 0)
+	if (!get_tr2(0, TR_StartSolid) && !get_tr2(0, TR_AllSolid) && get_tr2(0, TR_InOpen))
+		return true;
+	
+	return false;
+}
+
 team_join(id, team[] = "5")
 {
 	new msg_block = get_msg_block(g_Msg_ShowMenu)
@@ -2154,4 +2248,6 @@ team_join(id, team[] = "5")
 	engclient_cmd(id, "jointeam", team)
 	set_msg_block(g_Msg_ShowMenu, msg_block)
 }
+
+
 
