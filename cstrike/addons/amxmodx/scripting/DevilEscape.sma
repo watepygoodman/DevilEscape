@@ -117,6 +117,13 @@ new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
 new const g_fog_color[] = "128 128 128";
 new const g_fog_denisty[] = "0.002";
 
+new const g_WpnFreeFrist[][] = {"weapon_tmp", "weapon_mp5navy", "weapon_p90", "weapon_famas", "weapon_galil", 
+				"weapon_ak47", "weapon_m4a1", "weapon_sg552"}
+new const g_WpnFreeSec[][] = {"weapon_aug", "weapon_sg550", "weapon_g3sg1", "weapon_awp", "weapon_m249"}
+
+new const g_WpnFreeFrist_CSW[] = {CSW_TMP, CSW_MP5NAVY, CSW_P90, CSW_FAMAS, CSW_GALIL, CSW_AK47, 
+				CSW_M4A1, CSW_SG552}
+new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249}
 
 /* ================== 
 
@@ -129,7 +136,8 @@ new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_Devi
 cvar_DevilManaMax, cvar_DevilSlashDmgMulti, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilScareRange, 
 cvar_DevilBlindRange, cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, cvar_DevilTeleCost, cvar_RewardCoin, 
 cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
-cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax
+cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
+cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv
 
 //Spr
 new g_spr_ring;
@@ -175,6 +183,9 @@ new g_BossMana;
 new g_LoginTime[33];
 new g_users_ammo[33];
 new g_users_weapon[33]
+
+//Menu
+new g_Menu_WpnFree_Page[33]
 
 new g_savesDir[128];
 new g_PlayerPswd[33][12]
@@ -228,6 +239,9 @@ public plugin_precache()
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
 	cvar_AutosaveTime = register_cvar("de_autosavetime","120")
+	
+	cvar_BaseWpnPreLv = register_cvar("de_basewpn_prelv","5")
+	cvar_BaseWpnNeedLv = register_cvar("de_basewpn_needlv", "0")
 	
 	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
 	cvar_RewardCoin = register_cvar("de_reward_coin", "1")
@@ -476,6 +490,9 @@ public fw_PlayerSpawn_Post(id)
 {
 	static team
 	team = fm_cs_get_user_team(id)
+	
+	if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
+		return
 	switch(team)
 	{
 		case FM_CS_TEAM_CT:
@@ -787,6 +804,7 @@ public task_round_start()
 	set_pev(id, pev_weaponmodel2, "")
 	
 	fm_set_user_model(id, "devil1")
+	set_pev(id, pev_origin, g_TSpawn[0])
 	
 	set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
 	g_RoundStatus = Round_Running;
@@ -823,6 +841,7 @@ public task_plrspawn(id)
 	fm_reset_user_model(id)
 	fm_strip_user_weapons(id)
 	fm_give_item(id, "weapon_knife")
+	show_menu_weapon(id)
 	remove_task(id+TASK_PLRSPAWN);
 }
 
@@ -1051,33 +1070,92 @@ public menu_weapon(id, key)
 
 public show_menu_weapon_free(id)
 {
-	new Menu[60],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_FREE")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \wM4A1^n")
-	//需要等级
+	new Menu[512],Len;
+	new const GunNameFirst[][] = {"TMP", "MP5", "P90", "Famas", "Galil", "AK47", "M4A1", "SG552"}
+	new const GunNameSec[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	new BaseLvNeed = get_pcvar_num(cvar_BaseWpnNeedLv)
+	new LvPreWpn = get_pcvar_num(cvar_BaseWpnPreLv)
+	new NeedLv = BaseLvNeed
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_FREE")
+	if(g_Menu_WpnFree_Page[id] == 0)
+	{
+		for(new i = 0; i < sizeof GunNameFirst; i++)
+		{
+			if(g_Level[id] < NeedLv)
+				Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \d%s %L^n", i+1, GunNameFirst[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+			else Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \d%L^n", i+1, GunNameFirst[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+			NeedLv += LvPreWpn
+		}
+	}
+	else if(g_Menu_WpnFree_Page[id] == 1)
+	{
+		NeedLv += sizeof GunNameFirst * LvPreWpn
+		for(new i = 0; i < sizeof GunNameSec; i++)
+		{
+			if(g_Level[id] < NeedLv)
+				Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \d%s %L^n", i+1, GunNameSec[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+			else Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \d%L^n", i+1, GunNameSec[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+			NeedLv += LvPreWpn
+		}
+	}
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r9. \w%L/%L^n", id, "MENU_NEXT", id, "MENU_BACK")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id,KEYSMENU,Menu,-1,"WeaponFree Menu")
 	return PLUGIN_HANDLED;
 }
 
 public menu_weapon_free(id, key)
 {
+	if(key == 9) //Exit
+		return PLUGIN_HANDLED;
+	if(key == 8)
+	{
+		if(g_Menu_WpnFree_Page[id] == 1)
+		{
+			g_Menu_WpnFree_Page[id] = 0
+			show_menu_weapon_free(id)
+		}
+		else
+		{
+			g_Menu_WpnFree_Page[id] = 1
+			show_menu_weapon_free(id)
+		}
+		return PLUGIN_HANDLED
+	}
 	if(get_bit(g_isBuyWpnMain, bit_id))
 	{
 		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		return PLUGIN_HANDLED
 	}
 	
+	new BaseLvNeed = get_pcvar_num(cvar_BaseWpnNeedLv)
+	new LvPreWpn = get_pcvar_num(cvar_BaseWpnPreLv)
+	new NeedLv = BaseLvNeed
 	new args[1]
-	switch(key)
-	{
-		case 0:{
-			fm_give_item(id, "weapon_m4a1")
-			args[0] = CSW_M4A1
-		}
-	}
 	
+	
+	if(g_Menu_WpnFree_Page[id] == 0)
+	{
+		if(NeedLv + LvPreWpn*key > g_Level[id])
+		{
+			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
+			return PLUGIN_HANDLED
+		}
+		fm_give_item(id, g_WpnFreeFrist[key])
+		args[0] = g_WpnFreeFrist_CSW[key]
+	}
+	else
+	{
+		if(NeedLv + LvPreWpn*(key+7) > g_Level[id])
+		{
+			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
+			return PLUGIN_HANDLED
+		}
+		fm_give_item(id, g_WpnFreeSec[key])
+		args[0] = g_WpnFreeSec_CSW[key]
+	}
 	task_refill_bpammo(args[0], id)
 	set_bit(g_isBuyWpnMain, bit_id)
 	
@@ -1489,6 +1567,7 @@ gm_init_spawnpoint()
 	while ((engfunc(EngFunc_FindEntityByString, ent, "classname", "info_player_start")) != 0)
 	{
 		pev(ent, pev_origin, g_CTSpawn[SpawnCount]);
+		g_CTSpawn[SpawnCount][2] += 10
 		SpawnCount ++
 		if(SpawnCount > sizeof g_CTSpawn) break;
 	}
@@ -1496,6 +1575,7 @@ gm_init_spawnpoint()
 	{
 		pev(ent, pev_origin, g_TSpawn[SpawnCount]);
 		SpawnCount ++
+		g_TSpawn[SpawnCount][2] += 10
 		if(SpawnCount > sizeof g_TSpawn) break;
 	}
 }
