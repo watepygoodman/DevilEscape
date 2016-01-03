@@ -77,6 +77,10 @@ enum{
 	Round_End
 }
 
+enum{
+	ADMIN_SELECT_BOSS, ADMIN_GIVE
+}
+
 new const g_RemoveEnt[][] = {
 	"func_hostage_rescue", "info_hostage_rescue", "func_bomb_target", "info_bomb_target",
 	"hostage_entity", "info_vip_start", "func_vip_safetyzone", "func_escapezone"
@@ -133,12 +137,12 @@ new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
+new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
 cvar_DevilSlashDmgMulti,  cvar_DevilDisappearTime, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilLongjumpDistance, 
 cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDisappearCost , cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, 
 cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
-cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv
+cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv
 
 //Spr
 new g_spr_ring;
@@ -187,6 +191,11 @@ new g_users_weapon[33]
 
 //Menu
 new g_Menu_WpnFree_Page[33]
+new g_Menu_Admin_Select[33]
+new g_Menu_Admin_Select_Plr[33]
+
+//Admin
+new g_Admin_Select_Boss
 
 new g_savesDir[128];
 new g_PlayerPswd[33][12]
@@ -250,7 +259,8 @@ public plugin_precache()
 	cvar_RewardXp = register_cvar("de_reward_xp", "200")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	
-	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
+	cvar_DevilHea = register_cvar("de_devil_basehea","15000")
+	cvar_DevilSpeed = register_cvar("de_devil_basespeed","260.0")
 	cvar_DevilRecoManaTime = register_cvar("de_devil_reco_manatime","0.3")
 	cvar_DevilRecoManaNum = register_cvar("de_devil_reco_mananum","6")
 	cvar_DevilManaMax = register_cvar("de_devil_manamax","999")
@@ -277,11 +287,14 @@ public plugin_precache()
 	cvar_AbilityAgiCost = register_cvar("de_ability_agi_cost","2")
 	cvar_AbilityStrCost = register_cvar("de_ability_str_cost","4")
 	cvar_AbilityGraCost = register_cvar("de_ability_gra_cost","8")
-	
 	cvar_AbilityHeaMax = register_cvar("de_ability_hea_max","100")
 	cvar_AbilityAgiMax = register_cvar("de_ability_agi_max","20")
 	cvar_AbilityStrMax = register_cvar("de_ability_str_max","50")
 	cvar_AbilityGraMax = register_cvar("de_ability_gra_max","4")
+	cvar_AbilityHeaAdd = register_cvar("de_ability_hea_add", "1")
+	cvar_AbilityAgiAdd = register_cvar("de_ability_agi_add", "1.0")
+	cvar_AbilityStrAdd = register_cvar("de_ability_str_add", "0.02")
+	cvar_AbilityGraAdd = register_cvar("de_ability_gra_add", "0.1")
 }
 
 public plugin_init()
@@ -299,6 +312,7 @@ public plugin_init()
 	// register_menu("WeaponGash Menu", KEYSMENU, "menu_weapon_gash")
 	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
+	register_menu("Admin Menu", KEYSMENU, "menu_admin")
 	
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
 	
@@ -506,6 +520,8 @@ public fw_PlayerSpawn_Post(id)
 		case FM_CS_TEAM_T:
 			delete_bit(g_plrTeam, bit_id)
 	}
+	set_user_gravity(id, 1.0-get_pcvar_float(cvar_AbilityGraAdd)*g_Abi_Gra[id])
+	fm_set_user_health(id, 100+g_Abi_Hea[id]*get_pcvar_num(cvar_AbilityHeaAdd))
 	
 	new Float:test[3]
 	pev(id, pev_origin, test)
@@ -525,7 +541,6 @@ public fw_PlayerPreThink(id)
 		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
 	}else set_view(id,CAMERA_NONE)
 		
-	
 	// fw_SetPlayerSoild(id)
 	if(g_Xp[id] >= g_NeedXp[id])
 	{
@@ -538,6 +553,12 @@ public fw_PlayerPreThink(id)
 		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_LEVEL_UP", g_Level[id])
 	}
+	
+	if(id != g_whoBoss)
+		set_pev(id, pev_maxspeed, 250.0+ g_Abi_Agi[id] * get_pcvar_float(cvar_AbilityAgiAdd))
+	else set_pev(id, pev_maxspeed, get_pcvar_float(cvar_DevilSpeed))
+		
+	
 	return FMRES_HANDLED;
 }
 
@@ -577,12 +598,17 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		SetHamParamFloat(4, TrueDamage)
 		return HAM_HANDLED;
 	}
+	//Str
+	TrueDamage *=  1 + (g_Abi_Str[attacker]*get_pcvar_num(cvar_AbilityStrAdd)) 
 	
+	//Crit
 	if(get_bit(g_isCrit, attacker-1))
 	{
 		TrueDamage *= get_pcvar_float(cvar_HumanCritMulti)
 		msg_create_crit(attacker,victim,1)
 	}
+	
+	//MiniCrit
 	else if(get_bit(g_isMiniCrit, attacker-1))
 	{
 		TrueDamage *= get_pcvar_float(cvar_HumanMiniCritMulti)
@@ -787,7 +813,14 @@ public task_autosave(id)
 
 public task_round_start()
 {
-	new id = gm_choose_boss()
+	if(g_RoundStatus != Round_Start)
+		return 
+	
+	new id
+	if(g_Admin_Select_Boss)
+		id = g_Admin_Select_Boss
+	else id = gm_choose_boss()
+	
 	g_whoBoss = id
 	for(new i = 1; i <= g_MaxPlayer; i++)
 	{
@@ -799,7 +832,7 @@ public task_round_start()
 		g_Online ++;
 	}
 	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_Online) * (g_Online - 1))
-	new addhealth = floatround(floatpower(((760.8 + g_Online)*(g_Online - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
+	new addhealth = floatround(floatpower(((6500.0 + g_Online)*(g_Online - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
 	fm_set_user_health(id, addhealth)
 	fm_cs_set_user_team(id, FM_CS_TEAM_T)
 	
@@ -822,6 +855,7 @@ public task_round_start()
 	
 	set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
 	g_RoundStatus = Round_Running;
+	remove_task(TASK_ROUNDSTART)
 }
 
 public task_balance()
@@ -1039,6 +1073,7 @@ public show_menu_main(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_ABILITY")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_PACK")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n", id, "MENU_EQUIP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r9. \w%L^n", id, "MENU_ADMIN")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	
@@ -1054,6 +1089,7 @@ public menu_main(id, key)
 		case 1: show_menu_ability(id)
 		case 2: show_menu_pack(id)
 		case 3: show_menu_equip(id)
+		case 8: show_menu_admin(id)
 	}
 	
 	return PLUGIN_HANDLED;
@@ -1273,11 +1309,14 @@ public show_menu_ability(id)
 {
 	new Menu[256],Len;
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_ABILITY")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityAgiMax))
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_STRENGTH", get_pcvar_num(cvar_AbilityStrCost), g_Abi_Str[id], get_pcvar_num(cvar_AbilityStrMax))
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_GRAVITY", get_pcvar_num(cvar_AbilityGraCost), g_Abi_Gra[id], get_pcvar_num(cvar_AbilityGraMax))
-	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [+%d HP]^n", get_pcvar_num(cvar_AbilityHeaAdd)*g_Abi_Hea[id])
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityAgiMax))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [+%d Speed]^n", floatround(get_pcvar_float(cvar_AbilityAgiAdd) * g_Abi_Agi[id]))	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%d Sp  %d/%d", id,"ABILITY_STRENGTH", get_pcvar_num(cvar_AbilityStrCost), g_Abi_Str[id], get_pcvar_num(cvar_AbilityStrMax))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [+%d%% Dmg]^n", floatround(get_pcvar_float(cvar_AbilityStrAdd) * g_Abi_Str[id] * 100))	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L \d%d Sp  %d/%d", id,"ABILITY_GRAVITY", get_pcvar_num(cvar_AbilityGraCost), g_Abi_Gra[id], get_pcvar_num(cvar_AbilityGraMax))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [-%d%% g]^n", floatround(get_pcvar_float(cvar_AbilityGraAdd) * g_Abi_Gra[id] * 100))
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id, KEYSMENU, Menu,-1,"Ability Menu")
@@ -1445,6 +1484,111 @@ public menu_bossskill(id,key)
 	return PLUGIN_HANDLED;
 }
 
+public show_menu_admin(id)
+{
+	new Menu[250],Len;
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_ADMIN")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"MENU_ADMIN_SELECT_BOSS")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"MENU_ADMIN_GIVE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"MENU_ADMIN_GIVE_ALL")
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+		
+	show_menu(id,KEYSMENU,Menu,-1,"Admin Menu")
+	return PLUGIN_HANDLED
+	
+}
+
+public menu_admin(id, key)
+{
+	switch(key)
+	{
+		case 0:{
+			g_Menu_Admin_Select[id] = ADMIN_SELECT_BOSS
+			show_menu_plrlist(id)
+		}
+	}
+}
+
+public show_menu_plrlist(id)
+{
+	new Menuitem[32], Menu
+	new MENU_PROP_EXIT[12], MENU_PROP_BACK[12], MENU_PROP_NEXT[12]
+	formatex(MENU_PROP_EXIT, charsmax(MENU_PROP_EXIT),"%L", LANG_PLAYER, "MENU_EXIT") 
+	formatex(MENU_PROP_BACK, charsmax(MENU_PROP_BACK),"%L", LANG_PLAYER, "MENU_BACK") 
+	formatex(MENU_PROP_NEXT, charsmax(MENU_PROP_NEXT),"%L", LANG_PLAYER, "MENU_NEXT") 
+	
+	switch(g_Menu_Admin_Select[id])
+	{
+		case ADMIN_SELECT_BOSS: formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_SELECT_BOSS") 
+		case ADMIN_GIVE: formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_GIVE") 
+	}
+	Menu = menu_create(Menuitem, "menu_plrlist")
+	
+	new Count, PlrName[28], Char_Count[3]
+	for(new i = 1; i < g_MaxPlayer; i++)
+	{
+		if(!get_bit(g_isConnect, i-1))
+			continue;
+		
+		get_user_name(i, PlrName, charsmax(PlrName))
+		
+		if(g_Menu_Admin_Select[id] == ADMIN_SELECT_BOSS)
+		{
+			if(is_user_alive(id)) formatex(Menuitem, charsmax(Menuitem), "%s", PlrName)
+			else formatex(Menuitem, charsmax(Menuitem), "\d%s", PlrName)
+		}
+		else
+			 formatex(Menuitem, charsmax(Menuitem), "\d%s", PlrName)
+		 
+		Count++
+		num_to_str(Count, Char_Count, 3)
+		menu_additem(Menu, Menuitem, Char_Count)
+		g_Menu_Admin_Select_Plr[Count] = i
+	}
+	
+	menu_setprop(Menu, MPROP_BACKNAME, MENU_PROP_BACK)
+	menu_setprop(Menu, MPROP_NEXTNAME, MENU_PROP_EXIT)
+	menu_setprop(Menu, MPROP_EXITNAME, MENU_PROP_EXIT)
+	menu_display(id, Menu)
+}
+
+public menu_plrlist(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6],iName[64]
+	new access, callback;
+	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
+	new key = str_to_num(data);
+	
+	switch(g_Menu_Admin_Select[id])
+	{
+		case ADMIN_SELECT_BOSS:
+		{
+			if(!is_user_alive(g_Menu_Admin_Select_Plr[key]))
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_PLAYER_MUST_ALIVE");
+			else
+			{
+				if(g_RoundStatus != Round_Start)
+					client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
+				else
+				{
+					g_Admin_Select_Boss = g_Menu_Admin_Select_Plr[key]
+					task_round_start()
+				}
+			}
+		}
+	}
+	//test
+	
+	return PLUGIN_HANDLED;
+}
+
 /* =====================
 
 			 Game Function
@@ -1472,6 +1616,7 @@ gm_reset_vars()
 	g_isMiniCrit = 0;
 	g_isBuyWpnMain = 0;
 	g_isBuyWpnSec = 0;
+	g_Admin_Select_Boss = 0
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
