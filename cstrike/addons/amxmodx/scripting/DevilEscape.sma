@@ -162,6 +162,8 @@ new g_isCrit;
 new g_isMiniCrit;
 new g_isBuyWpnMain;
 new g_isBuyWpnSec;
+// new g_isPressingData;
+// new g_DataPress;
 // new g_isSemiclip;
 // new g_isSolid;
 
@@ -313,6 +315,7 @@ public plugin_init()
 	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	register_menu("Admin Menu", KEYSMENU, "menu_admin")
+	register_menu("AdminGive Menu", KEYSMENU, "menu_admin_give")
 	
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
 	
@@ -1507,6 +1510,37 @@ public menu_admin(id, key)
 			g_Menu_Admin_Select[id] = ADMIN_SELECT_BOSS
 			show_menu_plrlist(id)
 		}
+		case 1:{
+			g_Menu_Admin_Select[id] = ADMIN_GIVE
+			show_menu_admin_give(id)
+		}
+	}
+}
+
+public show_menu_admin_give(id)
+{
+	new Menu[128], Len;
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_ADMIN_GIVE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"COIN")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"GASH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"LEVEL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"XP")
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"AdminGive Menu")
+	
+	return PLUGIN_HANDLED
+}
+
+public menu_admin_give(id, key)
+{
+	switch(key)
+	{
+		case 0:{
+			g_Menu_Admin_Select[id] = ADMIN_GIVE
+			show_menu_plrlist(id)
+		}
 	}
 }
 
@@ -1566,6 +1600,9 @@ public menu_plrlist(id, menu, item)
 	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
 	new key = str_to_num(data);
 	
+	new AdminName[18], PlrName[18]
+	
+	
 	switch(g_Menu_Admin_Select[id])
 	{
 		case ADMIN_SELECT_BOSS:
@@ -1578,6 +1615,9 @@ public menu_plrlist(id, menu, item)
 					client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
 				else
 				{
+					get_user_name(id, AdminName, charsmax(AdminName))
+					get_user_name(g_Menu_Admin_Select_Plr[key], PlrName, charsmax(PlrName))
+					client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
 					g_Admin_Select_Boss = g_Menu_Admin_Select_Plr[key]
 					task_round_start()
 				}
@@ -1588,7 +1628,6 @@ public menu_plrlist(id, menu, item)
 	
 	return PLUGIN_HANDLED;
 }
-
 /* =====================
 
 			 Game Function

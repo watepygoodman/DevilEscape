@@ -63,3 +63,9 @@ BOSSSKILL_DISAPPEAR = 消失
 
 ADMIN_PLAYER_MUST_ALIVE = 该玩家必须存活！
 ADMIN_ROUND_HAD_START = 该局必须未开始！
+ADMIN_CHOOSE_BOSS = 管理员%s 选择了%s 为魔王
+
+COIN = Coin
+GASH = Gash
+LEVEL = 等级
+XP = 经验值
