@@ -16,9 +16,17 @@ HUD_LEVEL_UP = [Lv %d]
 DHUD_ROUND_START = 10秒后魔王出现
 DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s
 
+HAVE_MAIN_WPN = 你已经购买过主武器了！
+HAVE_SEC_WPN = 你已经购买过副武器了！
+NOT_HUMAN = 你不是人类！
+
 MENU_ABILITY = 能力菜单
 MENU_SKILL = 技能菜单
 MENU_WEAPON = 选择武器
+MENU_WEAPON_FREE = 免费枪
+MENU_WEAPON_GASH = Gash枪
+MENU_WEAPON_SPECIAL = 特殊枪
+MENU_WEAPON_SECOND = 副武器
 MENU_HUMANSKILL = 人类技能
 MENU_BOSSSKILL = 魔王技能
 MENU_PACK = 背包

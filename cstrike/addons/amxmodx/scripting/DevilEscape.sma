@@ -147,6 +147,8 @@ new g_isModeled;
 new g_isNoDamage
 new g_isCrit;
 new g_isMiniCrit;
+new g_isBuyWpnMain;
+new g_isBuyWpnSec;
 // new g_isSemiclip;
 // new g_isSolid;
 
@@ -272,8 +274,11 @@ public plugin_init()
 	register_menu("Ability Menu", KEYSMENU, "menu_ability")
 	register_menu("Skill Menu", KEYSMENU, "menu_skill")
 	register_menu("Bossskill Menu", KEYSMENU, "menu_bossskill")
-	//register_menu("Wpn Menu", KEYSMENU, "menu_wpn")
-	// register_menu("Weapon1 Menu", KEYSMENU, "menu_weapon1")
+	register_menu("Weapon Menu", KEYSMENU, "menu_weapon")
+	register_menu("WeaponFree Menu", KEYSMENU, "menu_weapon_free")
+	// register_menu("WeaponGash Menu", KEYSMENU, "menu_weapon_gash")
+	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
+	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	
 	register_menucmd(register_menuid("#Team_Select_Spect"), 51, "menu_team_select") 
 	
@@ -893,7 +898,7 @@ public task_devilmana_reco()
 		g_BossMana = get_pcvar_num(cvar_DevilManaMax)
 	else g_BossMana += get_pcvar_num(cvar_DevilRecoManaNum)
 	
-	client_print(g_whoBoss, print_center, "Mana:%d/%d", g_BossMana, get_pcvar_num(cvar_DevilManaMax))
+	client_print(g_whoBoss, print_center, "MP:%d/%d", g_BossMana, get_pcvar_num(cvar_DevilManaMax))
 }
 
 public task_godmode_light(id)
@@ -938,6 +943,8 @@ public task_blind_off(id)
 {
 	id -= TASK_BLIND_OFF
 	msg_screen_fade(id, 255, 255, 255, 0)
+	fm_set_rendering(id,kRenderFxNone, 0,0,0, kRenderNormal, 0)
+	remove_task( id+TASK_BLIND_OFF )
 }
 
 public func_critical(taskid)
@@ -999,7 +1006,7 @@ public menu_main(id, key)
 {
 	switch(key)
 	{
-		case 0: show_menu_weapon1(id)
+		case 0: show_menu_weapon(id)
 		case 1: show_menu_ability(id)
 		case 2: show_menu_pack(id)
 		case 3: show_menu_equip(id)
@@ -1008,14 +1015,117 @@ public menu_main(id, key)
 	return PLUGIN_HANDLED;
 }
 
-public show_menu_weapon1(id)
+public show_menu_weapon(id)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	new Menu[128],Len;
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"MENU_WEAPON_FREE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"MENU_WEAPON_GASH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"MENU_WEAPON_SPECIAL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"MENU_WEAPON_SECOND")
 	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id, KEYSMENU, Menu,-1,"Weapon Menu")
+	
+	return PLUGIN_HANDLED;
 }
 
-public menu_weapon1(id, key)
+public menu_weapon(id, key)
 {
+	switch(key)
+	{
+		case 0: show_menu_weapon_free(id)
+		// case 1: show_menu_weapon_gash(id)
+		// case 2: show_menu_weapon_special(id)
+		case 3: show_menu_weapon_second(id)
+	}
 	return PLUGIN_HANDLED;
+}
+
+public show_menu_weapon_free(id)
+{
+	new Menu[60],Len;
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_FREE")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \wM4A1^n")
+	//需要等级
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"WeaponFree Menu")
+	return PLUGIN_HANDLED;
+}
+
+public menu_weapon_free(id, key)
+{
+	if(get_bit(g_isBuyWpnMain, bit_id))
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		return PLUGIN_HANDLED
+	}
+	
+	new args[1]
+	switch(key)
+	{
+		case 0:{
+			fm_give_item(id, "weapon_m4a1")
+			args[0] = CSW_M4A1
+		}
+	}
+	
+	task_refill_bpammo(args[0], id)
+	set_bit(g_isBuyWpnMain, bit_id)
+	
+	return PLUGIN_HANDLED
+}
+
+// public show_menu_weapon_gash(id)
+// {
+	
+// }
+
+// public show_menu_weapon_special(id)
+// {
+	
+// }
+
+public show_menu_weapon_second(id)
+{
+	new Menu[60],Len;
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_SECOND")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \wUSP^n")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"WeaponSecond Menu")
+	
+	return PLUGIN_HANDLED;
+}
+
+public menu_weapon_second(id, key)
+{
+	
+	if(get_bit(g_isBuyWpnSec, bit_id))
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_SEC_WPN");
+		return PLUGIN_HANDLED
+	}
+	
+	new args[1]
+	switch(key)
+	{
+		case 0: {
+			args[0] = CSW_USP
+			fm_give_item(id, "weapon_usp")
+		}
+	}
+	
+	task_refill_bpammo(args[0], id)
+	set_bit(g_isBuyWpnSec, bit_id)
+	
+	return PLUGIN_HANDLED
 }
 
 public show_menu_pack(id)
@@ -1031,7 +1141,7 @@ public show_menu_equip(id)
 public show_menu_skill(id)
 {
 	new Menu[250],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_HUMANSKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_HUMANSKILL")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"HUMANSKILL_FASTRUN")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"HUMANSKILL_ONLYHEADSHOT")
 	
@@ -1055,13 +1165,10 @@ public menu_skill(id,key)
 public show_menu_ability(id)
 {
 	new Menu[256],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_ABILITY")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))
-	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_ABILITY")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityAgiMax))
-	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_STRENGTH", get_pcvar_num(cvar_AbilityStrCost), g_Abi_Str[id], get_pcvar_num(cvar_AbilityStrMax))
-	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L \d%d Sp  %d/%d^n", id,"ABILITY_GRAVITY", get_pcvar_num(cvar_AbilityGraCost), g_Abi_Gra[id], get_pcvar_num(cvar_AbilityGraMax))
 	
 	
@@ -1164,7 +1271,7 @@ public menu_bossskill(id,key)
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-				//扣魔力
+				g_BossMana -= get_pcvar_num(cvar_DevilScareCost)
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
 			}
@@ -1174,6 +1281,8 @@ public menu_bossskill(id,key)
 			if(bossskill_blind(id))
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_BLIND")
+				//音效
+				g_BossMana -= get_pcvar_num(cvar_DevilBlindCost)
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
@@ -1184,7 +1293,7 @@ public menu_bossskill(id,key)
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_TELEPORT")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_tele, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-				//扣魔力
+				g_BossMana -= get_pcvar_num(cvar_DevilTeleCost)
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
@@ -1196,6 +1305,7 @@ public menu_bossskill(id,key)
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_GODMODE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_god, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+				g_BossMana -= get_pcvar_num(cvar_DevilGodCost)
 				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
@@ -1229,6 +1339,8 @@ gm_reset_vars()
 	g_isNoDamage = 0;
 	g_isCrit = 0;
 	g_isMiniCrit = 0;
+	g_isBuyWpnMain = 0;
+	g_isBuyWpnSec = 0;
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -1533,15 +1645,14 @@ public bossskill_blind(id)
 	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
 	{
 		if(target==id || !is_user_valid_connected(target)) continue;
-		
+		fm_set_rendering(target,kRenderFxGlowShell, 128, 255, 128, kRenderNormal, 32);
+		set_task(get_pcvar_float(cvar_DevilBlindTime), "task_blind_off", target+TASK_BLIND_OFF);
 		if(is_user_bot(target))
 		{
 			g_AttackCooldown[target] = get_gametime() + get_pcvar_float(cvar_DevilBlindTime)
 			continue
 		}
 		msg_screen_fade(target, 0, 0, 0, 255)
-		fm_set_rendering(target,kRenderFxGlowShell, 128, 255, 128, kRenderNormal, 32);
-		set_task(get_pcvar_float(cvar_DevilBlindTime), "task_blind_off", target+TASK_BLIND_OFF);
 	}
 	
 	return 1
