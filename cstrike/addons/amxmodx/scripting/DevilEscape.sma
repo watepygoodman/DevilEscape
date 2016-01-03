@@ -899,7 +899,8 @@ public task_devilmana_reco()
 		g_BossMana = get_pcvar_num(cvar_DevilManaMax)
 	else g_BossMana += get_pcvar_num(cvar_DevilRecoManaNum)
 	
-	client_print(g_whoBoss, print_center, "MP:%d/%d", g_BossMana, get_pcvar_num(cvar_DevilManaMax))
+	if(!is_user_bot(g_whoBoss))
+		client_print(g_whoBoss, print_center, "MP:%d/%d", g_BossMana, get_pcvar_num(cvar_DevilManaMax))
 }
 
 public task_godmode_light(id)
