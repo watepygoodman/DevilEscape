@@ -236,7 +236,7 @@ public plugin_precache()
 	
 	cvar_DevilHea = register_cvar("de_devil_basehea","2046")
 	cvar_DevilRecoManaTime = register_cvar("de_devil_reco_manatime","0.3")
-	cvar_DevilRecoManaNum = register_cvar("de_devil_reco_mananum","11")
+	cvar_DevilRecoManaNum = register_cvar("de_devil_reco_mananum","6")
 	cvar_DevilManaMax = register_cvar("de_devil_manamax","999")
 	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.5")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
@@ -362,6 +362,7 @@ public event_round_end()
 {
 	g_RoundStatus = Round_End;
 	
+	remove_task(TASK_DEVILMANA_RECO)
 	remove_task(TASK_BALANCE)
 	set_task(0.2, "task_balance", TASK_BALANCE)
 }
@@ -1335,6 +1336,7 @@ gm_choose_boss()
 gm_reset_vars()
 {
 	g_whoBoss = -1;
+	g_BossMana = 0;
 	g_Online = 0;
 	g_isNoDamage = 0;
 	g_isCrit = 0;
