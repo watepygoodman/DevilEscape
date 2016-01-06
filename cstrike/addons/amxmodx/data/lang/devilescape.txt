@@ -63,7 +63,10 @@ BOSSSKILL_DISAPPEAR = 消失
 
 ADMIN_PLAYER_MUST_ALIVE = 该玩家必须存活！
 ADMIN_ROUND_HAD_START = 该局必须未开始！
-ADMIN_CHOOSE_BOSS = 管理员%s 选择了%s 为魔王
+ADMIN_CHOOSE_BOSS = 管理员%s选择了%s为魔王
+ADMIN_INPUT_MSG = 请按Y输入你要给予的值(输入0取消)
+ADMIN_INPUT_ERROR = 请输入正确的值(输入0取消)
+ADMIN_GIVE_ITEM = 管理员%s给予了%s %d
 
 COIN = Coin
 GASH = Gash

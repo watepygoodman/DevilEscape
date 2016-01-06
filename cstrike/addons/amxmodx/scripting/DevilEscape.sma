@@ -77,8 +77,8 @@ enum{
 	Round_End
 }
 
-enum{
-	ADMIN_SELECT_BOSS, ADMIN_GIVE
+enum(+=10){
+	ADMIN_SELECT_BOSS = 32, ADMIN_GIVE, ADMIN_GIVE_COIN, ADMIN_GIVE_GASH, ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL = 82
 }
 
 new const g_RemoveEnt[][] = {
@@ -194,10 +194,12 @@ new g_users_weapon[33]
 //Menu
 new g_Menu_WpnFree_Page[33]
 new g_Menu_Admin_Select[33]
-new g_Menu_Admin_Select_Plr[33]
+new g_Menu_Admin_Select_PlrKey[33][33]
 
 //Admin
 new g_Admin_Select_Boss
+new g_Admin_Select_Plr[33]
+new g_Admin_Input[33]
 
 new g_savesDir[128];
 new g_PlayerPswd[33][12]
@@ -721,6 +723,24 @@ public fw_ClientCommand(id)
 		if(get_bit(g_isChangingPW, bit_id))
 		{
 			gm_user_register(id, szText)
+			return FMRES_SUPERCEDE;
+		}
+		
+		new AdminPut = g_Menu_Admin_Select[id]
+		if(AdminPut == ADMIN_GIVE_COIN || AdminPut == ADMIN_GIVE_GASH || AdminPut == ADMIN_GIVE_XP || AdminPut == ADMIN_GIVE_LEVEL)
+		{
+			if(!is_str_num(szText))
+				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_INPUT_ERROR");
+			else
+			{
+				g_Admin_Input[id] = str_to_num(szText)
+				
+				//为0
+				if(!g_Admin_Input[id])
+					return FMRES_SUPERCEDE;
+				
+				gm_admin_give(id)
+			}
 			return FMRES_SUPERCEDE;
 		}
 	}
@@ -1511,7 +1531,6 @@ public menu_admin(id, key)
 			show_menu_plrlist(id)
 		}
 		case 1:{
-			g_Menu_Admin_Select[id] = ADMIN_GIVE
 			show_menu_admin_give(id)
 		}
 	}
@@ -1537,15 +1556,18 @@ public menu_admin_give(id, key)
 {
 	switch(key)
 	{
-		case 0:{
-			g_Menu_Admin_Select[id] = ADMIN_GIVE
-			show_menu_plrlist(id)
-		}
+		case 0: g_Menu_Admin_Select[id] = ADMIN_GIVE_COIN
+		case 1: g_Menu_Admin_Select[id] = ADMIN_GIVE_GASH
+		case 2: g_Menu_Admin_Select[id] = ADMIN_GIVE_LEVEL
+		case 3: g_Menu_Admin_Select[id] = ADMIN_GIVE_XP
+		default: return PLUGIN_HANDLED;
 	}
+	show_menu_plrlist(id)
+	return PLUGIN_HANDLED;
 }
 
 public show_menu_plrlist(id)
-{
+{	
 	new Menuitem[32], Menu
 	new MENU_PROP_EXIT[12], MENU_PROP_BACK[12], MENU_PROP_NEXT[12]
 	formatex(MENU_PROP_EXIT, charsmax(MENU_PROP_EXIT),"%L", LANG_PLAYER, "MENU_EXIT") 
@@ -1557,6 +1579,9 @@ public show_menu_plrlist(id)
 		case ADMIN_SELECT_BOSS: formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_SELECT_BOSS") 
 		case ADMIN_GIVE: formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_GIVE") 
 	}
+	if(g_Menu_Admin_Select[id] >= ADMIN_GIVE && g_Menu_Admin_Select[id] <= ADMIN_GIVE_LEVEL)
+		formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_GIVE") 
+	
 	Menu = menu_create(Menuitem, "menu_plrlist")
 	
 	new Count, PlrName[28], Char_Count[3]
@@ -1573,12 +1598,12 @@ public show_menu_plrlist(id)
 			else formatex(Menuitem, charsmax(Menuitem), "\d%s", PlrName)
 		}
 		else
-			 formatex(Menuitem, charsmax(Menuitem), "\d%s", PlrName)
+			 formatex(Menuitem, charsmax(Menuitem), "%s", PlrName)
 		 
 		Count++
 		num_to_str(Count, Char_Count, 3)
 		menu_additem(Menu, Menuitem, Char_Count)
-		g_Menu_Admin_Select_Plr[Count] = i
+		g_Menu_Admin_Select_PlrKey[id][Count] = i
 	}
 	
 	menu_setprop(Menu, MPROP_BACKNAME, MENU_PROP_BACK)
@@ -1601,13 +1626,15 @@ public menu_plrlist(id, menu, item)
 	new key = str_to_num(data);
 	
 	new AdminName[18], PlrName[18]
+	get_user_name(id, AdminName, charsmax(AdminName))
+	get_user_name(g_Menu_Admin_Select_PlrKey[id][key], PlrName, charsmax(PlrName))
 	
-	
-	switch(g_Menu_Admin_Select[id])
+	new AdminPut = g_Menu_Admin_Select[id]
+	switch(AdminPut)
 	{
 		case ADMIN_SELECT_BOSS:
 		{
-			if(!is_user_alive(g_Menu_Admin_Select_Plr[key]))
+			if(!is_user_alive(g_Menu_Admin_Select_PlrKey[id][key]))
 				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_PLAYER_MUST_ALIVE");
 			else
 			{
@@ -1615,14 +1642,18 @@ public menu_plrlist(id, menu, item)
 					client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
 				else
 				{
-					get_user_name(id, AdminName, charsmax(AdminName))
-					get_user_name(g_Menu_Admin_Select_Plr[key], PlrName, charsmax(PlrName))
-					client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
-					g_Admin_Select_Boss = g_Menu_Admin_Select_Plr[key]
+					client_color_print(0, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
+					g_Admin_Select_Boss = g_Menu_Admin_Select_PlrKey[id][key]
 					task_round_start()
 				}
 			}
 		}
+	}
+	if(AdminPut >= ADMIN_GIVE && AdminPut <= ADMIN_GIVE_LEVEL) // 42-82
+	{
+		g_Admin_Select_Plr[id] = g_Menu_Admin_Select_PlrKey[id][key]
+		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
+		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "ADMIN_INPUT_MSG")
 	}
 	//test
 	
@@ -1781,6 +1812,39 @@ gm_user_load(id)
 	g_Abi_Str[id] = kv_get_int(abi, "Str"); g_Abi_Gra[id] = kv_get_int(abi, "Gra")
 	
 	kv_delete(kv)
+}
+
+gm_admin_give(id)
+{
+	new PlrName[22], AdminName[22]
+	get_user_name(id, AdminName, charsmax(AdminName))
+	get_user_name(g_Admin_Select_Plr[id], PlrName, charsmax(PlrName))
+	switch(g_Menu_Admin_Select[id])
+	{
+		case ADMIN_GIVE_COIN:
+		{
+			g_Coin[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
+			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
+		}
+		case ADMIN_GIVE_GASH:
+		{
+			g_Gash[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
+			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
+		}
+		case ADMIN_GIVE_LEVEL:
+		{
+			g_Level[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
+			g_Sp[g_Admin_Select_Plr[id]] += g_Admin_Input[id] * get_pcvar_num(cvar_SpPreLv)
+			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
+		}
+		case ADMIN_GIVE_XP:
+		{
+			g_Xp[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
+			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
+		}
+	}
+	g_Admin_Select_Plr[id] = 0
+	g_Menu_Admin_Select[id] = 0
 }
 
 gm_create_fog()
