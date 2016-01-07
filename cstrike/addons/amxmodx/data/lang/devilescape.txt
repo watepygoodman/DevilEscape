@@ -11,7 +11,8 @@ LOGIN_FAILED = 登录失败,密码错误
 HUD_NO_REGISTER = [DevilEscape]^n您还没有注册,请按Y输入你的密码^n剩余%d秒
 HUD_NO_LOGIN = [DevilEscape]^n您还没有登录,请按Y输入你的密码^n剩余%d秒
 HUD_CHANGING_PW = [DevilEscape]^n请按Y输入你的新密码
-HUD_LEVEL_UP = [Lv %d]
+HUD_LEVEL_UP = [Lv.%d]
+HUD_WPN_LEVEL_UP = [%s Lv.%d]
 
 DHUD_ROUND_START = 10秒后魔王出现
 DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s

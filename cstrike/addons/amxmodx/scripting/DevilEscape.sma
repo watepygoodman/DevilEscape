@@ -50,7 +50,13 @@ new const AMMOWEAPON[] = { 0, CSW_AWP, CSW_SCOUT, CSW_M249,
 new const AMMOTYPE[][] = { "", "357sig", "", "762nato", "", "buckshot", "", "45acp", "556nato", "", "9mm", "57mm", "45acp",
 		"556nato", "556nato", "556nato", "45acp", "9mm", "338magnum", "9mm", "556natobox", "buckshot",
 			"556nato", "9mm", "762nato", "", "50ae", "556nato", "762nato", "", "57mm" }
-			
+
+new const WEAPONCSWNAME[/*CSW_ID*/][] = { "", "P228", "", " Scout", "手雷", "XM1014", 
+			"C4", "MAC10", "Aug", "Smoke", "Elite", "Fiveseven", 
+			"UMP45", "SG550", "Galil", "Famas", "USP", "Glock18", 
+			"Magnum Sniper", "MP5", "Heavy Gun", "M3", "M4A1", "TMP", "G3SG1", 
+			"闪光弹", "Desert Eagle", "SG552", "AK47", "Knife", "P90" }			
+
 //最大后背弹药
 new const MAXBPAMMO[] = { -1, 52, -1, 90, 1, 32, 1, 100, 90, 1, 120, 100, 100, 90, 90, 90, 100, 120,
 				30, 120, 200, 32, 90, 120, 90, 2, 35, 90, 90, -1, 100 }
@@ -142,7 +148,8 @@ cvar_DevilSlashDmgMulti,  cvar_DevilDisappearTime, cvar_DevilScareTime,cvar_Devi
 cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDisappearCost , cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, 
 cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
-cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv
+cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
+cvar_WpnLvAddDmg, cvar_WpnLvNeedXp
 
 //Spr
 new g_spr_ring;
@@ -183,13 +190,16 @@ new g_Abi_Str[33];
 new g_Abi_Agi[33];
 new g_Abi_Gra[33];
 
+new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
+new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
+
 new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
 new Float:g_AttackCooldown[33];
 new g_BossMana;
 new g_LoginTime[33];
-new g_users_ammo[33];
-new g_users_weapon[33]
+new g_UsersAmmo[33];
+new g_UsersWeapon[33];
 
 //Menu
 new g_Menu_WpnFree_Page[33]
@@ -299,6 +309,10 @@ public plugin_precache()
 	cvar_AbilityAgiAdd = register_cvar("de_ability_agi_add", "1.0")
 	cvar_AbilityStrAdd = register_cvar("de_ability_str_add", "0.02")
 	cvar_AbilityGraAdd = register_cvar("de_ability_gra_add", "0.1")
+	
+	cvar_RewardWpnXp = register_cvar("de_wpnxp_reward", "1")
+	cvar_WpnLvAddDmg = register_cvar("de_wpnlv_add_dmg", "1.0")
+	cvar_WpnLvNeedXp = register_cvar("de_wpnlv_need_xp", "100")
 }
 
 public plugin_init()
@@ -445,7 +459,7 @@ public event_ammo_x(id)
 public event_shoot(id)
 {
 	new ammo = read_data(3), weapon = read_data(2);
-	if(g_users_ammo[id] > ammo && ammo >= 0 && g_users_weapon[id] == weapon)
+	if(g_UsersAmmo[id] > ammo && ammo >= 0 && g_UsersWeapon[id] == weapon)
 	{
 		new vec1[3], vec2[3];
 		get_user_origin(id, vec1, 1);
@@ -472,14 +486,14 @@ public event_shoot(id)
 		}
 		else
 			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
-		g_users_ammo[id]=ammo;
+		g_UsersAmmo[id]=ammo;
 		if(get_bit(g_isCrit, bit_id))
 			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
     }
 	else
 	{
-        g_users_weapon[id]=weapon;
-        g_users_ammo[id]=ammo;
+        g_UsersWeapon[id]=weapon;
+        g_UsersAmmo[id]=ammo;
     }
 	return PLUGIN_HANDLED;
 }
@@ -558,7 +572,6 @@ public fw_PlayerPreThink(id)
 		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_LEVEL_UP", g_Level[id])
 	}
-	
 	if(id != g_whoBoss)
 		set_pev(id, pev_maxspeed, 250.0+ g_Abi_Agi[id] * get_pcvar_float(cvar_AbilityAgiAdd))
 	else set_pev(id, pev_maxspeed, get_pcvar_float(cvar_DevilSpeed))
@@ -620,6 +633,9 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		msg_create_crit(attacker,victim,2)
 	}
 	
+	//WpnLv
+	TrueDamage += get_pcvar_float(cvar_WpnLvAddDmg) * g_WpnLv[attacker][g_UsersWeapon[attacker]]
+	
 	SetHamParamFloat(4, TrueDamage)
 		
 	return HAM_HANDLED;
@@ -646,9 +662,22 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 			g_DmgDealt[attacker] -= get_pcvar_num(cvar_DmgReward);
 			g_Coin[attacker] += get_pcvar_num(cvar_RewardCoin);
 			g_Xp[attacker] += get_pcvar_num(cvar_RewardXp);
+			g_WpnXp[attacker][g_UsersWeapon[attacker]] += get_pcvar_num(cvar_RewardWpnXp);
 		}
 		set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
-		ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin))
+		ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n +%d Wpn Xp" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), i*get_pcvar_num(cvar_RewardWpnXp))
+		
+		new WpnLvNeedXp = get_pcvar_num(cvar_WpnLvNeedXp)
+		if(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+		{
+			while(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+			{
+				g_WpnXp[attacker][g_UsersWeapon[attacker]] -= WpnLvNeedXp
+				g_WpnLv[attacker][g_UsersWeapon[attacker]] ++
+			}
+			set_hudmessage(192, 0, 0, 0.55, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
+			ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
+		}
 	}
 	
 	//这里应该是HUD提示
@@ -737,7 +766,10 @@ public fw_ClientCommand(id)
 				
 				//为0
 				if(!g_Admin_Input[id])
+				{
+					g_Menu_Admin_Select[id] = 0
 					return FMRES_SUPERCEDE;
+				}
 				
 				gm_admin_give(id)
 			}
@@ -902,8 +934,10 @@ public task_showhud(id)
 	id -= TASK_SHOWHUD
 	
 	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Sp:%d  |  Coin:%d  |  Gash:%d^n累计伤害:%d  |  XP:%d/%d^nBossHP:%d",
-	pev(id, pev_health), g_Level[id], g_Sp[id], g_Coin[id], g_Gash[id], floatround(g_Dmg[id]), g_Xp[id], g_NeedXp[id],get_user_health(g_whoBoss),g_Online)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Sp:%d  |  Coin:%d  |  Gash:%d  |  Xp:%d/%d^n累计伤害:%d  |  Wpn:%s Lv.%d   Xp%d/%d  ^nBossHP:%d",
+	pev(id, pev_health), g_Level[id], g_Sp[id], g_Coin[id], g_Gash[id], g_Xp[id], g_NeedXp[id], floatround(g_Dmg[id]),
+	WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , g_WpnXp[id][g_UsersWeapon[id]], 
+	get_pcvar_num(cvar_WpnLvNeedXp) ,get_user_health(g_whoBoss))
 }
 
 public task_plrspawn(id)
@@ -1781,6 +1815,16 @@ gm_user_save(id)
 	kv_set_int(abi, "Str", g_Abi_Str[id]); kv_set_int(abi, "Gra", g_Abi_Gra[id]);
 	kv_add_sub_key(kv, abi)
 	
+	new wpnlv = kv_create("WeaponLv");
+	for(new i = 1; i < sizeof g_WpnLv[]; i++)
+		kv_set_int(wpnlv, WEAPONCSWNAME[i], g_WpnLv[id][i])
+	kv_add_sub_key(kv, wpnlv)
+	
+	new wpnxp = kv_create("WeaponXp");
+	for(new i = 1; i < sizeof g_WpnXp[]; i++)
+		kv_set_int(wpnxp, WEAPONCSWNAME[i], g_WpnXp[id][i])
+	kv_add_sub_key(kv, wpnxp)
+	
 	kv_save_to_file(kv, szFileDir);
 	kv_delete(kv);
 	
@@ -1843,6 +1887,7 @@ gm_admin_give(id)
 			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
 		}
 	}
+	gm_user_save(g_Admin_Select_Plr[id]) //保存一下
 	g_Admin_Select_Plr[id] = 0
 	g_Menu_Admin_Select[id] = 0
 }
