@@ -99,6 +99,7 @@ new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
 
 new const snd_human_win[] = "DevilEscape/Human_Win.wav"
 new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
+new const snd_noone_win[] = "DevilEscape/Noone_Win.wav"
 
 new const snd_claw_miss[][] = {
 	"DevilEscape/Claw_Miss1.wav", "DevilEscape/Claw_Miss2.wav"}
@@ -153,13 +154,14 @@ new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249
 ================== */
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
+new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
 cvar_DevilSlashDmgMulti,  cvar_DevilDisappearTime, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilLongjumpDistance, 
 cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDisappearCost , cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, 
 cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
-cvar_WpnLvAddDmg, cvar_WpnLvNeedXp
+cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
+cvar_NooneWinGetXp, cvar_NooneWinGetCoin
 
 //Spr
 new g_spr_ring;
@@ -187,7 +189,7 @@ new g_isBuyWpnSec;
 new g_whoBoss;
 new g_MaxPlayer;
 new g_Online;
-new g_PlayerAlive;
+new g_PlayerInGame;
 new g_RoundStatus;
 new bool:g_hasBot;
 
@@ -297,6 +299,7 @@ public plugin_precache()
 	
 	cvar_DevilHea = register_cvar("de_devil_basehea","15000")
 	cvar_DevilSpeed = register_cvar("de_devil_basespeed","260.0")
+	cvar_DevilGravity = register_cvar("de_devil_basegravity","0.90")
 	cvar_DevilRecoManaTime = register_cvar("de_devil_reco_manatime","0.3")
 	cvar_DevilRecoManaNum = register_cvar("de_devil_reco_mananum","6")
 	cvar_DevilManaMax = register_cvar("de_devil_manamax","999")
@@ -335,6 +338,13 @@ public plugin_precache()
 	cvar_RewardWpnXp = register_cvar("de_wpnxp_reward", "1")
 	cvar_WpnLvAddDmg = register_cvar("de_wpnlv_add_dmg", "1.0")
 	cvar_WpnLvNeedXp = register_cvar("de_wpnlv_need_xp", "100")
+	
+	cvar_DevilWinGetBaseXp = register_cvar("de_win_devil_base_getxp", "650")
+	cvar_DevilWinGetBaseCoin = register_cvar("de_win_devil_base_getcoin", "2")
+	cvar_HumanWinGetXp = register_cvar("de_win_human_getxp", "2000")
+	cvar_HumanWinGetCoin = register_cvar("de_win_human_getcoin", "4")
+	cvar_NooneWinGetXp = register_cvar("de_win_noone_getxp", "1000")
+	cvar_NooneWinGetCoin = register_cvar("de_win_noone_getcoin", "2")
 }
 
 public plugin_init()
@@ -437,8 +447,52 @@ public event_round_start()
 //Round_End
 public event_round_end()
 {
+	new GetXp, GetCoin
+	if(!fnGetHumans())
+	{
+		GetXp = get_pcvar_num(cvar_DevilWinGetBaseXp) * g_PlayerInGame
+		GetCoin = get_pcvar_num(cvar_DevilWinGetBaseCoin) * g_PlayerInGame
+		set_dhudmessage( 255, 0, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_WIN" );
+		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		PlaySound(snd_devil_win)
+		
+		for(new i = 1; i <= g_MaxPlayer; i++)
+		{
+			if(i == g_whoBoss || !is_user_valid_connected(i))
+				continue
+			g_Xp[i] += GetXp
+			g_Coin[i] += GetCoin
+		}
+	}
+	else if(!is_user_alive(g_whoBoss))
+	{
+		GetXp = get_pcvar_num(cvar_HumanWinGetXp)
+		GetCoin = get_pcvar_num(cvar_HumanWinGetCoin)
+		set_dhudmessage( 0, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_HUMAN_WIN" );
+		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		PlaySound(snd_human_win)
+		g_Xp[g_whoBoss] += GetXp
+		g_Coin[g_whoBoss] += GetCoin
+	}
+	else
+	{
+		GetXp = get_pcvar_num(cvar_NooneWinGetXp)
+		GetCoin = get_pcvar_num(cvar_NooneWinGetCoin)
+		set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_NOONE_WIN" );
+		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_NOONE_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		PlaySound(snd_noone_win)
+		for(new i = 1; i <= g_MaxPlayer; i++)
+		{
+			if(!is_user_valid_connected(i))
+				continue
+			g_Xp[i] += GetXp
+			g_Coin[i] += GetCoin
+		}
+	}
 	g_RoundStatus = Round_End;
-	
 	remove_task(TASK_DEVILMANA_RECO)
 	remove_task(TASK_BALANCE)
 	set_task(0.2, "task_balance", TASK_BALANCE)
@@ -575,7 +629,6 @@ public fw_PlayerSpawn_Post(id)
 
 public fw_PlayerKilled(victim, attacker, shouldgib)
 {
-	g_PlayerAlive --
 	if(victim == attacker || !is_user_alive(attacker))
 		return HAM_IGNORED
 	
@@ -649,7 +702,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		return HAM_HANDLED;
 	}
 	//Str
-	TrueDamage *=  1 + (g_Abi_Str[attacker]*get_pcvar_num(cvar_AbilityStrAdd)) 
+	TrueDamage *=  (1.0 + (g_Abi_Str[attacker]*get_pcvar_num(cvar_AbilityStrAdd)))
 	
 	//Crit
 	if(get_bit(g_isCrit, attacker-1))
@@ -961,12 +1014,12 @@ public task_round_start()
 		if(!is_user_valid_connected(i))
 			continue;
 		new team = fm_cs_get_user_team(i)
-		if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED  || i == g_whoBoss)
+		if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
 			continue
-		g_PlayerAlive ++;
+		g_PlayerInGame ++;
 	}
-	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_PlayerAlive) * (g_PlayerAlive - 1))
-	new addhealth = floatround(floatpower(((6500.0 + g_PlayerAlive)*(g_PlayerAlive - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
+	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_PlayerInGame) * (g_PlayerInGame - 1))
+	new addhealth = floatround(get_pcvar_float(cvar_DevilHea) * g_PlayerInGame * 1.15)
 	fm_set_user_health(id, addhealth)
 	fm_cs_set_user_team(id, FM_CS_TEAM_T)
 	
@@ -975,6 +1028,7 @@ public task_round_start()
 
 	set_pev(id, pev_viewmodel2, "models/v_devil_hand1.mdl")
 	set_pev(id, pev_weaponmodel2, "")
+	set_user_gravity(id, get_pcvar_float(cvar_DevilGravity))
 	
 	fm_set_user_model(id, "devil1")
 	// new hull = (pev(id, pev_flags) & FL_DUCKING) ? HULL_HEAD : HULL_HUMAN
@@ -1011,12 +1065,11 @@ public task_balance()
 public task_showhud(id)
 {
 	id -= TASK_SHOWHUD
-	
 	set_hudmessage(25, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f",
+	ShowSyncHudMsg(id, g_Hud_Status, "HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f^n Boss HP:%d",
 	pev(id, pev_health), g_Coin[id], g_Gash[id], g_Level[id], g_Xp[id], g_NeedXp[id], g_Sp[id],
 	WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , WEAPONCSWNAME[g_UsersWeapon[id]], 
-	g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id])
+	g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id], pev(g_whoBoss, pev_health))
 }
 
 public task_plrspawn(id)
@@ -1079,12 +1132,17 @@ public task_pw_change(id)
 public task_bots_ham(id)
 {
 	id-=TASK_BOTHAM
-	if (!get_bit(g_isConnect, bit_id))
+	if (!get_bit(g_isConnect, bit_id) || g_hasBot)
 		return;
 	
 	RegisterHamFromEntity(Ham_Spawn, id, "fw_PlayerSpawn_Post", 1)
 	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage")
 	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage_Post", 1)
+	RegisterHamFromEntity(Ham_Killed, id, "fw_PlayerKilled")
+	g_hasBot = true
+	
+	// If the bot has already spawned, call the forward manually for him
+	if (is_user_alive(id)) fw_PlayerSpawn_Post(id)
 }
 
 public task_refill_bpammo(const args[], id)
@@ -1838,7 +1896,7 @@ gm_reset_vars()
 	g_whoBoss = -1;
 	g_BossMana = 0;
 	g_Online = 0;
-	g_PlayerAlive = 0;
+	g_PlayerInGame = 0;
 	g_isNoDamage = 0;
 	g_isCrit = 0;
 	g_isMiniCrit = 0;
@@ -2700,5 +2758,34 @@ team_join(id, team[] = "5")
 	set_msg_block(g_Msg_ShowMenu, msg_block)
 }
 
+// Plays a sound on clients
+PlaySound(const sound[])
+{
+	client_cmd(0, "spk ^"%s^"", sound)
+}
 
+//~Return alive human number
+fnGetHumans()
+{
+	static iHuman, id
+	iHuman = 0
+	for (id = 1; id <= g_MaxPlayer; id++)
+	{
+		if (is_user_alive(id) && id != g_whoBoss)
+			iHuman++
+	}
+	return iHuman
+}
 
+//~Return alive player number
+// fnGetAlive()
+// {
+	// static iAlive, id
+	// iAlive = 0
+	// for (id = 1; id <= g_MaxPlayer; id++)
+	// {
+		// if (is_user_alive(id))
+			// iAlive++
+	// }
+	// return iAlive
+// }

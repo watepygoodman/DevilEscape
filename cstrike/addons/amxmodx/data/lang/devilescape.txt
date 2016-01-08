@@ -18,6 +18,11 @@ HUD_WPN_LEVEL_UP = [%s Lv.%d]
 DHUD_ROUND_START = 10秒后魔王出现
 DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s
 
+DHUD_BOSS_WIN = 魔王胜利！
+DHUD_HUMAN_WIN = 人类胜利！
+DHUD_NOONE_WIN = 平局
+WIN_GET_CHAT = 赢家获得 %d Exp, %d Coin奖励！
+
 HOW_MANY_LV_NEED = Lv.%d
 HAVE_MAIN_WPN = 你已经购买过主武器了！
 HAVE_SEC_WPN = 你已经购买过副武器了！
