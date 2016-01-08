@@ -51,11 +51,11 @@ new const AMMOTYPE[][] = { "", "357sig", "", "762nato", "", "buckshot", "", "45a
 		"556nato", "556nato", "556nato", "45acp", "9mm", "338magnum", "9mm", "556natobox", "buckshot",
 			"556nato", "9mm", "762nato", "", "50ae", "556nato", "762nato", "", "57mm" }
 
-new const WEAPONCSWNAME[/*CSW_ID*/][] = { "", "P228", "", " Scout", "手雷", "XM1014", 
-			"C4", "MAC10", "Aug", "Smoke", "Elite", "Fiveseven", 
+new const WEAPONCSWNAME[/*CSW_ID*/][] = { "", "P228", "", "Scout", "", "XM1014", 
+			"", "MAC10", "Aug", "Smoke", "Elite", "Fiveseven", 
 			"UMP45", "SG550", "Galil", "Famas", "USP", "Glock18", 
-			"Magnum Sniper", "MP5", "Heavy Gun", "M3", "M4A1", "TMP", "G3SG1", 
-			"闪光弹", "Desert Eagle", "SG552", "AK47", "Knife", "P90" }			
+			"AWP", "MP5", "M249", "M3", "M4A1", "TMP", "G3SG1", 
+			"", "Desert Eagle", "SG552", "AK47", "Knife", "P90" }			
 
 //最大后背弹药
 new const MAXBPAMMO[] = { -1, 52, -1, 90, 1, 32, 1, 100, 90, 1, 120, 100, 100, 90, 90, 90, 100, 120,
@@ -100,6 +100,14 @@ new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
 new const snd_human_win[] = "DevilEscape/Human_Win.wav"
 new const snd_devil_win[] = "DevilEscape/Devil_Win.wav"
 
+new const snd_claw_miss[][] = {
+	"DevilEscape/Claw_Miss1.wav", "DevilEscape/Claw_Miss2.wav"}
+new const snd_claw_strike[][] = {
+	"DevilEscape/Claw_Strike1.wav", "DevilEscape/Claw_Strike2.wav", "DevilEscape/Claw_Strike3.wav"}
+new const snd_boss_die[][] = {
+	"DevilEscape/Boss_Death1.wav", "DevilEscape/Boss_Death2.wav"}
+new const snd_boss_pain[][] = {
+	"DevilEscape/Boss_Pain1.wav", "DevilEscape/Boss_Pain2.wav"}
 new const snd_boss_scare[] = "DevilEscape/Boss_Scare.wav"
 new const snd_boss_tele[] = "DevilEscape/Boss_Teleport.wav"
 new const snd_boss_god[] = "DevilEscape/Boss_God.wav"
@@ -135,6 +143,8 @@ new const g_WpnFreeSec[][] = {"weapon_aug", "weapon_sg550", "weapon_g3sg1", "wea
 new const g_WpnFreeFrist_CSW[] = {CSW_TMP, CSW_MP5NAVY, CSW_P90, CSW_FAMAS, CSW_GALIL, CSW_AK47, 
 				CSW_M4A1, CSW_SG552}
 new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249}
+
+#define MAX_PACKSLOT 16
 
 /* ================== 
 
@@ -177,6 +187,7 @@ new g_isBuyWpnSec;
 new g_whoBoss;
 new g_MaxPlayer;
 new g_Online;
+new g_PlayerAlive;
 new g_RoundStatus;
 new bool:g_hasBot;
 
@@ -189,6 +200,7 @@ new g_Abi_Hea[33]
 new g_Abi_Str[33];
 new g_Abi_Agi[33];
 new g_Abi_Gra[33];
+new g_Pack[33][MAX_PACKSLOT+1];
 
 new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
 new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
@@ -249,6 +261,16 @@ public plugin_precache()
 	g_spr_crit = engfunc(EngFunc_PrecacheModel, spr_crit)
 	g_spr_minicrit = engfunc(EngFunc_PrecacheModel, spr_minicrit)
 	g_spr_scare = engfunc(EngFunc_PrecacheModel, spr_scare)
+	
+	new i;
+	for(i = 0; i < sizeof snd_claw_miss; i++)
+		engfunc(EngFunc_PrecacheSound, snd_claw_miss[i])
+	for(i = 0; i < sizeof snd_claw_strike; i++)
+		engfunc(EngFunc_PrecacheSound, snd_claw_strike[i])
+	for(i = 0; i < sizeof snd_boss_die; i++)
+		engfunc(EngFunc_PrecacheSound, snd_boss_die[i])
+	for(i = 0; i < sizeof snd_boss_pain; i++)
+		engfunc(EngFunc_PrecacheSound, snd_boss_pain[i])
 	
 	engfunc(EngFunc_PrecacheSound, snd_human_win)
 	engfunc(EngFunc_PrecacheSound, snd_devil_win)
@@ -343,6 +365,7 @@ public plugin_init()
 	
 	//Forward
 	register_forward(FM_CmdStart,"fw_CmdStart")
+	register_forward(FM_EmitSound, "fw_EmitSound");
 	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink");
 	register_forward(FM_PlayerPostThink, "fw_PlayerPostThink");
 	register_forward(FM_ClientCommand, "fw_ClientCommand") ;
@@ -355,6 +378,7 @@ public plugin_init()
 	//Ham
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage");
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage_Post",1);
+	RegisterHam(Ham_Killed, "player", "fw_PlayerKilled")
 	RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1);
 	RegisterHam(Ham_Touch, "weapon_hegrenade", "fw_TouchWeapon")
 	RegisterHam(Ham_Touch, "weaponbox", "fw_TouchWeapon")
@@ -549,6 +573,14 @@ public fw_PlayerSpawn_Post(id)
 	
 }
 
+public fw_PlayerKilled(victim, attacker, shouldgib)
+{
+	g_PlayerAlive --
+	if(victim == attacker || !is_user_alive(attacker))
+		return HAM_IGNORED
+	
+	return HAM_IGNORED
+}
 
 //PreThink
 public fw_PlayerPreThink(id)
@@ -675,7 +707,7 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 				g_WpnXp[attacker][g_UsersWeapon[attacker]] -= WpnLvNeedXp
 				g_WpnLv[attacker][g_UsersWeapon[attacker]] ++
 			}
-			set_hudmessage(192, 0, 0, 0.55, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
+			set_hudmessage(192, 0, 0, -1.0, 0.55, 1, 6.0, 1.5, 0.3, 0.3, 0)
 			ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
 		}
 	}
@@ -700,6 +732,7 @@ public fw_TouchWeapon(weapon, id)
 public fw_ClientDisconnect(id)
 {
 	delete_bit(g_isConnect, bit_id)
+	g_Online --
 	remove_task(id+TASK_AUTOSAVE)
 }
 
@@ -718,6 +751,51 @@ public fw_CmdStart(id,uc_handle,seed)
 	}
 	
 	return FMRES_IGNORED
+}
+
+//Emit Sound
+public fw_EmitSound(id, channel, const sample[], Float:volume, Float:attn, flags, pitch)
+{
+	if (!is_user_valid_connected(id))
+		return FMRES_IGNORED;
+	
+	if(id == g_whoBoss)
+	{
+		if (sample[7] == 'b' && sample[8] == 'h' && sample[9] == 'i' && sample[10] == 't')
+		{
+			emit_sound(id, channel, snd_boss_pain[random_num(0, 1)], volume, attn, flags, pitch)
+			return FMRES_SUPERCEDE;
+		}
+		if (sample[8] == 'k' && sample[9] == 'n' && sample[10] == 'i')
+		{
+			//Slash
+			if (sample[14] == 's' && sample[15] == 'l' && sample[16] == 'a') 
+			{
+				emit_sound(id, channel, snd_claw_miss[random_num(0, 1)], volume, attn, flags, pitch)
+				return FMRES_SUPERCEDE;
+			}
+			//击中(轻)
+			if (sample[14] == 'h' && sample[15] == 'i' && sample[16] == 't') 
+			{
+				emit_sound(id, channel, snd_claw_strike[random_num(0, 1)], volume, attn, flags, pitch)
+				return FMRES_SUPERCEDE;
+			}
+			
+			//击中(重)
+			if (sample[14] == 's' && sample[15] == 't' && sample[16] == 'a')
+			{
+				emit_sound(id, channel, snd_claw_strike[2], volume, attn, flags, pitch)
+				return FMRES_SUPERCEDE;
+			}
+		}
+		// Boss 挂掉
+		if (sample[7] == 'd' && ((sample[8] == 'i' && sample[9] == 'e') || (sample[8] == 'e' && sample[9] == 'a')))
+		{
+			emit_sound(id, channel, snd_boss_die[random_num(0, 1)], volume, attn, flags, pitch)
+			return FMRES_SUPERCEDE;
+		}
+	}
+	return FMRES_IGNORED;
 }
 
 //客户端命令
@@ -836,6 +914,7 @@ public fw_GetGameDescription()
 public client_putinserver(id)
 {
 	set_bit(g_isConnect, bit_id)
+	g_Online ++
 	
 	if(is_user_bot(id) && !g_hasBot)
 	{
@@ -884,10 +963,10 @@ public task_round_start()
 		new team = fm_cs_get_user_team(i)
 		if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED  || i == g_whoBoss)
 			continue
-		g_Online ++;
+		g_PlayerAlive ++;
 	}
-	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_Online) * (g_Online - 1))
-	new addhealth = floatround(floatpower(((6500.0 + g_Online)*(g_Online - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
+	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_PlayerAlive) * (g_PlayerAlive - 1))
+	new addhealth = floatround(floatpower(((6500.0 + g_PlayerAlive)*(g_PlayerAlive - 1)), 1.0341) + get_pcvar_float(cvar_DevilHea))
 	fm_set_user_health(id, addhealth)
 	fm_cs_set_user_team(id, FM_CS_TEAM_T)
 	
@@ -933,11 +1012,11 @@ public task_showhud(id)
 {
 	id -= TASK_SHOWHUD
 	
-	set_hudmessage(25, 255, 25, 0.60, 0.80, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP:%d  |  Level:%d  |  Sp:%d  |  Coin:%d  |  Gash:%d  |  Xp:%d/%d^n累计伤害:%d  |  Wpn:%s Lv.%d   Xp%d/%d  ^nBossHP:%d",
-	pev(id, pev_health), g_Level[id], g_Sp[id], g_Coin[id], g_Gash[id], g_Xp[id], g_NeedXp[id], floatround(g_Dmg[id]),
-	WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , g_WpnXp[id][g_UsersWeapon[id]], 
-	get_pcvar_num(cvar_WpnLvNeedXp) ,get_user_health(g_whoBoss))
+	set_hudmessage(25, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
+	ShowSyncHudMsg(id, g_Hud_Status, "HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f",
+	pev(id, pev_health), g_Coin[id], g_Gash[id], g_Level[id], g_Xp[id], g_NeedXp[id], g_Sp[id],
+	WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , WEAPONCSWNAME[g_UsersWeapon[id]], 
+	g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id])
 }
 
 public task_plrspawn(id)
@@ -1329,9 +1408,51 @@ public menu_weapon_second(id, key)
 }
 
 public show_menu_pack(id)
+{	
+	new Menuitem[32], Menu, CharNum[3]
+	new MENU_PROP_EXIT[12], MENU_PROP_BACK[12], MENU_PROP_NEXT[12]
+	formatex(MENU_PROP_EXIT, charsmax(MENU_PROP_EXIT),"%L", LANG_PLAYER, "MENU_EXIT") 
+	formatex(MENU_PROP_BACK, charsmax(MENU_PROP_BACK),"%L", LANG_PLAYER, "MENU_BACK") 
+	formatex(MENU_PROP_NEXT, charsmax(MENU_PROP_NEXT),"%L", LANG_PLAYER, "MENU_NEXT") 
+	formatex(Menuitem, charsmax(Menuitem),"%L", LANG_PLAYER, "MENU_PACK") 
+	Menu = menu_create(Menuitem, "menu_pack")
+	
+	for(new slot = 1; slot < MAX_PACKSLOT+1; slot++)
+	{
+		formatex(Menuitem, charsmax(Menuitem), "%d", g_Pack[id][slot])
+		num_to_str(slot, CharNum, 2)
+		menu_additem(Menu, Menuitem, CharNum)
+	}
+	
+	menu_setprop(Menu, MPROP_BACKNAME, MENU_PROP_BACK)
+	menu_setprop(Menu, MPROP_NEXTNAME, MENU_PROP_NEXT)
+	menu_setprop(Menu, MPROP_EXITNAME, MENU_PROP_EXIT)
+	menu_display(id, Menu)
+}
+
+public menu_pack(id, menu, item)
 {
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6],iName[64]
+	new access, callback;
+	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
+	new key = str_to_num(data);
+	new PlrName[18]
+	get_user_name(id, PlrName, charsmax(PlrName))
+	
+	//Test
+	client_color_print(id, "^x04[DevilEscape]^x01%L id-%d", LANG_PLAYER, "USE_ITEM", PlrName, g_Pack[id][key]);
+	
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
 	
 }
+
 
 public show_menu_equip(id)
 {
@@ -1676,7 +1797,7 @@ public menu_plrlist(id, menu, item)
 					client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
 				else
 				{
-					client_color_print(0, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
+					client_color_print(0, "^x04[ADMIN]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
 					g_Admin_Select_Boss = g_Menu_Admin_Select_PlrKey[id][key]
 					task_round_start()
 				}
@@ -1689,6 +1810,8 @@ public menu_plrlist(id, menu, item)
 		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "ADMIN_INPUT_MSG")
 	}
+	
+	menu_destroy(menu);
 	//test
 	
 	return PLUGIN_HANDLED;
@@ -1715,12 +1838,14 @@ gm_reset_vars()
 	g_whoBoss = -1;
 	g_BossMana = 0;
 	g_Online = 0;
+	g_PlayerAlive = 0;
 	g_isNoDamage = 0;
 	g_isCrit = 0;
 	g_isMiniCrit = 0;
 	g_isBuyWpnMain = 0;
 	g_isBuyWpnSec = 0;
 	g_Admin_Select_Boss = 0
+	remove_task(TASK_DEVILMANA_RECO)
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -1757,11 +1882,19 @@ gm_user_register(id, const password[])
 	}
 	
 	//重要的事情说三遍
-	client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-	client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-	client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	if(get_bit(g_isChangingPW, bit_id))
+	{
+		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+	}
+	else
+	{
+		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+	}
 	msg_change_team_info(id, iteam)
-	
 	set_bit(g_isRegister, bit_id)
 	delete_bit(g_isChangingPW, bit_id)
 	
@@ -1825,6 +1958,15 @@ gm_user_save(id)
 		kv_set_int(wpnxp, WEAPONCSWNAME[i], g_WpnXp[id][i])
 	kv_add_sub_key(kv, wpnxp)
 	
+	new pack = kv_create("Pack");
+	new pack_slotname[8];
+	for(new i = 1; i < sizeof g_Pack[]; i++)
+	{
+		formatex(pack_slotname, charsmax(pack_slotname), "Slot %d", i)
+		kv_set_int(pack, pack_slotname, g_Pack[id][i])
+	}
+	kv_add_sub_key(kv, pack)
+	
 	kv_save_to_file(kv, szFileDir);
 	kv_delete(kv);
 	
@@ -1855,6 +1997,22 @@ gm_user_load(id)
 	g_Abi_Hea[id] = kv_get_int(abi, "Hea"); g_Abi_Agi[id] = kv_get_int(abi, "Agi")
 	g_Abi_Str[id] = kv_get_int(abi, "Str"); g_Abi_Gra[id] = kv_get_int(abi, "Gra")
 	
+	new wpnlv = kv_find_key(kv, "WeaponLv");
+	for(new i = 1; i < sizeof g_WpnLv[]; i++)
+		g_WpnLv[id][i] = kv_get_int(wpnlv, WEAPONCSWNAME[i])
+	
+	new wpnxp = kv_find_key(kv, "WeaponXp");
+	for(new i = 1; i < sizeof g_WpnXp[]; i++)
+		g_WpnXp[id][i] = kv_get_int(wpnxp, WEAPONCSWNAME[i])
+	
+	new pack = kv_find_key(kv, "Pack")
+	new pack_slotname[8]
+	for(new i = 1; i < sizeof g_Pack[]; i++)
+	{
+		formatex(pack_slotname, charsmax(pack_slotname), "Slot %d", i)
+		g_Pack[id][i] = kv_get_int(pack, pack_slotname)
+	}
+	
 	kv_delete(kv)
 }
 
@@ -1868,23 +2026,23 @@ gm_admin_give(id)
 		case ADMIN_GIVE_COIN:
 		{
 			g_Coin[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
+			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
 		}
 		case ADMIN_GIVE_GASH:
 		{
 			g_Gash[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
+			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
 		}
 		case ADMIN_GIVE_LEVEL:
 		{
 			g_Level[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
 			g_Sp[g_Admin_Select_Plr[id]] += g_Admin_Input[id] * get_pcvar_num(cvar_SpPreLv)
-			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
+			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
 		}
 		case ADMIN_GIVE_XP:
 		{
 			g_Xp[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
+			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
 		}
 	}
 	gm_user_save(g_Admin_Select_Plr[id]) //保存一下
