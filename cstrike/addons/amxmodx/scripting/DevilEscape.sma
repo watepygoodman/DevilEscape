@@ -21,6 +21,7 @@ log:
 #include <keyvalues>
 #include <bitset>
 #include <engine>
+#include <devilescape>
 
 #define PLUGIN_NAME "DevilEscape"
 #define PLUGIN_VERSION "0.0"
@@ -87,6 +88,11 @@ enum(+=10){
 	ADMIN_SELECT_BOSS = 32, ADMIN_GIVE, ADMIN_GIVE_COIN, ADMIN_GIVE_GASH, ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL = 82
 }
 
+//Guns
+enum{
+	WEAPON_PLASMAGUN
+}
+
 new const g_RemoveEnt[][] = {
 	"func_hostage_rescue", "info_hostage_rescue", "func_bomb_target", "info_bomb_target",
 	"hostage_entity", "info_vip_start", "func_vip_safetyzone", "func_escapezone"
@@ -144,6 +150,8 @@ new const g_WpnFreeSec[][] = {"weapon_aug", "weapon_sg550", "weapon_g3sg1", "wea
 new const g_WpnFreeFrist_CSW[] = {CSW_TMP, CSW_MP5NAVY, CSW_P90, CSW_FAMAS, CSW_GALIL, CSW_AK47, 
 				CSW_M4A1, CSW_SG552}
 new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249}
+
+new const g_SpecialWpn_Name[][] = {"破晓黎明"}
 
 //Hud
 #define DHUD_MSG_X -1.0
@@ -207,6 +215,7 @@ new g_Abi_Str[33];
 new g_Abi_Agi[33];
 new g_Abi_Gra[33];
 new g_Pack[33][MAX_PACKSLOT+1];
+new g_SpecialWpn[33][32]
 
 new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
 new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
@@ -365,7 +374,7 @@ public plugin_init()
 	register_menu("Weapon Menu", KEYSMENU, "menu_weapon")
 	register_menu("WeaponFree Menu", KEYSMENU, "menu_weapon_free")
 	// register_menu("WeaponGash Menu", KEYSMENU, "menu_weapon_gash")
-	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
+	register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	register_menu("Shop Menu", KEYSMENU, "menu_shop")
 	register_menu("Admin Menu", KEYSMENU, "menu_admin")
@@ -1343,7 +1352,7 @@ public menu_weapon(id, key)
 	{
 		case 0: show_menu_weapon_free(id)
 		// case 1: show_menu_weapon_gash(id)
-		// case 2: show_menu_weapon_special(id)
+		case 2: show_menu_weapon_special(id)
 		case 3: show_menu_weapon_second(id)
 	}
 	return PLUGIN_HANDLED;
@@ -1452,10 +1461,31 @@ public menu_weapon_free(id, key)
 	
 // }
 
-// public show_menu_weapon_special(id)
-// {
+public show_menu_weapon_special(id)
+{
+	new Menu[128],Len;
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_SPECIAL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \r%s^n", g_SpecialWpn_Name[0])
 	
-// }
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id, KEYSMENU, Menu,-1,"WeaponSpecial Menu")
+	
+	return PLUGIN_HANDLED;
+}
+
+public menu_weapon_special(id, key)
+{
+	new args[1]
+	switch(key)
+	{
+		case 0: {
+			args[0] = CSW_SG552
+			wpn_give_plasmagun(id)
+		}
+	}
+	task_refill_bpammo(args[0], id)
+	return PLUGIN_HANDLED;
+}
 
 public show_menu_weapon_second(id)
 {
