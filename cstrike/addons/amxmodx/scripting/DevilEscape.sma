@@ -145,13 +145,17 @@ new const g_WpnFreeFrist_CSW[] = {CSW_TMP, CSW_MP5NAVY, CSW_P90, CSW_FAMAS, CSW_
 				CSW_M4A1, CSW_SG552}
 new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249}
 
-#define MAX_PACKSLOT 16
+//Hud
+#define DHUD_MSG_X -1.0
+#define DHUD_MSG_Y 0.20
 
 /* ================== 
 
 				Vars
 				
 ================== */
+
+#define MAX_PACKSLOT 16
 
 //Cvar
 new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
@@ -232,7 +236,8 @@ new g_PlayerModel[33][32]
 // new Float:g_PlrOrg[33][3]
 new Float:g_TSpawn[32][3]
 new Float:g_CTSpawn[32][3]
-
+new g_TSpawnCount
+new g_CTSpawnCount
 //Hud
 new g_Hud_Center, g_Hud_Status, g_Hud_Reward
 
@@ -247,7 +252,7 @@ public plugin_precache()
 {
 	//载入
 	gm_create_fog();
-	gm_init_spawnpoint();
+	//gm_init_spawnpoint(); Bug
 	engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_rain"));
 	//Get saves' dir
 	get_localinfo("amxx_configsdir", g_savesDir, charsmax(g_savesDir));
@@ -362,6 +367,7 @@ public plugin_init()
 	// register_menu("WeaponGash Menu", KEYSMENU, "menu_weapon_gash")
 	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
+	register_menu("Shop Menu", KEYSMENU, "menu_shop")
 	register_menu("Admin Menu", KEYSMENU, "menu_admin")
 	register_menu("AdminGive Menu", KEYSMENU, "menu_admin_give")
 	
@@ -437,7 +443,7 @@ public event_round_start()
 	remove_task(TASK_BALANCE)
 	set_task(0.2, "task_balance", TASK_BALANCE)
 	
-	set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+	set_dhudmessage( 255, 255, 255, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
 	
 	remove_task(TASK_ROUNDSTART)
@@ -452,7 +458,7 @@ public event_round_end()
 	{
 		GetXp = get_pcvar_num(cvar_DevilWinGetBaseXp) * g_PlayerInGame
 		GetCoin = get_pcvar_num(cvar_DevilWinGetBaseCoin) * g_PlayerInGame
-		set_dhudmessage( 255, 0, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+		set_dhudmessage( 255, 0, 0, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_WIN" );
 		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_devil_win)
@@ -469,7 +475,7 @@ public event_round_end()
 	{
 		GetXp = get_pcvar_num(cvar_HumanWinGetXp)
 		GetCoin = get_pcvar_num(cvar_HumanWinGetCoin)
-		set_dhudmessage( 0, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+		set_dhudmessage( 0, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_HUMAN_WIN" );
 		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_human_win)
@@ -480,7 +486,7 @@ public event_round_end()
 	{
 		GetXp = get_pcvar_num(cvar_NooneWinGetXp)
 		GetCoin = get_pcvar_num(cvar_NooneWinGetCoin)
-		set_dhudmessage( 255, 255, 255, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+		set_dhudmessage( 255, 255, 255, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_NOONE_WIN" );
 		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_NOONE_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_noone_win)
@@ -596,8 +602,28 @@ public fw_Spawn(entity)
 		{
 			//Remove Ent
 			engfunc(EngFunc_RemoveEntity, entity)
-			return FMRES_SUPERCEDE;
 		}
+	}
+	new Float:originF[3]
+	if(equal(classname, "info_player_start") && g_CTSpawnCount < sizeof g_CTSpawn)
+	{
+		pev(entity, pev_origin, originF)
+		g_CTSpawn[g_CTSpawnCount][0] = originF[0]
+		g_CTSpawn[g_CTSpawnCount][1] = originF[1]
+		g_CTSpawn[g_CTSpawnCount][2] = originF[2]
+		server_print("CT Spawn:%d, Pos %f, %f, %f", g_CTSpawnCount, originF[0], originF[1], originF[2])
+		g_CTSpawnCount++ 
+		
+	}
+	if(equal(classname, "info_player_deathmatch") && g_TSpawnCount < sizeof g_TSpawn)
+	{
+		pev(entity, pev_origin, originF)
+		g_TSpawn[g_TSpawnCount][0] = originF[0]
+		g_TSpawn[g_TSpawnCount][1] = originF[1]
+		g_TSpawn[g_TSpawnCount][2] = originF[2]
+		server_print("T Spawn:%d, Pos %f, %f, %f", g_TSpawnCount, originF[0], originF[1], originF[2])
+		
+		g_TSpawnCount++ 
 	}
 	return FMRES_IGNORED;
 }
@@ -623,8 +649,10 @@ public fw_PlayerSpawn_Post(id)
 	new Float:test[3]
 	pev(id, pev_origin, test)
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
-	set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
-	
+	if(!is_user_bot(id))
+	{
+		set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
+	}	
 }
 
 public fw_PlayerKilled(victim, attacker, shouldgib)
@@ -1031,17 +1059,15 @@ public task_round_start()
 	set_user_gravity(id, get_pcvar_float(cvar_DevilGravity))
 	
 	fm_set_user_model(id, "devil1")
-	// new hull = (pev(id, pev_flags) & FL_DUCKING) ? HULL_HEAD : HULL_HUMAN
+	engfunc(EngFunc_SetOrigin, id, g_TSpawn[random_num(0, g_TSpawnCount-1)])
 	
-	// for(new i = 0; i < sizeof g_TSpawn; i++)
-	// {
-		// if(!is_hull_vacant(g_TSpawn[i], hull))
-			// continue
-	// engfunc(EngFunc_SetOrigin, id, g_TSpawn[5])
-		// break;
-	// }
+	if(!is_user_bot(id))
+	{
+		set_dhudmessage( 255, 0, 0, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
+		show_dhudmessage( id, " %L", LANG_PLAYER, "DHUD_YOU_BECOME_BOSS" );
+		set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
+	}
 	
-	set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
 	g_RoundStatus = Round_Running;
 	remove_task(TASK_ROUNDSTART)
 }
@@ -1267,6 +1293,7 @@ public show_menu_main(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_ABILITY")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_PACK")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n", id, "MENU_EQUIP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w%L^n", id, "MENU_SHOP")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r9. \w%L^n", id, "MENU_ADMIN")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
@@ -1283,6 +1310,7 @@ public menu_main(id, key)
 		case 1: show_menu_ability(id)
 		case 2: show_menu_pack(id)
 		case 3: show_menu_equip(id)
+		case 4: show_menu_shop(id)
 		case 8: show_menu_admin(id)
 	}
 	
@@ -1465,82 +1493,6 @@ public menu_weapon_second(id, key)
 	return PLUGIN_HANDLED
 }
 
-public show_menu_pack(id)
-{	
-	new Menuitem[32], Menu, CharNum[3]
-	new MENU_PROP_EXIT[12], MENU_PROP_BACK[12], MENU_PROP_NEXT[12]
-	formatex(MENU_PROP_EXIT, charsmax(MENU_PROP_EXIT),"%L", LANG_PLAYER, "MENU_EXIT") 
-	formatex(MENU_PROP_BACK, charsmax(MENU_PROP_BACK),"%L", LANG_PLAYER, "MENU_BACK") 
-	formatex(MENU_PROP_NEXT, charsmax(MENU_PROP_NEXT),"%L", LANG_PLAYER, "MENU_NEXT") 
-	formatex(Menuitem, charsmax(Menuitem),"%L", LANG_PLAYER, "MENU_PACK") 
-	Menu = menu_create(Menuitem, "menu_pack")
-	
-	for(new slot = 1; slot < MAX_PACKSLOT+1; slot++)
-	{
-		formatex(Menuitem, charsmax(Menuitem), "%d", g_Pack[id][slot])
-		num_to_str(slot, CharNum, 2)
-		menu_additem(Menu, Menuitem, CharNum)
-	}
-	
-	menu_setprop(Menu, MPROP_BACKNAME, MENU_PROP_BACK)
-	menu_setprop(Menu, MPROP_NEXTNAME, MENU_PROP_NEXT)
-	menu_setprop(Menu, MPROP_EXITNAME, MENU_PROP_EXIT)
-	menu_display(id, Menu)
-}
-
-public menu_pack(id, menu, item)
-{
-	if( item == MENU_EXIT )
-	{
-		menu_destroy(menu);
-		return PLUGIN_HANDLED;
-	}
-	
-	new data[6],iName[64]
-	new access, callback;
-	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
-	new key = str_to_num(data);
-	new PlrName[18]
-	get_user_name(id, PlrName, charsmax(PlrName))
-	
-	//Test
-	client_color_print(id, "^x04[DevilEscape]^x01%L id-%d", LANG_PLAYER, "USE_ITEM", PlrName, g_Pack[id][key]);
-	
-	menu_destroy(menu);
-	return PLUGIN_HANDLED;
-	
-}
-
-
-public show_menu_equip(id)
-{
-	
-}
-
-public show_menu_skill(id)
-{
-	new Menu[250],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_HUMANSKILL")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"HUMANSKILL_FASTRUN")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"HUMANSKILL_ONLYHEADSHOT")
-	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
-	show_menu(id,KEYSMENU,Menu,-1,"Skill Menu")
-	return PLUGIN_HANDLED
-}
-
-public menu_skill(id,key)
-{
-	switch(key)
-	{
-		case 0:
-		{
-			client_print(0, print_chat, "skillmenu 0")
-		}
-	}
-	return PLUGIN_HANDLED;
-}
-
 public show_menu_ability(id)
 {
 	new Menu[256],Len;
@@ -1625,6 +1577,148 @@ public menu_ability(id, key)
 	return PLUGIN_HANDLED
 }
 
+
+public show_menu_pack(id)
+{	
+	new Menuitem[32], Menu, CharNum[3]
+	new MENU_PROP_EXIT[12], MENU_PROP_BACK[12], MENU_PROP_NEXT[12]
+	formatex(MENU_PROP_EXIT, charsmax(MENU_PROP_EXIT),"%L", LANG_PLAYER, "MENU_EXIT") 
+	formatex(MENU_PROP_BACK, charsmax(MENU_PROP_BACK),"%L", LANG_PLAYER, "MENU_BACK") 
+	formatex(MENU_PROP_NEXT, charsmax(MENU_PROP_NEXT),"%L", LANG_PLAYER, "MENU_NEXT") 
+	formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_PACK") 
+	Menu = menu_create(Menuitem, "menu_pack")
+	
+	for(new slot = 1; slot < MAX_PACKSLOT+1; slot++)
+	{
+		formatex(Menuitem, charsmax(Menuitem), "%d", g_Pack[id][slot])
+		num_to_str(slot, CharNum, 2)
+		menu_additem(Menu, Menuitem, CharNum)
+	}
+	
+	menu_setprop(Menu, MPROP_BACKNAME, MENU_PROP_BACK)
+	menu_setprop(Menu, MPROP_NEXTNAME, MENU_PROP_NEXT)
+	menu_setprop(Menu, MPROP_EXITNAME, MENU_PROP_EXIT)
+	menu_display(id, Menu)
+}
+
+public menu_pack(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6],iName[64]
+	new access, callback;
+	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
+	new key = str_to_num(data);
+	new PlrName[18]
+	get_user_name(id, PlrName, charsmax(PlrName))
+	
+	//Test
+	client_color_print(id, "^x04[DevilEscape]^x01%L id-%d", LANG_PLAYER, "USE_ITEM", PlrName, g_Pack[id][key]);
+	
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+	
+}
+
+public show_menu_equip(id)
+{
+}
+
+public menu_equip(id, key)
+{
+}
+
+public show_menu_shop(id)
+{
+	new Menu[60],Len;
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_SHOP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_SHOP_ITEM")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SHOP_WEAPON_GASH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_SHOP_WEAPON_SPECIAL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"Shop Menu")
+	
+	return PLUGIN_HANDLED;
+}
+
+public menu_shop(id, key)
+{
+	switch(key)
+	{
+		case 0: show_menu_shop_item(id)
+		// case 1: show_menu_shop_weapon(id)
+		// case 2: show_menu_shop_weapon_gash(id)
+		// case 3: show_menu_shop_weapon_special(id)
+	}
+	
+	return PLUGIN_HANDLED
+}
+
+public show_menu_shop_item(id)
+{	
+	new Menuitem[32], Menu
+	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_SHOP_ITEM")
+	Menu = menu_create(Menuitem, "menu_shop_item")
+	
+	formatex(Menuitem, charsmax(Menuitem), "Test")
+	menu_additem(Menu, Menuitem, "1")
+	
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+}
+
+public menu_shop_item(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	// new key = str_to_num(data);
+	
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+	
+}
+
+public show_menu_skill(id)
+{
+	new Menu[250],Len;
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_HUMANSKILL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"HUMANSKILL_FASTRUN")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"HUMANSKILL_ONLYHEADSHOT")
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"Skill Menu")
+	return PLUGIN_HANDLED
+}
+
+public menu_skill(id,key)
+{
+	switch(key)
+	{
+		case 0:
+		{
+			client_print(0, print_chat, "skillmenu 0")
+		}
+	}
+	return PLUGIN_HANDLED;
+}
+
 public show_menu_bossskill(id)
 {
 	new Menu[250],Len;
@@ -1655,7 +1749,7 @@ public menu_bossskill(id,key)
 			{
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_LONGJUMP")
 				g_BossMana -= get_pcvar_num(cvar_DevilLongjumpCost)
-				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				set_dhudmessage( 255, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
 			}
 		}
@@ -1666,7 +1760,7 @@ public menu_bossskill(id,key)
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_SCARE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_scare, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				g_BossMana -= get_pcvar_num(cvar_DevilScareCost)
-				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				set_dhudmessage( 255, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL", name, skillname);
 			}
 		}
@@ -1677,7 +1771,7 @@ public menu_bossskill(id,key)
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_BLIND")
 				//音效
 				g_BossMana -= get_pcvar_num(cvar_DevilBlindCost)
-				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				set_dhudmessage( 255, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
@@ -1688,7 +1782,7 @@ public menu_bossskill(id,key)
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_TELEPORT")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_tele, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				g_BossMana -= get_pcvar_num(cvar_DevilTeleCost)
-				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				set_dhudmessage( 255, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
@@ -1700,7 +1794,7 @@ public menu_bossskill(id,key)
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_GODMODE")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_god, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				g_BossMana -= get_pcvar_num(cvar_DevilGodCost)
-				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				set_dhudmessage( 255, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
@@ -1711,7 +1805,7 @@ public menu_bossskill(id,key)
 				formatex(skillname, charsmax(skillname),"%L", LANG_PLAYER, "BOSSSKILL_DISAPPEAR")
 				engfunc(EngFunc_EmitSound,g_whoBoss, CHAN_STATIC, snd_boss_god, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 				g_BossMana -= get_pcvar_num(cvar_DevilDisappearCost)
-				set_dhudmessage( 255, 255, 0, -1.0, 0.25, 1, 6.0, 3.0, 0.1, 1.5 );
+				set_dhudmessage( 255, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 				show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_USESKILL",name,skillname);
 			}
 		}
@@ -2116,26 +2210,6 @@ gm_create_fog()
 	{
 		fm_set_kvd(ent, "density", g_fog_denisty, "env_fog")
 		fm_set_kvd(ent, "rendercolor", g_fog_color, "env_fog")
-	}
-}
-
-
-gm_init_spawnpoint()
-{
-	new SpawnCount, ent
-	while ((engfunc(EngFunc_FindEntityByString, ent, "classname", "info_player_start")) != 0)
-	{
-		pev(ent, pev_origin, g_CTSpawn[SpawnCount]);
-		g_CTSpawn[SpawnCount][2] += 10
-		SpawnCount ++
-		if(SpawnCount > sizeof g_CTSpawn) break;
-	}
-	while ((engfunc(EngFunc_FindEntityByString, ent, "classname", "info_player_deathmatch")) != 0)
-	{
-		pev(ent, pev_origin, g_TSpawn[SpawnCount]);
-		SpawnCount ++
-		g_TSpawn[SpawnCount][2] += 10
-		if(SpawnCount > sizeof g_TSpawn) break;
 	}
 }
 

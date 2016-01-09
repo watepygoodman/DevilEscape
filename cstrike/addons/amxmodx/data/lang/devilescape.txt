@@ -16,6 +16,7 @@ HUD_LEVEL_UP = [Lv.%d]
 HUD_WPN_LEVEL_UP = [%s Lv.%d]
 
 DHUD_ROUND_START = 10秒后魔王出现
+DHUD_YOU_BECOME_BOSS = 你成为魔王,按下使用键(E)以使用技能
 DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s
 
 DHUD_BOSS_WIN = 魔王胜利！
@@ -42,6 +43,10 @@ MENU_BOSSSKILL = 魔王技能
 MENU_PACK = 背包菜单
 MENU_EQUIP = 装备菜单
 MENU_ADMIN = 管理员菜单
+MENU_SHOP = 商店菜单
+MENU_SHOP_ITEM = 道具商店
+MENU_SHOP_WEAPON_GASH = Gash枪商店
+MENU_SHOP_WEAPON_SPECIAL = 特殊枪商店
 MENU_ADMIN_SELECT_BOSS = 选择魔王
 MENU_ADMIN_GIVE = 给予物品(个人)
 MENU_ADMIN_GIVE_ALL = 给予物品(所有人)
