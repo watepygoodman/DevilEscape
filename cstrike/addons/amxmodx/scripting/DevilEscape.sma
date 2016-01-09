@@ -182,7 +182,6 @@ new g_spr_minicrit;
 new g_spr_scare;
 
 //Game
-new g_plrTeam;
 new g_isRegister;
 new g_isLogin;
 new g_isConnect;
@@ -195,8 +194,8 @@ new g_isBuyWpnMain;
 new g_isBuyWpnSec;
 // new g_isPressingData;
 // new g_DataPress;
-// new g_isSemiclip;
-// new g_isSolid;
+new g_isSemiclip;
+new g_isSolid;
 
 new g_whoBoss;
 new g_MaxPlayer;
@@ -204,6 +203,7 @@ new g_Online;
 new g_PlayerInGame;
 new g_RoundStatus;
 new bool:g_hasBot;
+new bool:g_RoundNeedStart;
 
 new g_Level[33];
 new g_Coin[33];
@@ -215,7 +215,7 @@ new g_Abi_Str[33];
 new g_Abi_Agi[33];
 new g_Abi_Gra[33];
 new g_Pack[33][MAX_PACKSLOT+1];
-new g_SpecialWpn[33][32]
+new g_SpecialWpn[33][32];
 
 new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
 new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
@@ -229,9 +229,9 @@ new g_UsersAmmo[33];
 new g_UsersWeapon[33];
 
 //Menu
-new g_Menu_WpnFree_Page[33]
-new g_Menu_Admin_Select[33]
-new g_Menu_Admin_Select_PlrKey[33][33]
+new g_Menu_WpnFree_Page[33];
+new g_Menu_Admin_Select[33];
+new g_Menu_Admin_Select_PlrKey[33][33];
 
 //Admin
 new g_Admin_Select_Boss
@@ -239,16 +239,20 @@ new g_Admin_Select_Plr[33]
 new g_Admin_Input[33]
 
 new g_savesDir[128];
-new g_PlayerPswd[33][12]
-new g_PlayerModel[33][32]
+
+new g_PlayerEffect[33];
+new g_PlayerTeam[33];
+new g_PlayerPswd[33][12];
+new g_PlayerModel[33][32];
+new Float:g_PlayerOrg[33][3];
 
 // new Float:g_PlrOrg[33][3]
-new Float:g_TSpawn[32][3]
-new Float:g_CTSpawn[32][3]
-new g_TSpawnCount
-new g_CTSpawnCount
+new Float:g_TSpawn[32][3];
+new Float:g_CTSpawn[32][3];
+new g_TSpawnCount;
+new g_CTSpawnCount;
 //Hud
-new g_Hud_Center, g_Hud_Status, g_Hud_Reward
+new g_Hud_Center, g_Hud_Status, g_Hud_Reward;
 
 //Msg
 new g_Msg_VGUI, g_Msg_ShowMenu;
@@ -311,7 +315,7 @@ public plugin_precache()
 	cvar_RewardXp = register_cvar("de_reward_xp", "200")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	
-	cvar_DevilHea = register_cvar("de_devil_basehea","15000")
+	cvar_DevilHea = register_cvar("de_devil_basehea","28000")
 	cvar_DevilSpeed = register_cvar("de_devil_basespeed","260.0")
 	cvar_DevilGravity = register_cvar("de_devil_basegravity","0.90")
 	cvar_DevilRecoManaTime = register_cvar("de_devil_reco_manatime","0.3")
@@ -443,6 +447,12 @@ public plugin_init()
 //Round_Start
 public event_round_start()
 {
+	if(!g_Online || !fnGetAlive())
+	{
+		g_RoundNeedStart = true
+		return
+	}
+	
 	g_RoundStatus = Round_Start;
 	
 	//Light
@@ -620,7 +630,6 @@ public fw_Spawn(entity)
 		g_CTSpawn[g_CTSpawnCount][0] = originF[0]
 		g_CTSpawn[g_CTSpawnCount][1] = originF[1]
 		g_CTSpawn[g_CTSpawnCount][2] = originF[2]
-		server_print("CT Spawn:%d, Pos %f, %f, %f", g_CTSpawnCount, originF[0], originF[1], originF[2])
 		g_CTSpawnCount++ 
 		
 	}
@@ -630,8 +639,6 @@ public fw_Spawn(entity)
 		g_TSpawn[g_TSpawnCount][0] = originF[0]
 		g_TSpawn[g_TSpawnCount][1] = originF[1]
 		g_TSpawn[g_TSpawnCount][2] = originF[2]
-		server_print("T Spawn:%d, Pos %f, %f, %f", g_TSpawnCount, originF[0], originF[1], originF[2])
-		
 		g_TSpawnCount++ 
 	}
 	return FMRES_IGNORED;
@@ -640,18 +647,17 @@ public fw_Spawn(entity)
 //Player Spawn Post
 public fw_PlayerSpawn_Post(id)
 {
-	static team
-	team = fm_cs_get_user_team(id)
+	g_PlayerTeam[id] = fm_cs_get_user_team(id)
 	
-	if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
+	if(g_PlayerTeam[id] == FM_CS_TEAM_SPECTATOR || g_PlayerTeam[id] == FM_CS_TEAM_UNASSIGNED)
 		return
-	switch(team)
+	
+	if(g_RoundNeedStart)
 	{
-		case FM_CS_TEAM_CT:
-			set_bit(g_plrTeam, bit_id)
-		case FM_CS_TEAM_T:
-			delete_bit(g_plrTeam, bit_id)
+		server_cmd("sv_restart 1")
+		g_RoundNeedStart = false
 	}
+
 	set_user_gravity(id, 1.0-get_pcvar_float(cvar_AbilityGraAdd)*g_Abi_Gra[id])
 	fm_set_user_health(id, 100+g_Abi_Hea[id]*get_pcvar_num(cvar_AbilityHeaAdd))
 	
@@ -677,12 +683,13 @@ public fw_PlayerPreThink(id)
 {
 	if(g_AttackCooldown[id] > get_gametime())
 	{
-		if(!is_user_alive(id)) return FMRES_IGNORED;
-		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
-		set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
+		if(is_user_alive(id))
+		{
+			set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
+			set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
+		}
 	}else set_view(id,CAMERA_NONE)
 		
-	// fw_SetPlayerSoild(id)
 	if(g_Xp[id] >= g_NeedXp[id])
 	{
 		while(g_Xp[id] >= g_NeedXp[id])
@@ -697,24 +704,60 @@ public fw_PlayerPreThink(id)
 	if(id != g_whoBoss)
 		set_pev(id, pev_maxspeed, 250.0+ g_Abi_Agi[id] * get_pcvar_float(cvar_AbilityAgiAdd))
 	else set_pev(id, pev_maxspeed, get_pcvar_float(cvar_DevilSpeed))
-		
+	
+	//穿人
+	static LastSemiThink
+	if( LastSemiThink > id )
+		fw_SemiClipThink()
+	LastSemiThink = id
+	
+	if(get_bit(g_isSolid, bit_id))
+	{
+		for(new i = 1; i <= g_MaxPlayer; i++)
+		{
+			if(!get_bit(g_isSolid, i-1) || id == i) continue
+			if(g_PlayerTeam[id] == g_PlayerTeam[i])
+			{
+				set_pev(i, pev_solid, SOLID_NOT)
+				set_bit(g_isSemiclip, i-1)
+			}
+		}
+	}
 	
 	return FMRES_HANDLED;
 }
 
 //Post Think
-// public fw_PlayerPostThink(id)
-// {
-	// static plr
-	// for(plr = 1; plr<= g_MaxPlayer; plr++)
-	// {
-		// if(get_bit(g_isSemiclip, plr-1))
-		// {
-			// set_pev(plr, pev_solid, SOLID_SLIDEBOX)
-			// delete_bit(g_isSemiclip, plr-1)
-		// }
-	// }
-// }
+public fw_PlayerPostThink(id)
+{
+	static plr
+	for(plr = 1; plr<= g_MaxPlayer; plr++)
+	{
+		if(get_bit(g_isSemiclip, plr-1))
+		{
+			set_pev(plr, pev_solid, SOLID_SLIDEBOX)
+			delete_bit(g_isSemiclip, plr-1)
+		}
+	}
+}
+
+public fw_SemiClipThink()
+{
+	for(new i = 1; i <= g_MaxPlayer; i++)
+	{
+		if(!is_user_alive(i))
+		{
+			delete_bit(g_isSolid, i-1)
+			continue
+		}
+		
+		if(pev(i, pev_solid) == SOLID_SLIDEBOX) 
+			set_bit(g_isSolid, i-1)
+		else delete_bit(g_isSolid, i-1)
+		
+		pev(i, pev_origin, g_PlayerOrg[i])
+	}
+}
 
 //Damage
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
@@ -823,6 +866,9 @@ public fw_ClientDisconnect(id)
 {
 	delete_bit(g_isConnect, bit_id)
 	g_Online --
+	if(!g_Online)
+		g_RoundNeedStart = true
+	
 	remove_task(id+TASK_AUTOSAVE)
 }
 
@@ -964,6 +1010,23 @@ public fw_ClientCommand(id)
 	return FMRES_IGNORED;
 }
 
+public fw_AddToFullPack_Post(es, e, ent, host, hostflags, player, pSet)
+{
+	if(player)
+	{
+		if(get_bit(g_isSolid, host-1) && get_bit(g_isSolid, ent-1) && g_PlayerTeam[host] == g_PlayerTeam[ent])
+		{
+			if(get_distance_f(g_PlayerOrg[host], g_PlayerOrg[ent]) <= 200.0)
+			{
+				set_es(es, ES_Solid, SOLID_NOT)
+				set_es(es, ES_RenderMode, kRenderTransAlpha)
+				set_es(es, ES_RenderAmt, 85)
+			}
+			else
+				set_es(es, ES_RenderMode, kRenderNormal)
+		}
+	}
+}
 public fw_ClientUserInfoChanged(id)
 {
 	//玩家是否使用自定义模型
@@ -1003,6 +1066,12 @@ public fw_GetGameDescription()
 //进入服务器
 public client_putinserver(id)
 {
+	if(!g_Online || g_RoundNeedStart)
+	{
+		server_cmd("sv_restart 1")
+		g_RoundNeedStart = false
+	}
+	
 	set_bit(g_isConnect, bit_id)
 	g_Online ++
 	
@@ -1011,6 +1080,7 @@ public client_putinserver(id)
 		set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
 		return
 	}
+	
 	g_LoginTime[id] = get_pcvar_num(cvar_LoginTime)
 	delete_bit(g_isRegister, bit_id)
 	delete_bit(g_isLogin, bit_id)
@@ -1056,7 +1126,7 @@ public task_round_start()
 		g_PlayerInGame ++;
 	}
 	//get_pcvar_num(cvar_DevilHea) + (((760.8 + g_PlayerInGame) * (g_PlayerInGame - 1))
-	new addhealth = floatround(get_pcvar_float(cvar_DevilHea) * g_PlayerInGame * 1.15)
+	new addhealth = floatround(get_pcvar_float(cvar_DevilHea) * g_PlayerInGame * 1.45)
 	fm_set_user_health(id, addhealth)
 	fm_cs_set_user_team(id, FM_CS_TEAM_T)
 	
@@ -1074,8 +1144,8 @@ public task_round_start()
 	{
 		set_dhudmessage( 255, 0, 0, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( id, " %L", LANG_PLAYER, "DHUD_YOU_BECOME_BOSS" );
-		set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
 	}
+	set_task(get_pcvar_float(cvar_DevilRecoManaTime), "task_devilmana_reco", TASK_DEVILMANA_RECO, _, _, "b")
 	
 	g_RoundStatus = Round_Running;
 	remove_task(TASK_ROUNDSTART)
@@ -1113,6 +1183,8 @@ public task_plrspawn(id)
 	fm_reset_user_model(id)
 	fm_strip_user_weapons(id)
 	fm_give_item(id, "weapon_knife")
+	if(is_user_bot(id))
+		fm_give_item(id, g_WpnFreeFrist[random_num(0, (sizeof g_WpnFreeFrist) -1)])
 	show_menu_weapon(id)
 	remove_task(id+TASK_PLRSPAWN);
 }
@@ -1252,6 +1324,7 @@ public task_blind_off(id)
 public task_disappear_off()
 {
 	set_pev(g_whoBoss, pev_rendermode, kRenderNormal)
+	set_pev(g_whoBoss, pev_effects, g_PlayerEffect[g_whoBoss])
 }
 
 public func_critical(taskid)
@@ -2019,7 +2092,6 @@ gm_reset_vars()
 {
 	g_whoBoss = -1;
 	g_BossMana = 0;
-	g_Online = 0;
 	g_PlayerInGame = 0;
 	g_isNoDamage = 0;
 	g_isCrit = 0;
@@ -2028,6 +2100,7 @@ gm_reset_vars()
 	g_isBuyWpnSec = 0;
 	g_Admin_Select_Boss = 0
 	remove_task(TASK_DEVILMANA_RECO)
+	remove_task(TASK_GODMODE_LIGHT)
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -2384,7 +2457,7 @@ public bossskill_scare(Float:force[3],Float:dealytime,Float:radius)
 	new target
 	while(0<(target=engfunc(EngFunc_FindEntityInSphere,target,idorg,radius))<=g_MaxPlayer)
 	{
-		if(target==g_whoBoss) continue;
+		if(target==g_whoBoss || !is_user_alive(target)) continue;
 		
 		fm_set_rendering(target,kRenderFxGlowShell, 255, 255, 255, kRenderNormal, 32);
 		g_AttackCooldown[target] = get_gametime() + dealytime
@@ -2467,8 +2540,10 @@ public bossskill_disappear()
 		if(is_user_bot(i))
 			g_AttackCooldown[i] = get_gametime() + get_pcvar_num(cvar_DevilDisappearTime)
 	}
-	set_pev(g_whoBoss, pev_rendermode, kRenderTransAlpha)
-	set_pev(g_whoBoss, pev_renderamt, 0) //隐
+	// set_pev(g_whoBoss, pev_rendermode, kRenderTransAlpha)
+	// set_pev(g_whoBoss, pev_renderamt, 0) //隐
+	g_PlayerEffect[g_whoBoss] = pev(g_whoBoss, pev_effects)
+	set_pev(g_whoBoss, pev_effects, EF_NODRAW)
 	set_task(get_pcvar_float(cvar_DevilDisappearTime), "task_disappear_off")
 	return 1
 }
@@ -2504,13 +2579,7 @@ stock fm_cs_set_user_team(id, team)
 {
 	set_pdata_int(id, m_CsTeam, team)
 	fm_cs_set_user_team_msg(id)
-	switch(team)
-	{
-		case FM_CS_TEAM_CT:
-			set_bit(g_plrTeam, bit_id)
-		case FM_CS_TEAM_T:
-			delete_bit(g_plrTeam, bit_id)
-	}
+	g_PlayerTeam[id] = team
 }
 
 stock fm_cs_set_user_team_msg(id)
@@ -2882,14 +2951,14 @@ fnGetHumans()
 }
 
 //~Return alive player number
-// fnGetAlive()
-// {
-	// static iAlive, id
-	// iAlive = 0
-	// for (id = 1; id <= g_MaxPlayer; id++)
-	// {
-		// if (is_user_alive(id))
-			// iAlive++
-	// }
-	// return iAlive
-// }
+fnGetAlive()
+{
+	static iAlive, id
+	iAlive = 0
+	for (id = 1; id <= g_MaxPlayer; id++)
+	{
+		if (is_user_alive(id))
+			iAlive++
+	}
+	return iAlive
+}
