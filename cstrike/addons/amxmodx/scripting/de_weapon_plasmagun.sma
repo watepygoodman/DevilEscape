@@ -2,6 +2,7 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
+#include <devilescape>
 
 #define PLUGINNAME		"破晓黎明(PlasmaGun)"
 #define VERSION			"1.0"
@@ -11,7 +12,6 @@
 // #define MAXCLIP			45	// 弹药数量
 // #define	EXP_RANGE		50.0	// 爆炸范围
 // #define	SHIT_SPEED		1600.0	// 绿翔的飞行速度
-#define WEAPONKEY		6688
 #define CLASS_NAME		"plasmagun"
 #define V_MODEL			"models/v_plasmagun.mdl"
 #define P_MODEL			"models/p_plasmagun.mdl"
@@ -43,7 +43,6 @@ public plugin_init()
 
 	register_forward(FM_SetModel, "fw_SetModel")
 	register_forward(FM_UpdateClientData, "fw_UpdateClientData_Post", 1)
-	register_clcmd("plas", "Give_PlasmaGun")
 }
 
 public plugin_precache()
@@ -56,7 +55,7 @@ public plugin_precache()
 	for(new i = 0; i < sizeof Fire_Sounds; i++) engfunc(EngFunc_PrecacheSound, Fire_Sounds[i])	
 	register_clcmd("weapon_plasmagun", "weapon_hook")
 
-	cvar_damage = register_cvar("wpn_plasmagun_damage", "2500.0")
+	cvar_damage = register_cvar("wpn_plasmagun_damage", "3000.0")
 	cvar_clip = register_cvar("wpn_plasmagun_clip", "20")
 	cvar_exprange = register_cvar("wpn_plasmagun_range", "55.0")
 	cvar_speed = register_cvar("wpn_plasmagun_speed", "1550.0")
@@ -77,7 +76,7 @@ public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
 	if (iEntity <= 0)
 	return
 
-	if (pev(iEntity, pev_weapons) != WEAPONKEY || get_pdata_int(iEntity, 43, 4) != CSW_SG552)
+	if (pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN || get_pdata_int(iEntity, 43, 4) != CSW_SG552)
 	return
 
 	set_cd(cd_handle, CD_flNextAttack, get_gametime() + 0.001) 
@@ -116,7 +115,7 @@ public fw_SetModel(iEntity, szModel[])
 	if (!pev_valid(iEntity2))
 	return FMRES_IGNORED
 	
-	if (pev(iEntity2, pev_weapons) != WEAPONKEY)
+	if (pev(iEntity2, pev_weapons) != WEAPON_PLASMAGUN)
 	return FMRES_IGNORED
 
 	engfunc(EngFunc_SetModel, iEntity, W_MODEL)
@@ -132,14 +131,14 @@ public Give_PlasmaGun(id)
 	new iEntity = fm_give_item(id, "weapon_sg552")
 	if (iEntity > 0)
 	{
-		set_pev(iEntity, pev_weapons, WEAPONKEY)
+		set_pev(iEntity, pev_weapons, WEAPON_PLASMAGUN)
 		set_pdata_int(iEntity, 51, get_pcvar_num(cvar_clip), 4)
 		UTIL_PlayWeaponAnimation(id, 2)
 	}
 }
 public HAM_Item_Deploy_Post(iEntity)
 {
-	if (pev(iEntity, pev_weapons) != WEAPONKEY)
+	if (pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN)
 	return
 
 	new id = get_pdata_cbase(iEntity, 41, 4)
@@ -159,7 +158,7 @@ public CurrentWeapon(id)
 	if (iEntity <= 0)
 	return
 	
-	if (pev(iEntity, pev_weapons) == WEAPONKEY && get_pdata_int(iEntity, 43, 4) == CSW_SG552)
+	if (pev(iEntity, pev_weapons) == WEAPON_PLASMAGUN && get_pdata_int(iEntity, 43, 4) == CSW_SG552)
 	{
 		set_pev(id, pev_viewmodel2, V_MODEL)
 		set_pev(id, pev_weaponmodel2, P_MODEL)
@@ -168,7 +167,7 @@ public CurrentWeapon(id)
 
 public HAM_Weapon_PrimaryAttack(iEntity)
 {
-	if (pev(iEntity, pev_weapons) != WEAPONKEY)
+	if (pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN)
 	return HAM_IGNORED
 
 	new id = get_pdata_cbase(iEntity, 41, 4)
@@ -282,7 +281,7 @@ public HAM_Touch_Post(iEntity, id)
 
 public HAM_ItemPostFrame(iEntity) 
 {
-	if (pev(iEntity, pev_weapons) != WEAPONKEY)
+	if (pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN)
 	return HAM_IGNORED
 
 	new id = get_pdata_cbase(iEntity, 41, 4)
@@ -304,7 +303,7 @@ public HAM_ItemPostFrame(iEntity)
 
 public HAM_Weapon_Reload(iEntity) 
 {
-	if (pev(iEntity, pev_weapons) != WEAPONKEY)
+	if (pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN)
 	return HAM_IGNORED
 
 	new id = get_pdata_cbase(iEntity, 41, 4)
@@ -322,7 +321,7 @@ public HAM_Weapon_Reload(iEntity)
 
 public HAM_Weapon_Reload_Post(iEntity) 
 {
-	if (pev(iEntity, pev_weapons) != WEAPONKEY)
+	if (pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN)
 	return
 
 	new id = get_pdata_cbase(iEntity, 41, 4)
@@ -349,7 +348,7 @@ public message_DeathMsg(msg_id, msg_dest, msg_ent)
 	return PLUGIN_CONTINUE
 
 	new iEntity = get_pdata_cbase(get_msg_arg_int(1), 373)
-	if (!pev_valid(iEntity) || get_pdata_int(iEntity, 43, 4) != CSW_SG552 || pev(iEntity, pev_weapons) != WEAPONKEY)
+	if (!pev_valid(iEntity) || get_pdata_int(iEntity, 43, 4) != CSW_SG552 || pev(iEntity, pev_weapons) != WEAPON_PLASMAGUN)
 	return PLUGIN_CONTINUE
 
 	set_msg_arg_string(4, "plasmagun")

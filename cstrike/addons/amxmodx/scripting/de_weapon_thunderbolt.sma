@@ -63,7 +63,7 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_WeaponIdle, "weapon_awp", "fw_Weapon_WeaponIdle_Post", 1)
 	RegisterHam(Ham_Weapon_Reload, "weapon_awp", "fw_Weapon_Reload")
 	
-	cvar_damage = register_cvar("wpn_thunderbolt_dmg","5000.0")
+	cvar_damage = register_cvar("wpn_thunderbolt_dmg","9000.0")
 	cvar_clip = register_cvar("wpn_thunderbolt_clip","20")
 	
 	register_clcmd("weapon_thunderbolt", "hook_weapon")

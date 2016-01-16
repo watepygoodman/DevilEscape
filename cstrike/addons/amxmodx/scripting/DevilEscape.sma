@@ -442,8 +442,6 @@ public plugin_init()
 	//Vars
 	g_MaxPlayer = get_maxplayers()
 	
-	register_clcmd("say /save", "gm_user_save")
-	
 	server_cmd("mp_autoteambalance 0")
 }
 
