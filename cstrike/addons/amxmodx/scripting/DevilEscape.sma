@@ -320,7 +320,7 @@ public plugin_precache()
 	cvar_RewardXp = register_cvar("de_reward_xp", "200")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	
-	cvar_DevilHea = register_cvar("de_devil_basehea","28000")
+	cvar_DevilHea = register_cvar("de_devil_basehea","230000")
 	cvar_DevilSpeed = register_cvar("de_devil_basespeed","260.0")
 	cvar_DevilGravity = register_cvar("de_devil_basegravity","0.90")
 	cvar_DevilRecoManaTime = register_cvar("de_devil_reco_manatime","0.3")
