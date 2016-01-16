@@ -70,7 +70,7 @@ enum
 	FM_CS_TEAM_SPECTATOR
 }
 
-enum(+=40)
+enum(+= 66)
 {
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
@@ -90,7 +90,7 @@ enum(+=10){
 
 //Guns
 enum{
-	WEAPON_PLASMAGUN
+	SPWPN_PLASMAGUN = 1, SPWPN_THUNDERBOLT
 }
 
 new const g_RemoveEnt[][] = {
@@ -151,7 +151,10 @@ new const g_WpnFreeFrist_CSW[] = {CSW_TMP, CSW_MP5NAVY, CSW_P90, CSW_FAMAS, CSW_
 				CSW_M4A1, CSW_SG552}
 new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249}
 
-new const g_SpecialWpn_Name[][] = {"破晓黎明"}
+new const g_WpnFreeFrist_Name[][] = {"TMP", "MP5", "P90", "Famas", "Galil", "AK47", "M4A1", "SG552"}
+new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
+
+new const g_SpWpn_Name[][] = {"", "破晓黎明", "隼雷"}
 
 //Hud
 #define DHUD_MSG_X -1.0
@@ -174,6 +177,8 @@ cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMa
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin
+
+new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice
 
 //Spr
 new g_spr_ring;
@@ -215,7 +220,7 @@ new g_Abi_Str[33];
 new g_Abi_Agi[33];
 new g_Abi_Gra[33];
 new g_Pack[33][MAX_PACKSLOT+1];
-new g_SpecialWpn[33][32];
+new bool:g_Pack_SpWpn[33][32];
 
 new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
 new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
@@ -363,6 +368,9 @@ public plugin_precache()
 	cvar_HumanWinGetCoin = register_cvar("de_win_human_getcoin", "4")
 	cvar_NooneWinGetXp = register_cvar("de_win_noone_getxp", "1000")
 	cvar_NooneWinGetCoin = register_cvar("de_win_noone_getcoin", "2")
+	
+	cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
+	cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
 }
 
 public plugin_init()
@@ -378,7 +386,7 @@ public plugin_init()
 	register_menu("Weapon Menu", KEYSMENU, "menu_weapon")
 	register_menu("WeaponFree Menu", KEYSMENU, "menu_weapon_free")
 	// register_menu("WeaponGash Menu", KEYSMENU, "menu_weapon_gash")
-	register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
+	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	register_menu("Shop Menu", KEYSMENU, "menu_shop")
 	register_menu("Admin Menu", KEYSMENU, "menu_admin")
@@ -433,6 +441,8 @@ public plugin_init()
 	
 	//Vars
 	g_MaxPlayer = get_maxplayers()
+	
+	register_clcmd("say /save", "gm_user_save")
 	
 	server_cmd("mp_autoteambalance 0")
 }
@@ -1171,10 +1181,10 @@ public task_showhud(id)
 {
 	id -= TASK_SHOWHUD
 	set_hudmessage(25, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f^n Boss HP:%d",
+	ShowSyncHudMsg(id, g_Hud_Status, "HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f^n",
 	pev(id, pev_health), g_Coin[id], g_Gash[id], g_Level[id], g_Xp[id], g_NeedXp[id], g_Sp[id],
 	WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , WEAPONCSWNAME[g_UsersWeapon[id]], 
-	g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id], pev(g_whoBoss, pev_health))
+	g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id])
 }
 
 public task_plrspawn(id)
@@ -1183,6 +1193,7 @@ public task_plrspawn(id)
 	fm_reset_user_model(id)
 	fm_strip_user_weapons(id)
 	fm_give_item(id, "weapon_knife")
+	
 	if(is_user_bot(id))
 		fm_give_item(id, g_WpnFreeFrist[random_num(0, (sizeof g_WpnFreeFrist) -1)])
 	show_menu_weapon(id)
@@ -1401,11 +1412,6 @@ public menu_main(id, key)
 
 public show_menu_weapon(id)
 {
-	if(id==g_whoBoss)
-	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
-		return PLUGIN_HANDLED;
-	}
 	new Menu[128],Len;
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"MENU_WEAPON_FREE")
@@ -1421,6 +1427,12 @@ public show_menu_weapon(id)
 
 public menu_weapon(id, key)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	
 	switch(key)
 	{
 		case 0: show_menu_weapon_free(id)
@@ -1433,9 +1445,13 @@ public menu_weapon(id, key)
 
 public show_menu_weapon_free(id)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	
 	new Menu[512],Len;
-	new const GunNameFirst[][] = {"TMP", "MP5", "P90", "Famas", "Galil", "AK47", "M4A1", "SG552"}
-	new const GunNameSec[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 	
 	new BaseLvNeed = get_pcvar_num(cvar_BaseWpnNeedLv)
 	new LvPreWpn = get_pcvar_num(cvar_BaseWpnPreLv)
@@ -1444,22 +1460,22 @@ public show_menu_weapon_free(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_FREE")
 	if(g_Menu_WpnFree_Page[id] == 0)
 	{
-		for(new i = 0; i < sizeof GunNameFirst; i++)
+		for(new i = 0; i < sizeof g_WpnFreeFrist_Name; i++)
 		{
 			if(g_Level[id] < NeedLv)
-				Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \d%s %L^n", i+1, GunNameFirst[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
-			else Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \d%L^n", i+1, GunNameFirst[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+				Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \d%s %L^n", i+1, g_WpnFreeFrist_Name[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+			else Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \d%L^n", i+1, g_WpnFreeFrist_Name[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
 			NeedLv += LvPreWpn
 		}
 	}
 	else if(g_Menu_WpnFree_Page[id] == 1)
 	{
-		NeedLv += sizeof GunNameFirst * LvPreWpn
-		for(new i = 0; i < sizeof GunNameSec; i++)
+		NeedLv += sizeof g_WpnFreeFrist_Name * LvPreWpn
+		for(new i = 0; i < sizeof g_WpnFreeSec_Name; i++)
 		{
 			if(g_Level[id] < NeedLv)
-				Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \d%s %L^n", i+1, GunNameSec[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
-			else Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \d%L^n", i+1, GunNameSec[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+				Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \d%s %L^n", i+1, g_WpnFreeSec_Name[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
+			else Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \d%L^n", i+1, g_WpnFreeSec_Name[i] ,id, "HOW_MANY_LV_NEED", NeedLv)
 			NeedLv += LvPreWpn
 		}
 	}
@@ -1471,6 +1487,12 @@ public show_menu_weapon_free(id)
 
 public menu_weapon_free(id, key)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	
 	if(key == 9) //Exit
 	{
 		g_Menu_WpnFree_Page[id] = 0;
@@ -1509,6 +1531,7 @@ public menu_weapon_free(id, key)
 			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
 			return PLUGIN_HANDLED
 		}
+		client_color_print(id, "^x04[DevilEscape]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeFrist_Name[key]);
 		fm_give_item(id, g_WpnFreeFrist[key])
 		args[0] = g_WpnFreeFrist_CSW[key]
 	}
@@ -1519,6 +1542,7 @@ public menu_weapon_free(id, key)
 			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
 			return PLUGIN_HANDLED
 		}
+		client_color_print(id, "^x04[DevilEscape]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeSec_Name[key]);
 		fm_give_item(id, g_WpnFreeSec[key])
 		args[0] = g_WpnFreeSec_CSW[key]
 	}
@@ -1531,37 +1555,103 @@ public menu_weapon_free(id, key)
 
 // public show_menu_weapon_gash(id)
 // {
-	
+
 // }
 
 public show_menu_weapon_special(id)
 {
-	new Menu[128],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_SPECIAL")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \r%s^n", g_SpecialWpn_Name[0])
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
 	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
-	show_menu(id, KEYSMENU, Menu,-1,"WeaponSpecial Menu")
+	new Menuitem[64], Menu, CharNum[3]
+	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_WEAPON_SPECIAL")
+	Menu = menu_create(Menuitem, "menu_weapon_special")
 	
-	return PLUGIN_HANDLED;
+	for(new i = 1; i < sizeof g_SpWpn_Name; i++)
+	{
+		num_to_str(i, CharNum, 2)
+		if(g_Pack_SpWpn[id][i])
+			formatex(Menuitem, charsmax(Menuitem), g_SpWpn_Name[i])
+		else
+			formatex(Menuitem, charsmax(Menuitem), "\d%s", g_SpWpn_Name[i])
+		menu_additem(Menu, Menuitem, CharNum)
+	}
+	
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+	
+	return PLUGIN_HANDLED
 }
 
-public menu_weapon_special(id, key)
+public menu_weapon_special(id, menu, item)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	if(get_bit(g_isBuyWpnMain, bit_id))
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		menu_destroy(menu);
+		return PLUGIN_HANDLED
+	}
+	
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	new key = str_to_num(data);
+	
+	if(!g_Pack_SpWpn[id][key])	//没这玩意儿
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
 	new args[1]
 	switch(key)
 	{
-		case 0: {
-			args[0] = CSW_SG552
+		case SPWPN_PLASMAGUN:{
 			wpn_give_plasmagun(id)
+			args[0] = CSW_SG552
+		}
+		case SPWPN_THUNDERBOLT:{
+			wpn_give_thunderbolt(id)
+			args[0] = CSW_AWP
 		}
 	}
+	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_SpWpn_Name[key]);
+	set_bit(g_isBuyWpnMain, bit_id)
 	task_refill_bpammo(args[0], id)
+	menu_destroy(menu);
 	return PLUGIN_HANDLED;
+	
 }
 
 public show_menu_weapon_second(id)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	
 	new Menu[60],Len;
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_SECOND")
@@ -1574,6 +1664,11 @@ public show_menu_weapon_second(id)
 
 public menu_weapon_second(id, key)
 {
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
 	
 	if(get_bit(g_isBuyWpnSec, bit_id))
 	{
@@ -1680,7 +1775,6 @@ public menu_ability(id, key)
 	return PLUGIN_HANDLED
 }
 
-
 public show_menu_pack(id)
 {	
 	new Menuitem[32], Menu, CharNum[3]
@@ -1737,7 +1831,7 @@ public menu_equip(id, key)
 
 public show_menu_shop(id)
 {
-	new Menu[60],Len;
+	new Menu[128],Len;
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_SHOP")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_SHOP_ITEM")
@@ -1756,7 +1850,7 @@ public menu_shop(id, key)
 		case 0: show_menu_shop_item(id)
 		// case 1: show_menu_shop_weapon(id)
 		// case 2: show_menu_shop_weapon_gash(id)
-		// case 3: show_menu_shop_weapon_special(id)
+		case 2: show_menu_shop_weapon_special(id)
 	}
 	
 	return PLUGIN_HANDLED
@@ -1792,6 +1886,73 @@ public menu_shop_item(id, menu, item)
 	new data[6], access, callback;
 	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
 	// new key = str_to_num(data);
+	
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+	
+}
+
+public show_menu_shop_weapon_special(id)
+{
+	new Menuitem[32], Menu
+	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_SHOP_WEAPON_SPECIAL")
+	Menu = menu_create(Menuitem, "menu_shop_weapon_special")
+	
+	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[1], get_pcvar_num(cvar_Wpn_PlasmagunPrice), id, "GASH")
+	menu_additem(Menu, Menuitem, "1")
+	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[2], get_pcvar_num(cvar_Wpn_ThunderboltPrice), id, "GASH")
+	menu_additem(Menu, Menuitem, "2")
+	
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+}
+
+public menu_shop_weapon_special(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	new key = str_to_num(data);
+	if(g_Pack_SpWpn[id][key])
+	{
+		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	switch(key)
+	{
+		case SPWPN_PLASMAGUN:
+		{
+			if(g_Gash[id] >= get_pcvar_num(cvar_Wpn_PlasmagunPrice))
+			{
+				g_Gash[id] -= get_pcvar_num(cvar_Wpn_PlasmagunPrice)
+				g_Pack_SpWpn[id][SPWPN_PLASMAGUN] = true
+				client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", g_SpWpn_Name[SPWPN_PLASMAGUN])
+			}
+			else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+		}
+		case SPWPN_THUNDERBOLT:
+		{
+			if(g_Gash[id] >= get_pcvar_num(cvar_Wpn_ThunderboltPrice))
+			{
+				g_Gash[id] -= get_pcvar_num(cvar_Wpn_ThunderboltPrice)
+				g_Pack_SpWpn[id][SPWPN_THUNDERBOLT] = true
+				client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", g_SpWpn_Name[SPWPN_THUNDERBOLT])
+			}
+			else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+		}
+	}
 	
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -2222,8 +2383,20 @@ gm_user_save(id)
 	}
 	kv_add_sub_key(kv, pack)
 	
+	new spwpnpack = kv_create("SpWpn Pack");
+	for(new i = 1; i < sizeof g_SpWpn_Name; i++)
+	{
+		if(g_Pack_SpWpn[id][i])
+			kv_set_int(spwpnpack, g_SpWpn_Name[i], 1)
+		else
+			kv_set_int(spwpnpack, g_SpWpn_Name[i], 0)
+	}
+	kv_add_sub_key(kv, spwpnpack)
+	
 	kv_save_to_file(kv, szFileDir);
 	kv_delete(kv);
+	
+	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SAVE_SUCCESS");
 	
 }
 
@@ -2266,6 +2439,14 @@ gm_user_load(id)
 	{
 		formatex(pack_slotname, charsmax(pack_slotname), "Slot %d", i)
 		g_Pack[id][i] = kv_get_int(pack, pack_slotname)
+	}
+	
+	new spwpnpack = kv_find_key(kv,"SpWpn Pack");
+	for(new i = 1; i < sizeof g_SpWpn_Name; i++)
+	{
+		if(kv_get_int(spwpnpack, g_SpWpn_Name[i]))
+			g_Pack_SpWpn[id][i] = true
+		else g_Pack_SpWpn[id][i] = false
 	}
 	
 	kv_delete(kv)

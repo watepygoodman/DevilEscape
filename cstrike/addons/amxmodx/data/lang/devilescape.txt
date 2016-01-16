@@ -1,5 +1,5 @@
 [cn]
-AUTOSAVE_SUCCESS = 你的数据已自动保存
+SAVE_SUCCESS = 你的数据已自动保存
 
 REGISTER_OUTOFLEN = 错误 你的密码过长或过短
 REGISTER_INVAILDCHAR = 错误 你的密码含有非法字符
@@ -22,11 +22,13 @@ DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s
 DHUD_BOSS_WIN = 魔王胜利！
 DHUD_HUMAN_WIN = 人类胜利！
 DHUD_NOONE_WIN = 平局
-WIN_GET_CHAT = 赢家获得 %d Exp, %d Coin奖励！
+WIN_GET_CHAT = 获得 %d Exp, %d Coin奖励！
 
 HOW_MANY_LV_NEED = Lv.%d
 HAVE_MAIN_WPN = 你已经购买过主武器了！
 HAVE_SEC_WPN = 你已经购买过副武器了！
+HAVE_NO_THIS_WPN = 你没有这把武器！
+YOU_CHOOSE_THIS_WPN = 你选择了
 NOT_HUMAN = 你不是人类！
 
 USE_ITEM = %s使用了道具:
@@ -54,6 +56,10 @@ MENU_ADMIN_GIVE_ALL = 给予物品(所有人)
 MENU_BACK = 返回
 MENU_NEXT = 继续
 MENU_EXIT = 退出
+
+SHOP_BUY_SUCCESS = 你成功购买了:
+SHOP_BUY_FAILED = 购买失败
+SHOP_HAD_THIS_WPN = 你已经有这个武器了！
 
 SKILL_LEARN_SUCCESS = 技能学习成功！
 SKILL_LEARN_FULL = 该技能已满！
