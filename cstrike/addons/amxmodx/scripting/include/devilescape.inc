@@ -20,11 +20,13 @@ stock m_iAmmoType_M249 = 379
 const WEAPON_PLASMAGUN = 6688
 const WEAPON_THUNDERBOLT = 6699
 const WEAPON_SALAMANDER = 7011
+const WEAPON_WATERCANNON = 7088
 
 //Wpn Give
 native wpn_give_plasmagun(id)
 native wpn_give_thunderbolt(id)
 native wpn_give_salamander(id)
+native wpn_give_watercannon(id)
 
 
 
