@@ -26,14 +26,14 @@ new const g_WpnSound[][]=
 
 new const CSW_THUNDERBOLT = CSW_AWP
 
-const m_BloodColor = 89
-const m_iClip = 51
-const m_fInReload = 54
-const m_flNextAttack = 83
-const m_pActiveItem = 373
-const m_flNextPrimaryAttack = 46
-const m_flNextSecondaryAttack = 47
-const m_flTimeWeaponIdle = 48
+// const m_BloodColor = 89
+// const m_iClip = 51
+// const m_fInReload = 54
+// const m_flNextAttack = 83
+// const m_pActiveItem = 373
+// const m_flNextPrimaryAttack = 46
+// const m_flNextSecondaryAttack = 47
+// const m_flTimeWeaponIdle = 48
 
 new g_LaserSpr
 new cvar_damage, cvar_clip

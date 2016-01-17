@@ -90,7 +90,7 @@ enum(+=10){
 
 //Guns
 enum{
-	SPWPN_PLASMAGUN = 1, SPWPN_THUNDERBOLT
+	SPWPN_PLASMAGUN = 1, SPWPN_THUNDERBOLT, SPWPN_SALAMANDER
 }
 
 new const g_RemoveEnt[][] = {
@@ -154,7 +154,7 @@ new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249
 new const g_WpnFreeFrist_Name[][] = {"TMP", "MP5", "P90", "Famas", "Galil", "AK47", "M4A1", "SG552"}
 new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 
-new const g_SpWpn_Name[][] = {"", "破晓黎明", "隼雷"}
+new const g_SpWpn_Name[][] = {"", "破晓黎明", "隼雷", "焚烬者"}
 
 //Hud
 #define DHUD_MSG_X -1.0
@@ -178,7 +178,7 @@ cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin
 
-new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice
+new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice
 
 //Spr
 new g_spr_ring;
@@ -371,6 +371,7 @@ public plugin_precache()
 	
 	cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
 	cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
+	cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
 }
 
 public plugin_init()
@@ -441,7 +442,6 @@ public plugin_init()
 	
 	//Vars
 	g_MaxPlayer = get_maxplayers()
-	
 	server_cmd("mp_autoteambalance 0")
 }
 
@@ -852,7 +852,6 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 			ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
 		}
 	}
-	
 	//这里应该是HUD提示
 	
 	return HAM_IGNORED
@@ -1110,7 +1109,7 @@ public task_autosave(id)
 {
 	id -= TASK_AUTOSAVE
 	gm_user_save(id)
-	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
+	// client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
 }
 
 public task_round_start()
@@ -1633,6 +1632,10 @@ public menu_weapon_special(id, menu, item)
 			wpn_give_thunderbolt(id)
 			args[0] = CSW_AWP
 		}
+		case SPWPN_SALAMANDER:{
+			wpn_give_salamander(id)
+			args[0] = CSW_M249
+		}
 	}
 	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_SpWpn_Name[key]);
 	set_bit(g_isBuyWpnMain, bit_id)
@@ -1900,6 +1903,8 @@ public show_menu_shop_weapon_special(id)
 	menu_additem(Menu, Menuitem, "1")
 	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[2], get_pcvar_num(cvar_Wpn_ThunderboltPrice), id, "GASH")
 	menu_additem(Menu, Menuitem, "2")
+	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[3], get_pcvar_num(cvar_Wpn_SalamanderPrice), id, "GASH")
+	menu_additem(Menu, Menuitem, "3")
 	
 	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
 	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
@@ -1928,29 +1933,23 @@ public menu_shop_weapon_special(id, menu, item)
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
+	
+	new GashCost
+	
 	switch(key)
 	{
-		case SPWPN_PLASMAGUN:
-		{
-			if(g_Gash[id] >= get_pcvar_num(cvar_Wpn_PlasmagunPrice))
-			{
-				g_Gash[id] -= get_pcvar_num(cvar_Wpn_PlasmagunPrice)
-				g_Pack_SpWpn[id][SPWPN_PLASMAGUN] = true
-				client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", g_SpWpn_Name[SPWPN_PLASMAGUN])
-			}
-			else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
-		}
-		case SPWPN_THUNDERBOLT:
-		{
-			if(g_Gash[id] >= get_pcvar_num(cvar_Wpn_ThunderboltPrice))
-			{
-				g_Gash[id] -= get_pcvar_num(cvar_Wpn_ThunderboltPrice)
-				g_Pack_SpWpn[id][SPWPN_THUNDERBOLT] = true
-				client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", g_SpWpn_Name[SPWPN_THUNDERBOLT])
-			}
-			else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
-		}
+		case SPWPN_PLASMAGUN: GashCost = get_pcvar_num(cvar_Wpn_PlasmagunPrice)
+		case SPWPN_THUNDERBOLT: GashCost = get_pcvar_num(cvar_Wpn_ThunderboltPrice)
+		case SPWPN_SALAMANDER: GashCost = get_pcvar_num(cvar_Wpn_SalamanderPrice)
 	}
+	
+	if(g_Gash[id] >= GashCost)
+	{
+		g_Gash[id] -= GashCost
+		g_Pack_SpWpn[id][key] = true
+		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", g_SpWpn_Name[key])
+	}
+	else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
 	
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -2938,15 +2937,15 @@ stock msg_trace(idorigin[3],targetorigin[3],crit){
 		write_byte(25)
 		message_end()
 	}else{
-		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-		write_byte(6);
-		write_coord(idorigin[0]);
-		write_coord(idorigin[1]);
-		write_coord(idorigin[2]);
-		write_coord(targetorigin[0]);
-		write_coord(targetorigin[1]);
-		write_coord(targetorigin[2]);
-		message_end();
+		// message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		// write_byte(6);
+		// write_coord(idorigin[0]);
+		// write_coord(idorigin[1]);
+		// write_coord(idorigin[2]);
+		// write_coord(targetorigin[0]);
+		// write_coord(targetorigin[1]);
+		// write_coord(targetorigin[2]);
+		// message_end();
 	}
 }
 

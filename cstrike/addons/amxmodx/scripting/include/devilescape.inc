@@ -4,14 +4,17 @@
 #define _devilescape_included
 
 //Offset
-const m_BloodColor = 89
-const m_iClip = 51
-const m_fInReload = 54
-const m_flNextAttack = 83
-const m_pActiveItem = 373
-const m_flNextPrimaryAttack = 46
-const m_flNextSecondaryAttack = 47
-const m_flTimeWeaponIdle = 48
+stock m_BloodColor = 89
+stock m_iClip = 51
+stock m_fInReload = 54
+stock m_flNextAttack = 83
+stock m_pActiveItem = 373
+stock m_flNextPrimaryAttack = 46
+stock m_flNextSecondaryAttack = 47
+stock m_flTimeWeaponIdle = 48
+// stock m_flNextReload = 75
+
+stock m_iAmmoType_M249 = 379
 
 //Wpn Key
 const WEAPON_PLASMAGUN = 6688
