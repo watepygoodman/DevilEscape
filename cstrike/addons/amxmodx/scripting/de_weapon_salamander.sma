@@ -65,6 +65,7 @@ public plugin_init()
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")
 	
 	register_forward(FM_CmdStart, "fw_CmdStart")
+	register_forward(FM_SetModel, "fw_SetModel")
 	
 	RegisterHam(Ham_Item_Deploy, weapon_salamander, "fw_Item_Deploy_Post", 1)
 	RegisterHam(Ham_Weapon_PrimaryAttack, weapon_salamander, "fw_Weapon_PrimaryAttack")
@@ -72,6 +73,7 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_Reload, weapon_salamander, "fw_Weapon_Reload_Post", 1)
 	// RegisterHam(Ham_Weapon_WeaponIdle, weapon_salamander, "fw_Weapon_WeaponIdle_Post", 1)
 	RegisterHam(Ham_Item_PostFrame, weapon_salamander, "fw_Item_PostFrame")
+	RegisterHam(Ham_Item_AddToPlayer, weapon_salamander, "fw_Item_AddToPlayer", 1)
 	RegisterHam(Ham_Think,	"env_sprite", "fw_Fire_Think")
 	RegisterHam(Ham_Touch, "env_sprite", "fw_Touch_Post", 1)
 	
@@ -231,10 +233,13 @@ public fw_Weapon_Reload(Ent)
 
 public fw_Weapon_Reload_Post(Ent)
 {
-	if (pev(Ent, pev_weapons) != WEAPON_PLASMAGUN)
+	if (pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
 		return
-
+	
 	new id = pev(Ent, pev_owner)
+	new iClip = get_pdata_int(Ent, m_iClip, 4)
+	if(iClip >= get_pcvar_num(cvar_clip) || !get_pdata_int(id, m_iAmmoType_M249))
+		return
 	
 	if (g_ReloadBug[id])
 	{
@@ -245,6 +250,31 @@ public fw_Weapon_Reload_Post(Ent)
 	set_pdata_float(id, m_flNextAttack, 5.0, 4)
 	set_pdata_float(Ent, m_flTimeWeaponIdle, 5.0, 4)
 	SetWeaponAnimation(id, RELOAD_ANIM)
+}
+
+public fw_SetModel(Ent, szModel[])
+{
+	if (!equal(szModel, "models/w_m249.mdl"))
+		return FMRES_IGNORED
+	
+	new szClassName[32]
+	pev(Ent, pev_classname, szClassName, charsmax(szClassName))
+	
+	if (!equal(szClassName, "weaponbox"))
+		return FMRES_IGNORED
+	
+	new iEnt = fm_find_ent_by_owner( -1, weapon_salamander, Ent )
+	
+	if(!pev_valid(iEnt))
+		return FMRES_IGNORED;
+	
+	if( pev(iEnt, pev_weapons) == WEAPON_SALAMANDER )
+	{
+		engfunc(EngFunc_SetModel, Ent, g_WpnModel[2])
+		return FMRES_SUPERCEDE
+	}
+
+	return FMRES_IGNORED;
 }
 
 public fw_Item_PostFrame(Ent)
@@ -268,6 +298,19 @@ public fw_Item_PostFrame(Ent)
 	}
 	
 	return HAM_IGNORED
+}
+
+public fw_Item_AddToPlayer(Ent, id)
+{
+	if(!is_valid_ent(Ent))
+		return HAM_IGNORED
+	
+	if(pev(Ent, pev_weapons) == WEAPON_SALAMANDER)
+	{
+		set_pev(Ent, pev_owner, id)
+		set_pdata_float(id, m_flNextAttack, 1.0)
+	}
+	return HAM_HANDLED
 }
 
 public fw_CmdStart(id, uc_handle, seed)
@@ -330,7 +373,7 @@ public fw_Fire_Think(Ent)
 		Frame += 1.0
 		Frame = floatmin(21.0, Frame)
 	}
-	Scale = floatmin(entity_range(Ent, pev(Ent, pev_owner)) / 500 * 3.0, 25.0)
+	Scale = floatmin(entity_range(Ent, pev(Ent, pev_owner)) / 750 * 3.0, 10.0)
 	
 	
 	set_pev(Ent, pev_nextthink, get_gametime() + NextThink)
@@ -380,7 +423,7 @@ public fw_PlaybackEvent(flags, invoker, eventid, Float:delay, Float:origin[3], F
 {
 	if (!is_user_connected(invoker))
 		return FMRES_IGNORED	
-	if(pev(get_pdata_cbase(invoker, m_pActiveItem), pev_weapons) == WEAPON_THUNDERBOLT)
+	if(pev(get_pdata_cbase(invoker, m_pActiveItem), pev_weapons) == WEAPON_SALAMANDER)
 		return FMRES_IGNORED
 	
 	engfunc(EngFunc_PlaybackEvent, flags | FEV_HOSTONLY, invoker, eventid, delay, origin, angles, fparam1, fparam2, iParam1, iParam2, bParam1, bParam2)

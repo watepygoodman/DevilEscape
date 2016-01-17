@@ -57,6 +57,7 @@ public plugin_init()
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")
 	register_forward(FM_UpdateClientData, "fw_UpdateClientData_Post", 1)
 	
+	RegisterHam(Ham_Item_AddToPlayer, "weapon_awp", "fw_Item_AddToPlayer", 1)
 	RegisterHam(Ham_Item_Deploy, "weapon_awp", "fw_Item_Deploy_Post", 1)
 	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_awp", "fw_Weapon_PrimaryAttack")
 	RegisterHam(Ham_Weapon_SecondaryAttack, "weapon_awp", "fw_Weapon_SecondaryAttack")
@@ -116,6 +117,19 @@ public event_curweapon(id)
 		set_pev(id, pev_weaponmodel2, g_WpnModel[1])
 		SetWeaponAnimation(id, 2)
 	}
+}
+
+public fw_Item_AddToPlayer(Ent, id)
+{
+	if(!pev_valid(Ent))
+		return HAM_IGNORED
+	
+	if(pev(Ent, pev_weapons) == WEAPON_THUNDERBOLT)
+	{
+		set_pev(Ent, pev_owner, id)
+		set_pdata_float(id, m_flNextAttack, 1.0)
+	}
+	return HAM_HANDLED
 }
 
 public fw_SetModel(Ent, model[])
