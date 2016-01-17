@@ -246,9 +246,9 @@ public fw_Weapon_PrimaryAttack(iEntity)
 
 	UTIL_PlayWeaponAnimation(id, random_num(1, 3))
 	
-	set_pdata_float(iEntity, m_flNextPrimaryAttack, 0.09, 4)
-	set_pdata_float(iEntity, m_flNextSecondaryAttack, 0.09, 4)
-	set_pdata_float(id, m_flNextAttack, 0.09, 5)
+	set_pdata_float(iEntity, m_flNextPrimaryAttack, 0.1, 4)
+	set_pdata_float(iEntity, m_flNextSecondaryAttack, 0.1, 4)
+	set_pdata_float(id, m_flNextAttack, 0.1, 5)
 	
 	engfunc(EngFunc_EmitSound, iEntity, CHAN_ITEM, g_WpnSound[random_num(0, 2)], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 	
