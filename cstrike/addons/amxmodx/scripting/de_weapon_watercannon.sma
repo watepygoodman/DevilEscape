@@ -166,7 +166,8 @@ public fw_Weapon_PrimaryAttack(Ent)
 	set_pdata_float(Ent, m_flTimeWeaponIdle, 1.0, 5) 
 	set_pdata_float(Ent, m_flNextPrimaryAttack, 0.12, 4)
 	set_pdata_int(Ent, m_iClip, iClip-1, 4)
-	SetWeaponAnimation(id, random_num(SHOOT_ANIM1, SHOOT_ANIM3))
+	emit_sound(id, CHAN_WEAPON, g_WpnSound[1], 1.0, ATTN_NORM, 0, PITCH_NORM)
+	SetWeaponAnimation(id, SHOOT_ANIM1)
 	Weapon_ThrowFire(id)
 	g_isFiring[id] = true
 	return HAM_SUPERCEDE
@@ -329,10 +330,7 @@ public fw_CmdStart(id, uc_handle, seed)
 	if(!(Button & IN_ATTACK) && g_isFiring[id])
 	{
 		if(!task_exists(id+TASK_STOPFIRE))
-		{
 			set_task(0.1, "task_stopfire", id+TASK_STOPFIRE)
-			emit_sound(id, CHAN_WEAPON, g_WpnSound[1], 1.0, ATTN_NORM, 0, PITCH_NORM)
-		}
 	}
 }
 
