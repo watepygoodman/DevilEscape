@@ -6,19 +6,19 @@
 #include <xs>
 #include <devilescape>
 
-#define PLUGIN_NAME "ç„šçƒ¬è€…(for devilescape)"
+#define PLUGIN_NAME "Ë®Ñ×»ðÅÚ(for devilescape)"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "watepy"
 
-new const CSW_SALAMANDER = CSW_M249
-new const weapon_salamander[] = "weapon_m249"
+new const CSW_WATERCANNON = CSW_M249
+new const weapon_watercannon[] = "weapon_m249"
 
 enum{
-	IDLE_ANIM, SHOOT_ANIM, SHOOT_END_ANIM, RELOAD_ANIM, DRAW_ANIM
+	IDLE_ANIM, RELOAD_ANIM, DRAW_ANIM, SHOOT_ANIM1, SHOOT_ANIM2, SHOOT_ANIM3, SHOOT_END_ANIM
 }
 
 enum(+= 21234){
-	TASK_STOPFIRE = 32123
+	TASK_STOPFIRE = 41423
 }
 
 enum{
@@ -26,21 +26,21 @@ enum{
 }
 
 new const g_WpnModel[][] = {
-	"models/v_salamander.mdl",
-	"models/p_salamander.mdl",
-	"models/w_salamander.mdl"
+	"models/v_watercannon.mdl",
+	"models/p_watercannon.mdl",
+	"models/w_watercannon.mdl"
 }
 
 new const g_WpnSound[][] = {
-	"weapons/flamegun-1.wav",
-	"weapons/flamegun-2.wav",
-	"weapons/flamegun_draw.wav",
-	"weapons/flamegun_clipin1.wav",
-	"weapons/flamegun_clipout1.wav",
-	"weapons/flamegun_clipout2.wav"
+	"weapons/watercannon_shoot_start.wav",
+	"weapons/watercannon_shoot1.wav",
+	"weapons/watercannon_shoot_end.wav",
+	"weapons/watercannon_draw.wav",
+	"weapons/watercannon_clipin.wav",
+	"weapons/watercannon_clipout.wav"
 }
 
-new const g_FireSprName[] = "sprites/DevilEscape/fire_salamander.spr"
+new const g_FireSprName[] = "sprites/DevilEscape/waterstream.spr"
 new cvar_clip, cvar_damage
 new bool:g_isFiring[33], bool:g_ReloadBug[33]
 
@@ -67,25 +67,25 @@ public plugin_init()
 	register_forward(FM_CmdStart, "fw_CmdStart")
 	register_forward(FM_SetModel, "fw_SetModel")
 	
-	RegisterHam(Ham_Item_Deploy, weapon_salamander, "fw_Item_Deploy_Post", 1)
-	RegisterHam(Ham_Weapon_PrimaryAttack, weapon_salamander, "fw_Weapon_PrimaryAttack")
-	RegisterHam(Ham_Weapon_Reload, weapon_salamander, "fw_Weapon_Reload")
-	RegisterHam(Ham_Weapon_Reload, weapon_salamander, "fw_Weapon_Reload_Post", 1)
-	// RegisterHam(Ham_Weapon_WeaponIdle, weapon_salamander, "fw_Weapon_WeaponIdle_Post", 1)
-	RegisterHam(Ham_Item_PostFrame, weapon_salamander, "fw_Item_PostFrame")
-	RegisterHam(Ham_Item_AddToPlayer, weapon_salamander, "fw_Item_AddToPlayer", 1)
+	RegisterHam(Ham_Item_Deploy, weapon_watercannon, "fw_Item_Deploy_Post", 1)
+	RegisterHam(Ham_Weapon_PrimaryAttack, weapon_watercannon, "fw_Weapon_PrimaryAttack")
+	RegisterHam(Ham_Weapon_Reload, weapon_watercannon, "fw_Weapon_Reload")
+	RegisterHam(Ham_Weapon_Reload, weapon_watercannon, "fw_Weapon_Reload_Post", 1)
+	// RegisterHam(Ham_Weapon_WeaponIdle, weapon_watercannon, "fw_Weapon_WeaponIdle_Post", 1)
+	RegisterHam(Ham_Item_PostFrame, weapon_watercannon, "fw_Item_PostFrame")
+	RegisterHam(Ham_Item_AddToPlayer, weapon_watercannon, "fw_Item_AddToPlayer", 1)
 	RegisterHam(Ham_Think,	"env_sprite", "fw_Fire_Think")
 	RegisterHam(Ham_Touch, "env_sprite", "fw_Touch_Post", 1)
 	
-	cvar_damage = register_cvar("wpn_salamander_dmg", "299.0")
-	cvar_clip = register_cvar("wpn_salamander_clip", "100")
+	cvar_damage = register_cvar("wpn_watercannon_dmg", "599.0")
+	cvar_clip = register_cvar("wpn_watercannon_clip", "100")
 	
-	register_clcmd("weapon_salamander", "hook_weapon")
+	register_clcmd("weapon_watercannon", "hook_weapon")
 }
 
 public plugin_natives()
 {
-	register_native("wpn_give_salamander", "native_give_weapon", 1)
+	register_native("wpn_give_watercannon", "native_give_weapon", 1)
 }
 
 public native_give_weapon(id)
@@ -98,10 +98,10 @@ public give_weapon(id)
 	if (!is_user_alive(id))
 		return 
 	
-	new iEntity = fm_give_item(id, weapon_salamander)
+	new iEntity = fm_give_item(id, weapon_watercannon)
 	if (iEntity > 0)
 	{
-		set_pev(iEntity, pev_weapons, WEAPON_SALAMANDER)
+		set_pev(iEntity, pev_weapons, WEAPON_WATERCANNON)
 		set_pev(iEntity, pev_owner, id)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
 		SetWeaponAnimation(id, DRAW_ANIM)
@@ -124,13 +124,13 @@ public hook_weapon(id)
 
 public event_curweapon(id)
 {
-	if(!is_user_alive(id) || read_data(2) != CSW_SALAMANDER)
+	if(!is_user_alive(id) || read_data(2) != CSW_WATERCANNON)
 		return
 	new Ent = get_pdata_cbase(id, m_pActiveItem)
 	if(Ent <= 0)
 		return
 	
-	if(pev(Ent, pev_weapons) == WEAPON_SALAMANDER)
+	if(pev(Ent, pev_weapons) == WEAPON_WATERCANNON)
 	{
 		set_pev(id, pev_viewmodel2, g_WpnModel[0])
 		set_pev(id, pev_weaponmodel2, g_WpnModel[1])
@@ -140,7 +140,7 @@ public event_curweapon(id)
 
 public fw_Item_Deploy_Post(Ent)
 {
-	if (pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
+	if (pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
 		return HAM_IGNORED
 	
 	new id = pev(Ent, pev_owner)
@@ -152,10 +152,10 @@ public fw_Item_Deploy_Post(Ent)
 	return HAM_SUPERCEDE
 }
 
-//å¼€ç«
+//¿ª»ð
 public fw_Weapon_PrimaryAttack(Ent)
 {
-	if(pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
+	if(pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
 		return HAM_IGNORED
 	
 	new iClip = get_pdata_int(Ent, m_iClip, 4)
@@ -166,8 +166,7 @@ public fw_Weapon_PrimaryAttack(Ent)
 	set_pdata_float(Ent, m_flTimeWeaponIdle, 1.0, 5) 
 	set_pdata_float(Ent, m_flNextPrimaryAttack, 0.12, 4)
 	set_pdata_int(Ent, m_iClip, iClip-1, 4)
-	SetWeaponAnimation(id, SHOOT_ANIM)
-	engfunc(EngFunc_EmitSound, Ent, CHAN_ITEM, g_WpnSound[0], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+	SetWeaponAnimation(id, random_num(SHOOT_ANIM1, SHOOT_ANIM3))
 	Weapon_ThrowFire(id)
 	g_isFiring[id] = true
 	return HAM_SUPERCEDE
@@ -177,7 +176,7 @@ public Weapon_ThrowFire(id)
 {
 	new Float:vfVelocity[3], Float:StartOrigin[3], Float:vfAngle[3], Float:AimOrg[3]
 	new Float:PlrOrg[3]
-	get_position(id, 50.0, 5.0, -5.0, StartOrigin)	//æžªå£åæ ‡
+	get_position(id, 50.0, 5.0, -5.0, StartOrigin)	//Ç¹¿Ú×ø±ê
 	
 	new Ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_sprite"))
 	
@@ -197,7 +196,7 @@ public Weapon_ThrowFire(id)
 	set_pev(Ent, pev_nextthink, get_gametime() + 0.1)
 	set_pev(Ent, pev_scale, 0.2)
 	
-	set_pev(Ent, pev_classname, "salamander_fire")
+	set_pev(Ent, pev_classname, "watercannon_stream")
 	engfunc(EngFunc_SetModel, Ent, g_FireSprName)
 	set_pev(Ent, pev_mins, Float:{-1.0, -1.0, -1.0})
 	set_pev(Ent, pev_maxs, Float:{1.0, 1.0, 1.0})
@@ -214,7 +213,7 @@ public Weapon_ThrowFire(id)
 
 public fw_Weapon_Reload(Ent)
 {
-	if(pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
+	if(pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
 		return HAM_IGNORED
 	
 	new id = pev(Ent, pev_owner)
@@ -234,7 +233,7 @@ public fw_Weapon_Reload(Ent)
 
 public fw_Weapon_Reload_Post(Ent)
 {
-	if (pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
+	if (pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
 		return
 	
 	new id = pev(Ent, pev_owner)
@@ -264,12 +263,12 @@ public fw_SetModel(Ent, szModel[])
 	if (!equal(szClassName, "weaponbox"))
 		return FMRES_IGNORED
 	
-	new iEnt = fm_find_ent_by_owner( -1, weapon_salamander, Ent )
+	new iEnt = fm_find_ent_by_owner( -1, weapon_watercannon, Ent )
 	
 	if(!pev_valid(iEnt))
 		return FMRES_IGNORED;
 	
-	if( pev(iEnt, pev_weapons) == WEAPON_SALAMANDER )
+	if( pev(iEnt, pev_weapons) == WEAPON_WATERCANNON )
 	{
 		engfunc(EngFunc_SetModel, Ent, g_WpnModel[2])
 		return FMRES_SUPERCEDE
@@ -280,7 +279,7 @@ public fw_SetModel(Ent, szModel[])
 
 public fw_Item_PostFrame(Ent)
 {
-	if (pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
+	if (pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
 		return HAM_IGNORED
 	
 	new id = pev(Ent, pev_owner)
@@ -306,7 +305,7 @@ public fw_Item_AddToPlayer(Ent, id)
 	if(!is_valid_ent(Ent))
 		return HAM_IGNORED
 	
-	if(pev(Ent, pev_weapons) == WEAPON_SALAMANDER)
+	if(pev(Ent, pev_weapons) == WEAPON_WATERCANNON)
 	{
 		set_pev(Ent, pev_owner, id)
 		set_pdata_float(id, m_flNextAttack, 1.0)
@@ -321,7 +320,7 @@ public fw_CmdStart(id, uc_handle, seed)
 		return
 	
 	new Ent = get_pdata_cbase(id, m_pActiveItem)
-	if(pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
+	if(pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
 		return
 	
 	static Button
@@ -341,7 +340,7 @@ public fw_Fire_Think(Ent)
 {
 	new classname[32]
 	pev(Ent, pev_classname, classname, 31)
-	if (!equal(classname,"salamander_fire"))
+	if (!equal(classname,"watercannon_stream"))
 		return
 	
 	new Float:Life
@@ -390,7 +389,7 @@ public fw_Touch_Post(Ent, id)
 	
 	new classname[32]
 	pev(Ent, pev_classname, classname, 31)
-	if (!equal(classname, "salamander_fire"))
+	if (!equal(classname, "watercannon_stream"))
 		return
 	
 	new Attacker = pev(Ent, pev_owner)
@@ -415,7 +414,7 @@ public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
 	if(!is_user_alive(id))
 		return FMRES_IGNORED	
 	
-	if(pev(get_pdata_cbase(id, m_pActiveItem), pev_weapons) == WEAPON_SALAMANDER)
+	if(pev(get_pdata_cbase(id, m_pActiveItem), pev_weapons) == WEAPON_WATERCANNON)
 		set_cd(cd_handle, CD_flNextAttack, get_gametime() + 0.001) 
 	
 	return FMRES_HANDLED
@@ -425,7 +424,7 @@ public fw_PlaybackEvent(flags, invoker, eventid, Float:delay, Float:origin[3], F
 {
 	if (!is_user_connected(invoker))
 		return FMRES_IGNORED	
-	if(pev(get_pdata_cbase(invoker, m_pActiveItem), pev_weapons) == WEAPON_SALAMANDER)
+	if(pev(get_pdata_cbase(invoker, m_pActiveItem), pev_weapons) == WEAPON_WATERCANNON)
 		return FMRES_IGNORED
 	
 	engfunc(EngFunc_PlaybackEvent, flags | FEV_HOSTONLY, invoker, eventid, delay, origin, angles, fparam1, fparam2, iParam1, iParam2, bParam1, bParam2)
@@ -446,7 +445,6 @@ stock SetWeaponAnimation(id, anim)
 	if(!is_user_alive(id))
 		return
 	
-	// client_print(id, print_center, "Anim:%d", anim)
 	set_pev(id, pev_weaponanim, anim)
 	
 	message_begin(MSG_ONE_UNRELIABLE, SVC_WEAPONANIM, {0, 0, 0}, id)

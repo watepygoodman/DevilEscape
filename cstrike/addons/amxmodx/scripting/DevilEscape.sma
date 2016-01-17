@@ -90,7 +90,7 @@ enum(+=10){
 
 //Guns
 enum{
-	SPWPN_PLASMAGUN = 1, SPWPN_THUNDERBOLT, SPWPN_SALAMANDER
+	SPWPN_PLASMAGUN = 1, SPWPN_THUNDERBOLT, SPWPN_SALAMANDER, SPWPN_WATERCANNON
 }
 
 new const g_RemoveEnt[][] = {
@@ -154,7 +154,7 @@ new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249
 new const g_WpnFreeFrist_Name[][] = {"TMP", "MP5", "P90", "Famas", "Galil", "AK47", "M4A1", "SG552"}
 new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 
-new const g_SpWpn_Name[][] = {"", "破晓黎明", "隼雷", "焚烬者"}
+new const g_SpWpn_Name[][] = {"", "破晓黎明", "隼雷", "焚烬者", "水炎火炮"}
 
 //Hud
 #define DHUD_MSG_X -1.0
@@ -178,7 +178,7 @@ cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin
 
-new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice
+new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice
 
 //Spr
 new g_spr_ring;
@@ -372,6 +372,7 @@ public plugin_precache()
 	cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
 	cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
 	cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
+	cvar_Wpn_WatercannonPrice = register_cvar("de_wpn_watercannon_price", "599")
 }
 
 public plugin_init()
@@ -1636,6 +1637,10 @@ public menu_weapon_special(id, menu, item)
 			wpn_give_salamander(id)
 			args[0] = CSW_M249
 		}
+		case SPWPN_WATERCANNON:{
+			wpn_give_watercannon(id)
+			args[0] = CSW_M249
+		}
 	}
 	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_SpWpn_Name[key]);
 	set_bit(g_isBuyWpnMain, bit_id)
@@ -1905,6 +1910,8 @@ public show_menu_shop_weapon_special(id)
 	menu_additem(Menu, Menuitem, "2")
 	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[3], get_pcvar_num(cvar_Wpn_SalamanderPrice), id, "GASH")
 	menu_additem(Menu, Menuitem, "3")
+	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[4], get_pcvar_num(cvar_Wpn_WatercannonPrice), id, "GASH")
+	menu_additem(Menu, Menuitem, "4")
 	
 	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
 	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
@@ -1941,6 +1948,7 @@ public menu_shop_weapon_special(id, menu, item)
 		case SPWPN_PLASMAGUN: GashCost = get_pcvar_num(cvar_Wpn_PlasmagunPrice)
 		case SPWPN_THUNDERBOLT: GashCost = get_pcvar_num(cvar_Wpn_ThunderboltPrice)
 		case SPWPN_SALAMANDER: GashCost = get_pcvar_num(cvar_Wpn_SalamanderPrice)
+		case SPWPN_WATERCANNON: GashCost = get_pcvar_num(cvar_Wpn_WatercannonPrice)
 	}
 	
 	if(g_Gash[id] >= GashCost)
