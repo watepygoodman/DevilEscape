@@ -23,7 +23,7 @@ const WEAPON_PLASMAGUN = 6688
 const WEAPON_THUNDERBOLT = 6699
 const WEAPON_SALAMANDER = 7011
 const WEAPON_M4A1BLACKKNIGHT = 7022
-//const WEAPON_QBS09 = 7033
+const WEAPON_QBS09 = 7033
 const WEAPON_WATERCANNON = 7088
 
 //Wpn Give
@@ -32,7 +32,7 @@ native wpn_give_thunderbolt(id)
 native wpn_give_salamander(id)
 native wpn_give_watercannon(id)
 native wpn_give_m4a1blackknight(id)
-//native wpn_give_qbs09(id)
+native wpn_give_qbs09(id)
 
 
 
