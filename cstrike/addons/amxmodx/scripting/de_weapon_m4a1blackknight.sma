@@ -1,10 +1,12 @@
 #include <amxmodx>
 #include <fakemeta>
+#include <fakemeta_util>
 #include <hamsandwich>
 #include <xs>
 #include <devilescape>
+#include <engine>
 
-#define PLUGIN_NAME		"M4A1黑騎士"
+#define PLUGIN_NAME		"M4A1黑騎士(for devilescape)"
 #define PLUGIN_VERSION	"450.0"
 #define PLUGIN_AUTHOR	"Apppppppppp"
 
@@ -46,7 +48,7 @@ public plugin_precache()
 	cvar_damage = register_cvar("wpn_m4a1bk_damage", "450.0")
 	cvar_clip = register_cvar("wpn_m4a1bk_clip", "38")
 	cvar_seconddamage = register_cvar("wpn_m4a1bk_secdamage","12450.0")
-	cvar_rad = register_cvar("wpn_m4a1bk_secondrad", "70.0")
+	cvar_rad = register_cvar("wpn_m4a1bk_secondrad", "75.0")
 	
 	g_smokepuff_id = engfunc(EngFunc_PrecacheModel, "sprites/wall_puff1.spr")
 	
@@ -75,6 +77,7 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_Reload, weapon_m4a1bk, "fw_Weapon_Reload")
 	RegisterHam(Ham_Weapon_Reload, weapon_m4a1bk, "fw_Weapon_Reload_Post", 1)
 	RegisterHam(Ham_Item_PostFrame, weapon_m4a1bk, "fw_ItemPostFrame")
+	RegisterHam(Ham_Item_AddToPlayer, weapon_m4a1bk, "fw_Item_AddToPlayer", 1)
 	
 	for(new i = 0; i < sizeof(g_EntNames); i++)
 	{
@@ -224,7 +227,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	if (victim != attacker && is_user_connected(attacker))
 	{
 		if(get_user_weapon(attacker) == CSW_M4A1BK)
-		SetHamParamFloat(4,  damage + get_pcvar_float(cvar_damage))
+		SetHamParamFloat(4,  get_pcvar_float(cvar_damage))
 	}
 	
 	return HAM_HANDLED
@@ -345,6 +348,20 @@ public fw_Weapon_SecondaryAttack(Ent)
 	emit_sound(Ent, CHAN_ITEM, g_WpnSound[3], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 	
 	return HAM_SUPERCEDE
+}
+
+public fw_Item_AddToPlayer(Ent, id)
+{
+	if(!is_valid_ent(Ent))
+		return HAM_IGNORED
+	
+	if(pev(Ent, pev_weapons) == WEAPON_M4A1BLACKKNIGHT)
+	{
+		set_pev(Ent, pev_owner, id)
+		set_pdata_float(id, m_flNextAttack, 0.7)
+		UTIL_PlayWeaponAnimation(id, DRAW_ANIM)
+	}
+	return HAM_HANDLED
 }
 
 stock UTIL_PlayWeaponAnimation(const Player, const Sequence)

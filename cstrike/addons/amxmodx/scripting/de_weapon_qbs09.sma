@@ -5,8 +5,9 @@
 #include <xs>
 #include <devilescape>
 #include <cstrike>
+#include <engine>
 
-#define PLUGIN_NAME		"QBS09"
+#define PLUGIN_NAME		"QBS09(for devilescape)"
 #define PLUGIN_VERSION	"1.0"
 #define PLUGIN_AUTHOR	"Apppppppppp"
 
@@ -78,6 +79,7 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_Reload, weapon_qbs09, "fw_Weapon_Reload")
 	RegisterHam(Ham_Item_PostFrame, weapon_qbs09, "fw_ItemPostFrame")
 	RegisterHam(Ham_Item_Holster, weapon_qbs09, "Fw_Holster_Post", 1)
+	RegisterHam(Ham_Item_AddToPlayer, weapon_qbs09, "fw_Item_AddToPlayer", 1)
 	
 	for(new i = 0; i < sizeof(g_EntNames); i++)
 	{
@@ -348,6 +350,20 @@ public Fw_Holster_Post(iEntity)
 	if(g_isReload[id]) g_isReload[id] = false
 	
 	remove_task(iEntity + 15000)
+}
+
+public fw_Item_AddToPlayer(Ent, id)
+{
+	if(!is_valid_ent(Ent))
+		return HAM_IGNORED
+	
+	if(pev(Ent, pev_weapons) == WEAPON_QBS09)
+	{
+		set_pev(Ent, pev_owner, id)
+		set_pdata_float(id, m_flNextAttack, 0.75)
+		UTIL_PlayWeaponAnimation(id, DRAW_ANIM)
+	}
+	return HAM_HANDLED
 }
 
 stock UTIL_PlayWeaponAnimation(const Player, const Sequence)
