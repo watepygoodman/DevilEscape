@@ -5,7 +5,7 @@
 #include <xs>
 #include <devilescape>
 
-#define PLUGIN_NAME "雷神(for devilescape)"
+#define PLUGIN_NAME "雷神"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "watepy"
 
@@ -36,7 +36,8 @@ new const CSW_THUNDERBOLT = CSW_AWP
 // const m_flTimeWeaponIdle = 48
 
 new g_LaserSpr
-new cvar_damage, cvar_clip
+new cvar_damage, cvar_clip, cvar_price
+new g_Wpnid
 
 public plugin_precache()
 {
@@ -46,6 +47,9 @@ public plugin_precache()
 		engfunc(EngFunc_PrecacheModel, g_WpnModel[i])
 	
 	g_LaserSpr = precache_model("sprites/laserbeam.spr")
+	cvar_damage = register_cvar("wpn_thunderbolt_dmg","9000.0")
+	cvar_clip = register_cvar("wpn_thunderbolt_clip","20")
+	cvar_price = register_cvar("de_wpn_thunderbolt_price", "2288")
 }
 
 public plugin_init()
@@ -64,8 +68,7 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_WeaponIdle, "weapon_awp", "fw_Weapon_WeaponIdle_Post", 1)
 	RegisterHam(Ham_Weapon_Reload, "weapon_awp", "fw_Weapon_Reload")
 	
-	cvar_damage = register_cvar("wpn_thunderbolt_dmg","9000.0")
-	cvar_clip = register_cvar("wpn_thunderbolt_clip","20")
+	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 	
 	register_clcmd("weapon_thunderbolt", "hook_weapon")
 	
@@ -79,14 +82,10 @@ public hook_weapon(id)
 	return PLUGIN_HANDLED
 }
 
-public plugin_natives()
+public de_spwpn_select(id, wid)
 {
-	register_native("wpn_give_thunderbolt", "native_give_weapon", 1)
-}
-
-public native_give_weapon(id)
-{
-	give_weapon(id)
+	if(g_Wpnid == wid)
+		give_weapon(id)
 }
 
 public give_weapon(id)
@@ -100,6 +99,7 @@ public give_weapon(id)
 		set_pev(iEntity, pev_weapons, WEAPON_THUNDERBOLT)
 		set_pev(iEntity, pev_owner, id)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
+		cs_set_user_bpammo(id, CSW_AWP, 40)
 	}
 }
 

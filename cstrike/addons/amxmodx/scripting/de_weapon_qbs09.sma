@@ -7,7 +7,7 @@
 #include <cstrike>
 #include <engine>
 
-#define PLUGIN_NAME		"QBS09(for devilescape)"
+#define PLUGIN_NAME		"QBS09"
 #define PLUGIN_VERSION	"1.0"
 #define PLUGIN_AUTHOR	"Apppppppppp"
 
@@ -44,7 +44,8 @@ new bool:g_isReload[33]
 
 new g_smokepuff_id;
 
-new cvar_damage, cvar_clip, cvar_reloadspd, cvar_reloadtime, cvar_attacktime, cvar_startreloadtime
+new cvar_damage, cvar_clip, cvar_reloadspd, cvar_reloadtime, cvar_attacktime, cvar_startreloadtime, cvar_price
+new g_Wpnid
 
 public plugin_precache()
 {
@@ -54,6 +55,7 @@ public plugin_precache()
 	cvar_reloadtime = register_cvar("wpn_qbs09_reloadtime","3.5")
 	cvar_attacktime = register_cvar("wpn_qbs09_attacktime","0.3")
 	cvar_startreloadtime = register_cvar("wpn_qbs09_startreloadtime","0.6")
+	cvar_price = register_cvar("de_wpn_qbs09_price","50")
 	
 	g_smokepuff_id = engfunc(EngFunc_PrecacheModel, "sprites/wall_puff1.spr")
 	
@@ -88,17 +90,13 @@ public plugin_init()
 		RegisterHam(Ham_TakeDamage, g_EntNames[i], "fw_TakeDamage")
 	}
 	
+	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 	register_clcmd("weapon_qbs09", "hook_weapon")
 }
-
-public plugin_natives()
+public de_spwpn_select(id, wid)
 {
-	register_native("wpn_give_qbs09", "native_give_weapon_add", 1)
-}
-
-public native_give_weapon_add(id)
-{
-	give_weapon(id)
+	if(g_Wpnid == wid)
+		give_weapon(id)
 }
 
 public hook_weapon(id)
@@ -183,6 +181,7 @@ public give_weapon(id)
 		set_pev(iEntity, pev_weapons, WEAPON_QBS09)
 		set_pev(iEntity, pev_owner, id)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
+		cs_set_user_bpammo(id, CSW_QBS09, 32)
 	}
 }
 

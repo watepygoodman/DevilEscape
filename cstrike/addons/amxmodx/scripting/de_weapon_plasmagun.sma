@@ -1,10 +1,11 @@
 #include <amxmodx>
 #include <fakemeta>
+#include <cstrike>
 #include <hamsandwich>
 #include <xs>
 #include <devilescape>
 
-#define PLUGINNAME		"破晓黎明(PlasmaGun)"
+#define PLUGINNAME		"破晓黎明"
 #define VERSION			"1.0"
 #define AUTHOR			"TmNine!~"
 
@@ -19,7 +20,8 @@
 #define S_MODEL			"sprites/DevilEscape/plasmaball.spr"
 #define EXP_MODEL		"sprites/DevilEscape/plasmabomb.spr"
 
-new cvar_damage, cvar_clip, cvar_exprange, cvar_speed
+new cvar_damage, cvar_clip, cvar_exprange, cvar_speed, cvar_price
+new g_Wpnid
 new const Fire_Sounds[][] = { "weapons/plasmagun-1.wav", "weapons/plasmagun_exp.wav" }
 
 new g_ExpSpr
@@ -43,6 +45,8 @@ public plugin_init()
 
 	register_forward(FM_SetModel, "fw_SetModel")
 	register_forward(FM_UpdateClientData, "fw_UpdateClientData_Post", 1)
+	
+	g_Wpnid = de_register_sp_wpn(PLUGINNAME, get_pcvar_num(cvar_price))
 }
 
 public plugin_precache()
@@ -59,12 +63,20 @@ public plugin_precache()
 	cvar_clip = register_cvar("wpn_plasmagun_clip", "20")
 	cvar_exprange = register_cvar("wpn_plasmagun_range", "55.0")
 	cvar_speed = register_cvar("wpn_plasmagun_speed", "1550.0")
+	cvar_price = register_cvar("de_wpn_plasmagun_price", "1888")
+	
+}
+
+public de_spwpn_select(id, wid)
+{
+	if(g_Wpnid == wid)
+		Give_PlasmaGun(id)
 }
 
 public weapon_hook(id)
 {
-    	engclient_cmd(id, "weapon_sg552")
-    	return PLUGIN_HANDLED
+    engclient_cmd(id, "weapon_sg552")
+    return PLUGIN_HANDLED
 }
 
 public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
@@ -126,7 +138,6 @@ public Give_PlasmaGun(id)
 {
 	if (!is_user_alive(id))
 	return 
-
 	drop_weapons(id, 1)
 	new iEntity = fm_give_item(id, "weapon_sg552")
 	if (iEntity > 0)
@@ -134,6 +145,7 @@ public Give_PlasmaGun(id)
 		set_pev(iEntity, pev_weapons, WEAPON_PLASMAGUN)
 		set_pdata_int(iEntity, 51, get_pcvar_num(cvar_clip), 4)
 		UTIL_PlayWeaponAnimation(id, 2)
+		cs_set_user_bpammo(id, CSW_SG552, 90)
 	}
 }
 public HAM_Item_Deploy_Post(iEntity)

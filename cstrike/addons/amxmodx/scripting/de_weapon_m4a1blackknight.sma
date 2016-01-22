@@ -5,8 +5,9 @@
 #include <xs>
 #include <devilescape>
 #include <engine>
+#include <cstrike>
 
-#define PLUGIN_NAME		"M4A1黑騎士(for devilescape)"
+#define PLUGIN_NAME		"M4A1黑騎士"
 #define PLUGIN_VERSION	"450.0"
 #define PLUGIN_AUTHOR	"Apppppppppp"
 
@@ -43,7 +44,8 @@ new bool:g_reloadbug[33]
 
 new g_smokepuff_id
 
-new cvar_damage, cvar_clip, cvar_seconddamage, cvar_rad
+new cvar_damage, cvar_clip, cvar_seconddamage, cvar_rad, cvar_price
+new g_Wpnid
 
 public plugin_precache()
 {
@@ -51,7 +53,7 @@ public plugin_precache()
 	cvar_clip = register_cvar("wpn_m4a1bk_clip", "38")
 	cvar_seconddamage = register_cvar("wpn_m4a1bk_secdamage","12450.0")
 	cvar_rad = register_cvar("wpn_m4a1bk_secondrad", "75.0")
-	
+	cvar_price = register_cvar("de_wpn_m4a1bk_price","450")
 	g_smokepuff_id = engfunc(EngFunc_PrecacheModel, "sprites/wall_puff1.spr")
 	
 	new i
@@ -88,16 +90,13 @@ public plugin_init()
 	}
 	
 	register_clcmd("weapon_m4a1bk", "hook_weapon")
+	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 }
 
-public plugin_natives()
+public de_spwpn_select(id, wid)
 {
-	register_native("wpn_give_m4a1blackknight", "native_give_weapon_add", 1)
-}
-
-public native_give_weapon_add(id)
-{
-	Give_BlackKnight(id)
+	if(g_Wpnid == wid)
+		Give_BlackKnight(id)
 }
 
 public hook_weapon(id)
@@ -181,6 +180,7 @@ public Give_BlackKnight(id)
 		set_pev(iEntity, pev_weapons, WEAPON_M4A1BLACKKNIGHT)
 		set_pev(iEntity, pev_owner, id)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
+		cs_set_user_bpammo(id, CSW_M4A1BK, 90)
 	}
 }
 

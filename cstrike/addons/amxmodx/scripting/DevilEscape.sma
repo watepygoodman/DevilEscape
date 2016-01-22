@@ -88,11 +88,6 @@ enum(+=10){
 	ADMIN_SELECT_BOSS = 32, ADMIN_GIVE, ADMIN_GIVE_COIN, ADMIN_GIVE_GASH, ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL = 82
 }
 
-//Guns
-enum{
-	SPWPN_PLASMAGUN = 1, SPWPN_THUNDERBOLT, SPWPN_SALAMANDER, SPWPN_WATERCANNON, SPWPN_M4A1BLACKKNIGHT, SPWPN_QBS09
-}
-
 new const g_RemoveEnt[][] = {
 	"func_hostage_rescue", "info_hostage_rescue", "func_bomb_target", "info_bomb_target",
 	"hostage_entity", "info_vip_start", "func_vip_safetyzone", "func_escapezone"
@@ -154,8 +149,6 @@ new const g_WpnFreeSec_CSW[] = {CSW_AUG, CSW_SG550, CSW_G3SG1, CSW_AWP, CSW_M249
 new const g_WpnFreeFrist_Name[][] = {"TMP", "MP5", "P90", "Famas", "Galil", "AK47", "M4A1", "SG552"}
 new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 
-new const g_SpWpn_Name[][] = {"", "破晓黎明", "隼雷", "焚烬者", "水炎火炮", "M4A1黑騎士", "QBS09"}
-
 //Hud
 #define DHUD_MSG_X -1.0
 #define DHUD_MSG_Y 0.20
@@ -178,7 +171,7 @@ cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin
 
-new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
+// new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
 
 //Spr
 new g_spr_ring;
@@ -265,6 +258,22 @@ new g_Msg_VGUI, g_Msg_ShowMenu;
 //Forward Handle
 new g_fwSpawn;
 
+//Array
+new Array:g_SpWpn_Name
+new Array:g_SpWpn_Price
+new Array:g_GashWpn_Name
+new Array:g_GashWpn_Price
+
+new g_SpWpn_Num, g_GashWpn_Num
+
+//Forward Handles
+new g_fwSpWpnSelect, g_fwDummyResult
+
+public plugin_natives()
+{
+	register_native("de_register_sp_wpn", "native_register_sp_wpn", 1)
+	register_native("de_register_gash_wpn", "native_register_gash_wpn", 1)
+}
 
 public plugin_precache()
 {
@@ -307,6 +316,12 @@ public plugin_precache()
 	engfunc(EngFunc_PrecacheSound, snd_crit_received)
 	engfunc(EngFunc_PrecacheSound, snd_crit_shoot)
 	engfunc(EngFunc_PrecacheSound, snd_minicrit_hit)
+	
+	//Array
+	g_SpWpn_Name = ArrayCreate(32, 1)
+	g_SpWpn_Price = ArrayCreate(32, 1)
+	g_GashWpn_Name = ArrayCreate(32, 1)
+	g_GashWpn_Name = ArrayCreate(32, 1)
 	
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
@@ -369,12 +384,12 @@ public plugin_precache()
 	cvar_NooneWinGetXp = register_cvar("de_win_noone_getxp", "1000")
 	cvar_NooneWinGetCoin = register_cvar("de_win_noone_getcoin", "2")
 	
-	cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
-	cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
-	cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
-	cvar_Wpn_WatercannonPrice = register_cvar("de_wpn_watercannon_price", "599")
-	cvar_Wpn_M4A1BKPrice = register_cvar("de_wpn_m4a1bk_price","450")
-	cvar_Wpn_QBS09Price = register_cvar("de_wpn_qbs09_price","50")
+	// cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
+	// cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
+	// cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
+	// cvar_Wpn_WatercannonPrice = register_cvar("de_wpn_watercannon_price", "599")
+	// cvar_Wpn_M4A1BKPrice = register_cvar("de_wpn_m4a1bk_price","450")
+	// cvar_Wpn_QBS09Price = register_cvar("de_wpn_qbs09_price","50")
 }
 
 public plugin_init()
@@ -442,6 +457,9 @@ public plugin_init()
 	
 	//Unregister
 	unregister_forward(FM_Spawn, g_fwSpawn)
+	
+	//Multi Forward
+	g_fwSpWpnSelect = CreateMultiForward("de_spwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	
 	//Vars
 	g_MaxPlayer = get_maxplayers()
@@ -1570,13 +1588,18 @@ public show_menu_weapon_special(id)
 	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_WEAPON_SPECIAL")
 	Menu = menu_create(Menuitem, "menu_weapon_special")
 	
-	for(new i = 1; i < sizeof g_SpWpn_Name; i++)
+	for(new i = 0; i < g_SpWpn_Num; i++)
 	{
-		num_to_str(i, CharNum, 2)
+		num_to_str(i+1, CharNum, 2)
 		if(g_Pack_SpWpn[id][i])
-			formatex(Menuitem, charsmax(Menuitem), g_SpWpn_Name[i])
+			ArrayGetString(g_SpWpn_Name, i, Menuitem, charsmax(Menuitem))
 		else
-			formatex(Menuitem, charsmax(Menuitem), "\d%s", g_SpWpn_Name[i])
+		{
+			new buffer[32]
+			ArrayGetString(g_SpWpn_Name, i, buffer, charsmax(buffer))
+			formatex(Menuitem, charsmax(Menuitem), "\d%s", buffer)
+		}
+		
 		menu_additem(Menu, Menuitem, CharNum)
 	}
 	
@@ -1617,44 +1640,20 @@ public menu_weapon_special(id, menu, item)
 	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
 	new key = str_to_num(data);
 	
-	if(!g_Pack_SpWpn[id][key])	//没这玩意儿
+	if(!g_Pack_SpWpn[id][key-1])	//没这玩意儿
 	{
 		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
 	
-	new args[1]
-	switch(key)
-	{
-		case SPWPN_PLASMAGUN:{
-			wpn_give_plasmagun(id)
-			args[0] = CSW_SG552
-		}
-		case SPWPN_THUNDERBOLT:{
-			wpn_give_thunderbolt(id)
-			args[0] = CSW_AWP
-		}
-		case SPWPN_SALAMANDER:{
-			wpn_give_salamander(id)
-			args[0] = CSW_M249
-		}
-		case SPWPN_WATERCANNON:{
-			wpn_give_watercannon(id)
-			args[0] = CSW_M249
-		}
-		case SPWPN_M4A1BLACKKNIGHT:{
-			wpn_give_m4a1blackknight(id)
-			args[0] = CSW_M4A1
-		}
-		case SPWPN_QBS09:{
-			wpn_give_qbs09(id)
-			args[0] = CSW_XM1014
-		}
-	}
-	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_SpWpn_Name[key]);
+	ExecuteForward(g_fwSpWpnSelect, g_fwDummyResult, id, key-1)
+	
+	new buffer[32]
+	ArrayGetString(g_SpWpn_Name, key-1, buffer, charsmax(buffer))
+	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
 	set_bit(g_isBuyWpnMain, bit_id)
-	task_refill_bpammo(args[0], id)
+	// task_refill_bpammo(args[0], id)
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
 	
@@ -1910,22 +1909,19 @@ public menu_shop_item(id, menu, item)
 
 public show_menu_shop_weapon_special(id)
 {
-	new Menuitem[32], Menu
+	new Menuitem[32], Menu, CharNum[3]
 	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_SHOP_WEAPON_SPECIAL")
 	Menu = menu_create(Menuitem, "menu_shop_weapon_special")
 	
-	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[1], get_pcvar_num(cvar_Wpn_PlasmagunPrice), id, "GASH")
-	menu_additem(Menu, Menuitem, "1")
-	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[2], get_pcvar_num(cvar_Wpn_ThunderboltPrice), id, "GASH")
-	menu_additem(Menu, Menuitem, "2")
-	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[3], get_pcvar_num(cvar_Wpn_SalamanderPrice), id, "GASH")
-	menu_additem(Menu, Menuitem, "3")
-	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[4], get_pcvar_num(cvar_Wpn_WatercannonPrice), id, "GASH")
-	menu_additem(Menu, Menuitem, "4")
-	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[5], get_pcvar_num(cvar_Wpn_M4A1BKPrice), id, "GASH")
-	menu_additem(Menu, Menuitem, "5")
-	formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", g_SpWpn_Name[6], get_pcvar_num(cvar_Wpn_QBS09Price), id, "GASH")
-	menu_additem(Menu, Menuitem, "6")
+	new buffer[32]
+	new size = ArraySize(g_SpWpn_Name)
+	for(new i = 0; i < size; i++)
+	{
+		num_to_str(i+1, CharNum, 2)
+		ArrayGetString(g_SpWpn_Name, i, buffer, charsmax(buffer))
+		formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", buffer, ArrayGetCell(g_SpWpn_Price, i), id, "GASH")
+		menu_additem(Menu, Menuitem, CharNum)
+	}
 	
 	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
 	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
@@ -1948,30 +1944,22 @@ public menu_shop_weapon_special(id, menu, item)
 	new data[6], access, callback;
 	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
 	new key = str_to_num(data);
-	if(g_Pack_SpWpn[id][key])
+	if(g_Pack_SpWpn[id][key-1])
 	{
 		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
 	
-	new GashCost
-	
-	switch(key)
-	{
-		case SPWPN_PLASMAGUN: GashCost = get_pcvar_num(cvar_Wpn_PlasmagunPrice)
-		case SPWPN_THUNDERBOLT: GashCost = get_pcvar_num(cvar_Wpn_ThunderboltPrice)
-		case SPWPN_SALAMANDER: GashCost = get_pcvar_num(cvar_Wpn_SalamanderPrice)
-		case SPWPN_WATERCANNON: GashCost = get_pcvar_num(cvar_Wpn_WatercannonPrice)
-		case SPWPN_M4A1BLACKKNIGHT: GashCost = get_pcvar_num(cvar_Wpn_M4A1BKPrice)
-		case SPWPN_QBS09: GashCost = get_pcvar_num(cvar_Wpn_QBS09Price)
-	}
+	new GashCost = ArrayGetCell(g_SpWpn_Price, key-1)
+	new buffer[32]
 	
 	if(g_Gash[id] >= GashCost)
 	{
 		g_Gash[id] -= GashCost
-		g_Pack_SpWpn[id][key] = true
-		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", g_SpWpn_Name[key])
+		ArrayGetString(g_SpWpn_Name, key-1, buffer, charsmax(buffer))
+		g_Pack_SpWpn[id][key-1] = true
+		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", buffer)
 	}
 	else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
 	
@@ -2405,12 +2393,15 @@ gm_user_save(id)
 	kv_add_sub_key(kv, pack)
 	
 	new spwpnpack = kv_create("SpWpn Pack");
-	for(new i = 1; i < sizeof g_SpWpn_Name; i++)
+	new buffer[32]
+	for(new i = 0; i < g_SpWpn_Num; i++)
 	{
+		ArrayGetString(g_SpWpn_Name, i, buffer, charsmax(buffer))
+		
 		if(g_Pack_SpWpn[id][i])
-			kv_set_int(spwpnpack, g_SpWpn_Name[i], 1)
+			kv_set_int(spwpnpack, buffer, 1)
 		else
-			kv_set_int(spwpnpack, g_SpWpn_Name[i], 0)
+			kv_set_int(spwpnpack, buffer, 0)
 	}
 	kv_add_sub_key(kv, spwpnpack)
 	
@@ -2455,6 +2446,7 @@ gm_user_load(id)
 		g_WpnXp[id][i] = kv_get_int(wpnxp, WEAPONCSWNAME[i])
 	
 	new pack = kv_find_key(kv, "Pack")
+	new buffer[32]
 	new pack_slotname[8]
 	for(new i = 1; i < sizeof g_Pack[]; i++)
 	{
@@ -2463,9 +2455,10 @@ gm_user_load(id)
 	}
 	
 	new spwpnpack = kv_find_key(kv,"SpWpn Pack");
-	for(new i = 1; i < sizeof g_SpWpn_Name; i++)
+	for(new i = 0; i < g_SpWpn_Num; i++)
 	{
-		if(kv_get_int(spwpnpack, g_SpWpn_Name[i]))
+		ArrayGetString(g_SpWpn_Name, i, buffer, charsmax(buffer))
+		if(kv_get_int(spwpnpack, buffer))
 			g_Pack_SpWpn[id][i] = true
 		else g_Pack_SpWpn[id][i] = false
 	}
@@ -2748,6 +2741,41 @@ public bossskill_disappear()
 	set_pev(g_whoBoss, pev_effects, EF_NODRAW)
 	set_task(get_pcvar_float(cvar_DevilDisappearTime), "task_disappear_off")
 	return 1
+}
+
+/* ==========================
+
+					[Natives]
+			 
+==========================*/
+
+public native_register_sp_wpn(const name[], const cost)
+{
+	param_convert(1)
+	ArrayPushString(g_SpWpn_Name, name)
+	ArrayPushCell(g_SpWpn_Price, cost)
+	g_SpWpn_Num ++
+	return g_SpWpn_Num-1
+}
+
+public native_register_gash_wpn(const name[], const cost)
+{
+	param_convert(1)
+	ArrayPushString(g_GashWpn_Name, name)
+	ArrayPushCell(g_GashWpn_Price, cost)
+	
+	g_GashWpn_Num ++
+	return g_GashWpn_Num-1
+}
+
+public native_get_sp_wpn_id(const name[])
+{
+	
+}
+
+public native_get_gash_wpn_id(const name[])
+{
+	
 }
 
 /* ==========================

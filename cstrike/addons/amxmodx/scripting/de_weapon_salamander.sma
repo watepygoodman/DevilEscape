@@ -6,7 +6,7 @@
 #include <xs>
 #include <devilescape>
 
-#define PLUGIN_NAME "焚烬者(for devilescape)"
+#define PLUGIN_NAME "焚烬者"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "watepy"
 
@@ -41,8 +41,9 @@ new const g_WpnSound[][] = {
 }
 
 new const g_FireSprName[] = "sprites/DevilEscape/fire_salamander.spr"
-new cvar_clip, cvar_damage
+new cvar_clip, cvar_damage, cvar_price
 new bool:g_isFiring[33], bool:g_ReloadBug[33]
+new g_Wpnid
 
 public plugin_precache()
 {
@@ -79,18 +80,17 @@ public plugin_init()
 	
 	cvar_damage = register_cvar("wpn_salamander_dmg", "299.0")
 	cvar_clip = register_cvar("wpn_salamander_clip", "100")
+	cvar_price = register_cvar("de_wpn_salamander_price", "399")
 	
 	register_clcmd("weapon_salamander", "hook_weapon")
+	
+	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 }
 
-public plugin_natives()
+public de_spwpn_select(id, wid)
 {
-	register_native("wpn_give_salamander", "native_give_weapon", 1)
-}
-
-public native_give_weapon(id)
-{
-	give_weapon(id)
+	if(g_Wpnid == wid)
+		give_weapon(id)
 }
 
 public give_weapon(id)
@@ -105,6 +105,7 @@ public give_weapon(id)
 		set_pev(iEntity, pev_owner, id)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
 		SetWeaponAnimation(id, DRAW_ANIM)
+		set_pdata_int(id, m_iAmmoType_M249, 200)
 	}
 }
 

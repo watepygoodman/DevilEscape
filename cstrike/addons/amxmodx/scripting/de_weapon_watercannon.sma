@@ -6,7 +6,7 @@
 #include <xs>
 #include <devilescape>
 
-#define PLUGIN_NAME "Ë®Ñ×»ğÅÚ(for devilescape)"
+#define PLUGIN_NAME	"æ°´ç‚ç«ç‚®"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "watepy"
 
@@ -41,7 +41,8 @@ new const g_WpnSound[][] = {
 }
 
 new const g_FireSprName[] = "sprites/DevilEscape/waterstream.spr"
-new cvar_clip, cvar_damage
+new cvar_clip, cvar_damage, cvar_price
+new g_Wpnid
 new bool:g_isFiring[33], bool:g_ReloadBug[33]
 
 public plugin_precache()
@@ -77,20 +78,17 @@ public plugin_init()
 	RegisterHam(Ham_Think,	"env_sprite", "fw_Fire_Think")
 	RegisterHam(Ham_Touch, "env_sprite", "fw_Touch_Post", 1)
 	
+	register_clcmd("weapon_watercannon", "hook_weapon")
 	cvar_damage = register_cvar("wpn_watercannon_dmg", "599.0")
 	cvar_clip = register_cvar("wpn_watercannon_clip", "100")
-	
-	register_clcmd("weapon_watercannon", "hook_weapon")
+	cvar_price = register_cvar("de_wpn_watercannon_price", "599")
+	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 }
 
-public plugin_natives()
+public de_spwpn_select(id, wid)
 {
-	register_native("wpn_give_watercannon", "native_give_weapon", 1)
-}
-
-public native_give_weapon(id)
-{
-	give_weapon(id)
+	if(g_Wpnid == wid)
+		give_weapon(id)
 }
 
 public give_weapon(id)
@@ -105,6 +103,7 @@ public give_weapon(id)
 		set_pev(iEntity, pev_owner, id)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
 		SetWeaponAnimation(id, DRAW_ANIM)
+		set_pdata_int(id, m_iAmmoType_M249, 200)
 	}
 }
 
@@ -152,7 +151,7 @@ public fw_Item_Deploy_Post(Ent)
 	return HAM_SUPERCEDE
 }
 
-//¿ª»ğ
+//å¼€ç«
 public fw_Weapon_PrimaryAttack(Ent)
 {
 	if(pev(Ent, pev_weapons) != WEAPON_WATERCANNON)
@@ -177,7 +176,7 @@ public Weapon_ThrowFire(id)
 {
 	new Float:vfVelocity[3], Float:StartOrigin[3], Float:vfAngle[3], Float:AimOrg[3]
 	new Float:PlrOrg[3]
-	get_position(id, 50.0, 5.0, -5.0, StartOrigin)	//Ç¹¿Ú×ø±ê
+	get_position(id, 50.0, 5.0, -5.0, StartOrigin)	//æªå£åæ ‡
 	
 	new Ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_sprite"))
 	
@@ -340,6 +339,8 @@ public fw_CmdStart(id, uc_handle, seed)
 
 public fw_Fire_Think(Ent)
 {
+	if(!pev_valid(Ent))
+		return
 	new classname[32]
 	pev(Ent, pev_classname, classname, 31)
 	if (!equal(classname,"watercannon_stream"))

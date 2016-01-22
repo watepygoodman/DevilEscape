@@ -26,14 +26,9 @@ const WEAPON_M4A1BLACKKNIGHT = 7022
 const WEAPON_QBS09 = 7033
 const WEAPON_WATERCANNON = 7088
 
-//Wpn Give
-native wpn_give_plasmagun(id)
-native wpn_give_thunderbolt(id)
-native wpn_give_salamander(id)
-native wpn_give_watercannon(id)
-native wpn_give_m4a1blackknight(id)
-native wpn_give_qbs09(id)
-
+//Wpn Register
+native de_register_sp_wpn(const name[], const cost)
+native de_register_gash_wpn(const name[], const cost)
 
 
 
