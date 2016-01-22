@@ -321,6 +321,10 @@ public fw_CmdStart(id, uc_handle, seed)
 		return
 	
 	new Ent = get_pdata_cbase(id, m_pActiveItem)
+	
+	if(!pev_valid(Ent))
+		return
+	
 	if(pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
 		return
 	

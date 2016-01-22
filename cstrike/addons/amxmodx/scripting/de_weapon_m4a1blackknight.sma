@@ -13,6 +13,8 @@
 new const CSW_M4A1BK = CSW_M4A1
 new const weapon_m4a1bk[] = "weapon_m4a1"
 
+new bool:g_hasBot, bool:g_isSecAtt[33]
+
 enum{
 	IDLE_ANIM, SHOOT_ANIM, SHOOT_ANIM2, SHOOT_ANIM3, RELOAD_ANIM, DRAW_ANIM, SECONDHIT_ANIM
 }
@@ -88,7 +90,7 @@ public plugin_init()
 	register_clcmd("weapon_m4a1bk", "hook_weapon")
 }
 
-public plugin_natives ()
+public plugin_natives()
 {
 	register_native("wpn_give_m4a1blackknight", "native_give_weapon_add", 1)
 }
@@ -104,6 +106,20 @@ public hook_weapon(id)
 		engclient_cmd(id, "weapon_m4a1")
 	
 	return PLUGIN_HANDLED
+}
+
+public client_putinserver(id)
+{
+	if(is_user_bot(id) && !g_hasBot)
+		set_task(0.1, "task_bots_ham", id)
+}
+
+public task_bots_ham(id)
+{
+	if(g_hasBot)
+		return
+	RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage")
+	g_hasBot = true
 }
 
 public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
@@ -215,6 +231,7 @@ public fw_Weapon_PrimaryAttack(iEntity)
 	set_pdata_float(id, m_flNextAttack, 0.1, 5)
 	
 	engfunc(EngFunc_EmitSound, iEntity, CHAN_ITEM, g_WpnSound[random_num(0, 2)], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+	g_isSecAtt[id] = false
 	
 	return HAM_IGNORED
 }
@@ -222,22 +239,31 @@ public fw_Weapon_PrimaryAttack(iEntity)
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
 	if(!is_user_connected(attacker) || !is_user_connected(victim))
-	return HAM_HANDLED
+		return HAM_IGNORED
 	
 	if (victim != attacker && is_user_connected(attacker))
 	{
-		if(get_user_weapon(attacker) == CSW_M4A1BK)
-		SetHamParamFloat(4,  get_pcvar_float(cvar_damage))
+		if(g_isSecAtt[attacker])
+			return HAM_IGNORED
+		
+		new WpnEnt = get_pdata_cbase(attacker, m_pActiveItem)
+		if(pev(WpnEnt, pev_weapons) == WEAPON_M4A1BLACKKNIGHT)
+		{
+			SetHamParamFloat(4,  get_pcvar_float(cvar_damage))
+			return HAM_SUPERCEDE
+		}
 	}
-	
-	return HAM_HANDLED
+	return HAM_IGNORED
 }
 
 public fw_TraceAttack(ent, attacker, Float:Damage, Float:fDir[3], ptr, iDamageType)
 {
 	if(!is_user_alive(attacker) || !is_user_connected(attacker))
 		return HAM_IGNORED	
-	if(get_user_weapon(attacker) != CSW_M4A1BK)
+	
+	new Ent = get_pdata_cbase(attacker, m_pActiveItem)
+	
+	if(pev(Ent, pev_weapons) != WEAPON_M4A1BLACKKNIGHT)
 		return HAM_IGNORED
 		
 	static Float:flEnd[3], Float:vecPlane[3]
@@ -343,6 +369,7 @@ public fw_Weapon_SecondaryAttack(Ent)
 
 	if(is_user_alive(target) && dist <= get_pcvar_float(cvar_rad))
 	{
+		g_isSecAtt[id] = true
 		ExecuteHamB(Ham_TakeDamage, target, Ent, id, get_pcvar_float(cvar_seconddamage), DMG_BULLET)
 	}
 	emit_sound(Ent, CHAN_ITEM, g_WpnSound[3], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -386,20 +413,20 @@ stock drop_weapons(iPlayer, Slot)
 	set_pdata_cbase(iPlayer, 367, -1, 4)
 }
 
-stock fm_give_item(index, const wEntity[])
-{
-	new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, wEntity))
-	new Float:origin[3]
-	pev(index, pev_origin, origin)
-	set_pev(iEntity, pev_origin, origin)
-	set_pev(iEntity, pev_spawnflags, pev(iEntity, pev_spawnflags) | SF_NORESPAWN)
-	dllfunc(DLLFunc_Spawn, iEntity)
-	new save = pev(iEntity, pev_solid)
-	dllfunc(DLLFunc_Touch, iEntity, index)
-	if(pev(iEntity, pev_solid) != save) return iEntity
-	engfunc(EngFunc_RemoveEntity, iEntity)
-	return -1
-}
+// stock fm_give_item(index, const wEntity[])
+// {
+	// new iEntity = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, wEntity))
+	// new Float:origin[3]
+	// pev(index, pev_origin, origin)
+	// set_pev(iEntity, pev_origin, origin)
+	// set_pev(iEntity, pev_spawnflags, pev(iEntity, pev_spawnflags) | SF_NORESPAWN)
+	// dllfunc(DLLFunc_Spawn, iEntity)
+	// new save = pev(iEntity, pev_solid)
+	// dllfunc(DLLFunc_Touch, iEntity, index)
+	// if(pev(iEntity, pev_solid) != save) return iEntity
+	// engfunc(EngFunc_RemoveEntity, iEntity)
+	// return -1
+// }
 
 stock make_bullet(id, Float:Origin[3])
 {
