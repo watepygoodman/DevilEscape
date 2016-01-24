@@ -365,10 +365,14 @@ public fw_Weapon_Reload_Post(Ent)
 	switch(pev(Ent, pev_weapons))
 	{
 		case WEAPON_LR300:{
+			if(get_pdata_int(Ent, m_iClip, 4) >= 30)
+				return
 			SetWeaponAnimation(id, 1)
 			set_pdata_float(Ent, m_flNextPrimaryAttack, 2.5, 4)
 		}
 		case WEAPON_ETHEREAL:{
+			if(get_pdata_int(Ent, m_iClip, 4) >= 30)
+				return
 			SetWeaponAnimation(id, 1)
 			set_pdata_float(Ent, m_flNextPrimaryAttack, 2.85, 4)
 		}

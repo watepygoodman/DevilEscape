@@ -37,7 +37,7 @@ log:
 #define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
 #define is_user_valid_connected(%1) (1 <= %1 <= g_MaxPlayer && get_bit(g_isConnect, %1-1))
 
-#define Game_Description "魔王 Alpha"
+#define Game_Description "[魔王 Alpha]"
 
 #define SHOTGUN_AIMING 32
 
@@ -75,7 +75,7 @@ enum(+= 66)
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
 	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF,TASK_CRITICAL, TASK_SCARE_OFF, 
-	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO
+	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO, TASK_NVISION
 }
 
 enum{
@@ -169,7 +169,7 @@ cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCrit
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
-cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin
+cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin, cvar_ItemOpen, cvar_NvgColor_Human[3], cvar_NvgColor_Boss[3]
 
 // new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
 
@@ -194,6 +194,8 @@ new g_isBuyWpnSec;
 // new g_DataPress;
 new g_isSemiclip;
 new g_isSolid;
+new g_isNvision;
+new g_hasNvision;
 
 new g_whoBoss;
 new g_MaxPlayer;
@@ -212,7 +214,9 @@ new g_Abi_Hea[33]
 new g_Abi_Str[33];
 new g_Abi_Agi[33];
 new g_Abi_Gra[33];
+
 new g_Pack[33][MAX_PACKSLOT+1];
+new g_Pack_Select[33]
 new bool:g_Pack_SpWpn[33][32];
 new bool:g_Pack_GashWpn[33][32]
 
@@ -265,18 +269,22 @@ new Array:g_SpWpn_Price
 new Array:g_GashWpn_Name
 new Array:g_GashWpn_Price
 new Array:g_Item_Name
-new Array:g_Item_Price
+new Array:g_Item_Info
+new Array:g_Shop_Item_Name
+new Array:g_Shop_Item_Price
 
-new g_SpWpn_Num, g_GashWpn_Num, g_Item_Num
+new g_SpWpn_Num, g_GashWpn_Num, g_Item_Num, g_Shop_Item_Num
 
 //Forward Handles
-new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwItemSelect, g_fwDummyResult
+new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwItemSelect, g_fwShopItemSelect, g_fwDummyResult
 
 public plugin_natives()
 {
 	register_native("de_register_sp_wpn", "native_register_sp_wpn", 1)
 	register_native("de_register_gash_wpn", "native_register_gash_wpn", 1)
 	register_native("de_register_item", "native_register_item", 1)
+	register_native("de_register_shop_item", "native_register_shop_item", 1)
+	register_native("de_set_user_nightvision", "native_set_user_nightvision", 1)
 }
 
 public plugin_precache()
@@ -323,11 +331,14 @@ public plugin_precache()
 	
 	//Array
 	g_SpWpn_Name = ArrayCreate(32, 1)
-	g_SpWpn_Price = ArrayCreate(32, 1)
 	g_GashWpn_Name = ArrayCreate(32, 1)
-	g_GashWpn_Price = ArrayCreate(32, 1)
 	g_Item_Name = ArrayCreate(32, 1)
-	g_Item_Price = ArrayCreate(32, 1)
+	g_Item_Info = ArrayCreate(64, 1)
+	g_Shop_Item_Name = ArrayCreate(32, 1)
+	
+	g_SpWpn_Price = ArrayCreate(1, 1)
+	g_GashWpn_Price = ArrayCreate(1, 1)
+	g_Shop_Item_Price = ArrayCreate(1, 1)
 	
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
@@ -393,6 +404,15 @@ public plugin_precache()
 	cvar_ConvertCoinToGash = register_cvar("de_convert_coin_to_gash", "100")
 	cvar_ConvertGashToCoin = register_cvar("de_convert_gash_to_coin", "95")
 	
+	cvar_ItemOpen = register_cvar("de_item_open", "1")
+	
+	cvar_NvgColor_Human[0] = register_cvar("de_nvg_human_color_R", "64")
+	cvar_NvgColor_Human[1] = register_cvar("de_nvg_human_color_G", "64")
+	cvar_NvgColor_Human[2] = register_cvar("de_nvg_human_color_B", "64")
+	cvar_NvgColor_Boss[0] = register_cvar("de_nvg_boss_color_R", "128")
+	cvar_NvgColor_Boss[1] = register_cvar("de_nvg_boss_color_G", "64")
+	cvar_NvgColor_Boss[2] = register_cvar("de_nvg_boss_color_B", "64")
+	
 	// cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
 	// cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
 	// cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
@@ -415,6 +435,7 @@ public plugin_init()
 	register_menu("WeaponFree Menu", KEYSMENU, "menu_weapon_free")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	register_menu("Shop Menu", KEYSMENU, "menu_shop")
+	register_menu("ItemSelect Menu", KEYSMENU, "menu_item_select")
 	register_menu("Convert Menu", KEYSMENU, "menu_convert")
 	register_menu("Admin Menu", KEYSMENU, "menu_admin")
 	register_menu("AdminGive Menu", KEYSMENU, "menu_admin_give")
@@ -470,6 +491,7 @@ public plugin_init()
 	g_fwSpWpnSelect = CreateMultiForward("de_spwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwGashWpnSelect = CreateMultiForward("de_gashwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwItemSelect = CreateMultiForward("de_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
+	g_fwShopItemSelect = CreateMultiForward("de_shop_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	//Vars
 	g_MaxPlayer = get_maxplayers()
 	server_cmd("mp_autoteambalance 0")
@@ -1042,7 +1064,16 @@ public fw_ClientCommand(id)
 			show_menu_main(id)
 		
 		return FMRES_SUPERCEDE;
-	} 
+	}
+	
+	if(!strcmp(szCommand, "nightvision"))
+	{
+		if(get_bit(g_hasNvision, bit_id))
+		{
+			if(get_bit(g_isNvision, bit_id)) native_set_user_nightvision(id, 0)
+			else native_set_user_nightvision(id, 1)
+		}
+	}
 	
 	return FMRES_IGNORED;
 }
@@ -1175,6 +1206,8 @@ public task_round_start()
 	set_user_gravity(id, get_pcvar_float(cvar_DevilGravity))
 	
 	fm_set_user_model(id, "devil1")
+	
+	native_set_user_nightvision(id, 1)
 	
 	static hull
 	for(new i = 0; i < sizeof g_TSpawnCount; i++)
@@ -1374,6 +1407,37 @@ public task_disappear_off()
 {
 	set_pev(g_whoBoss, pev_rendermode, kRenderNormal)
 	set_pev(g_whoBoss, pev_effects, g_PlayerEffect[g_whoBoss])
+}
+
+public task_set_user_nvision(id)
+{
+	id -= TASK_NVISION
+	static origin[3]
+	get_user_origin(id, origin)
+	
+	message_begin(MSG_ONE_UNRELIABLE, SVC_TEMPENTITY, _, id)
+	write_byte(TE_DLIGHT) // TE id
+	write_coord(origin[0]) // x
+	write_coord(origin[1]) // y
+	write_coord(origin[2]) // z
+	write_byte(80)
+	
+	if(id == g_whoBoss)
+	{
+		write_byte(get_pcvar_num(cvar_NvgColor_Boss[0]))
+		write_byte(get_pcvar_num(cvar_NvgColor_Boss[1]))
+		write_byte(get_pcvar_num(cvar_NvgColor_Boss[2]))
+	}
+	else
+	{
+		write_byte(get_pcvar_num(cvar_NvgColor_Human[0]))
+		write_byte(get_pcvar_num(cvar_NvgColor_Human[1]))
+		write_byte(get_pcvar_num(cvar_NvgColor_Human[2]))
+	}
+	
+	write_byte(2) // life
+	write_byte(0) // decay rate
+	message_end()
 }
 
 public func_critical(taskid)
@@ -1897,7 +1961,7 @@ public show_menu_pack(id)
 	
 	for(new slot = 1; slot < MAX_PACKSLOT+1; slot++)
 	{
-		formatex(Menuitem, charsmax(Menuitem), "%d", g_Pack[id][slot])
+		ArrayGetString(g_Item_Name, g_Pack[id][slot], Menuitem, charsmax(Menuitem))
 		num_to_str(slot, CharNum, 2)
 		menu_additem(Menu, Menuitem, CharNum)
 	}
@@ -1916,19 +1980,66 @@ public menu_pack(id, menu, item)
 		return PLUGIN_HANDLED;
 	}
 	
+	if(!get_pcvar_num(cvar_ItemOpen))
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ITEM_CLOSE");
+	
 	new data[6],iName[64]
 	new access, callback;
 	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
 	new key = str_to_num(data);
-	new PlrName[18]
-	get_user_name(id, PlrName, charsmax(PlrName))
 	
+	if(!g_Pack[id][key])
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
 	//Test
-	client_color_print(id, "^x04[DevilEscape]^x01%L id-%d", LANG_PLAYER, "USE_ITEM", PlrName, g_Pack[id][key]);
+	g_Pack_Select[id] = key
+	show_menu_item_select(id, g_Pack[id][key])
 	
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
 	
+}
+
+
+public show_menu_item_select(id, itemid)
+{
+	new Menu[128],Len;
+	new itemname[32], iteminfo[64]
+	ArrayGetString(g_Item_Name, itemid, itemname, charsmax(itemname))
+	ArrayGetString(g_Item_Info, itemid, iteminfo, charsmax(iteminfo))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n\y%s^n", itemname)
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\d%s^n^n", iteminfo)
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"MENU_ITEM_CONFIRM")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n^n^n",id,"MENU_ITEM_DROP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r0. \w%L",id,"MENU_EXIT")
+	
+	show_menu(id, KEYSMENU, Menu,-1,"ItemSelect Menu")
+	return PLUGIN_HANDLED
+}
+
+public menu_item_select(id, key)
+{
+	new itemname[32], plrname[32]
+	get_user_name(id, plrname, charsmax(plrname))
+	ArrayGetString(g_Item_Name, g_Pack[id][g_Pack_Select[id]], itemname, charsmax(itemname))
+	
+	switch(key)
+	{
+		case 0:{
+			ExecuteForward(g_fwItemSelect, g_fwDummyResult, id, g_Pack[id][g_Pack_Select[id]])
+			g_Pack[id][g_Pack_Select[id]] = 0
+			client_color_print(0, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "USE_ITEM", plrname, itemname)
+		}
+		case 1:{
+			g_Pack[id][g_Pack_Select[id]] = 0
+			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "DROP_ITEM", itemname)
+		}
+	}
+	
+	g_Pack_Select[id] = 0
+	return PLUGIN_HANDLED
 }
 
 public show_menu_equip(id)
@@ -1967,12 +2078,18 @@ public menu_shop(id, key)
 
 public show_menu_shop_item(id)
 {	
-	new Menuitem[32], Menu
+	new Menuitem[32], Menu, CharNum[3]
 	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_SHOP_ITEM")
 	Menu = menu_create(Menuitem, "menu_shop_item")
 	
-	formatex(Menuitem, charsmax(Menuitem), "Test")
-	menu_additem(Menu, Menuitem, "1")
+	new itemname[29]
+	for(new i = 0; i < g_Shop_Item_Num; i++)
+	{
+		num_to_str(i+1, CharNum, 2)
+		ArrayGetString(g_Shop_Item_Name, i, itemname, charsmax(itemname))
+		formatex(Menuitem, charsmax(Menuitem), "%s \d%d %L", itemname, ArrayGetCell(g_Shop_Item_Price, i), LANG_PLAYER, "COIN") 
+		menu_additem(Menu, Menuitem, CharNum)
+	}
 	
 	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
 	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
@@ -1982,6 +2099,7 @@ public show_menu_shop_item(id)
 	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
 	
 	menu_display(id, Menu)
+	return PLUGIN_HANDLED;
 }
 
 public menu_shop_item(id, menu, item)
@@ -1994,7 +2112,21 @@ public menu_shop_item(id, menu, item)
 	
 	new data[6], access, callback;
 	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
-	// new key = str_to_num(data);
+	
+	new select = str_to_num(data) - 1
+	
+	new itemprice = ArrayGetCell(g_Shop_Item_Price, select)
+	new itemname[29]
+	
+	ArrayGetString(g_Shop_Item_Name, select, itemname, charsmax(itemname))
+	
+	if(g_Coin[id] < itemprice)
+		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+	else{
+		g_Coin[id] -= itemprice
+		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", itemname)
+		ExecuteForward(g_fwShopItemSelect, g_fwDummyResult, id, select)
+	}
 	
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -2479,6 +2611,8 @@ gm_reset_vars()
 	g_isMiniCrit = 0;
 	g_isBuyWpnMain = 0;
 	g_isBuyWpnSec = 0;
+	g_isNvision = 0;
+	g_hasNvision = 0;
 	g_Admin_Select_Boss = 0
 	remove_task(TASK_DEVILMANA_RECO)
 	remove_task(TASK_GODMODE_LIGHT)
@@ -2487,6 +2621,7 @@ gm_reset_vars()
 		g_Dmg[i] = 0.0;
 		g_AttackCooldown[i] = 0.0;
 		remove_task(i+TASK_CRITICAL)
+		remove_task(i+TASK_NVISION)
 		func_critical(i);
 	}
 	
@@ -3012,7 +3147,7 @@ public native_register_gash_wpn(const name[], const cost)
 	return g_GashWpn_Num-1
 }
 
-public native_register_item(const name[], const cost)
+public native_register_item(const name[], const info[])
 {
 	if(g_Item_Num > ArraySize(g_Item_Name))
 	{
@@ -3020,11 +3155,43 @@ public native_register_item(const name[], const cost)
 		return -1
 	}
 	param_convert(1)
+	param_convert(2)
 	ArrayPushString(g_Item_Name, name)
-	ArrayPushCell(g_Item_Price, cost)
+	ArrayPushString(g_Item_Info, info)
 	
 	g_Item_Num ++
 	return g_Item_Num-1
+}
+
+public native_register_shop_item(const name[], const price)
+{
+	if(g_Shop_Item_Num > ArraySize(g_Shop_Item_Name))
+	{
+		server_print("警告:%s(Item ID:%d)超出数组界限", name, g_Shop_Item_Num-1)
+		return -1
+	}
+	param_convert(1)
+	ArrayPushString(g_Shop_Item_Name, name)
+	ArrayPushCell(g_Shop_Item_Price, price)
+	
+	g_Shop_Item_Num ++
+	return g_Shop_Item_Num-1
+}
+
+public native_set_user_nightvision(id, set)
+{
+	if(set)
+	{
+		set_bit(g_hasNvision, bit_id)
+		set_bit(g_isNvision, bit_id)
+		remove_task(id+TASK_NVISION)
+		set_task(0.1, "task_set_user_nvision", id+TASK_NVISION, _, _, "b")
+	}
+	else
+	{
+		remove_task(id + TASK_NVISION)
+		delete_bit(g_isNvision, bit_id)
+	}
 }
 
 /* public native_get_sp_wpn_id(const name[])

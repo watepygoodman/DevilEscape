@@ -31,8 +31,6 @@ HAVE_NO_THIS_WPN = 你没有这把武器！
 YOU_CHOOSE_THIS_WPN = 你选择了
 NOT_HUMAN = 你不是人类！
 
-USE_ITEM = %s使用了道具:
-
 MENU_ABILITY = 能力菜单
 MENU_SKILL = 技能菜单
 MENU_WEAPON = 选择武器
@@ -91,6 +89,12 @@ ADMIN_GIVE_ITEM = 管理员%s给予了%s %d
 
 CONVERT_FAILED = 兑换失败
 CONVERT_SUCCESS = 兑换成功！
+
+ITEM_CLOSE = 物品系统被关闭了
+DROP_ITEM = 你丢弃了道具%s
+USE_ITEM = %s使用了道具:%s
+MENU_ITEM_CONFIRM = 确认
+MENU_ITEM_DROP = 丢弃
 
 COIN = Coin
 GASH = Gash

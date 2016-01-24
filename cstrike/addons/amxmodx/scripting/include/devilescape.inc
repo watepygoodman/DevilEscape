@@ -33,8 +33,9 @@ const WEAPON_WATERCANNON = 7088
 //Wpn Register
 native de_register_sp_wpn(const name[], const cost)
 native de_register_gash_wpn(const name[], const cost)
-native de_register_item(const name[], const cost)
-
+native de_register_item(const name[], const info[])
+native de_register_shop_item(const name[], const price)
+native de_set_user_nightvision(const id, const set)
 //Wpn Give
 /* native wpn_give_plasmagun(id)
 native wpn_give_thunderbolt(id)
