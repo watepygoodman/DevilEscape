@@ -12,10 +12,10 @@ log:
 
 #include <amxmodx>
 #include <amxmisc>
-#include <fun>
 #include <cstrike>
 #include <fakemeta>
 #include <hamsandwich>
+#include <fun>
 #include <xs>
 #include <dhudmessage>
 #include <keyvalues>
@@ -169,7 +169,7 @@ cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCrit
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
-cvar_NooneWinGetXp, cvar_NooneWinGetCoin
+cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin
 
 // new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
 
@@ -264,16 +264,19 @@ new Array:g_SpWpn_Name
 new Array:g_SpWpn_Price
 new Array:g_GashWpn_Name
 new Array:g_GashWpn_Price
+new Array:g_Item_Name
+new Array:g_Item_Price
 
-new g_SpWpn_Num, g_GashWpn_Num
+new g_SpWpn_Num, g_GashWpn_Num, g_Item_Num
 
 //Forward Handles
-new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwDummyResult
+new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwItemSelect, g_fwDummyResult
 
 public plugin_natives()
 {
 	register_native("de_register_sp_wpn", "native_register_sp_wpn", 1)
 	register_native("de_register_gash_wpn", "native_register_gash_wpn", 1)
+	register_native("de_register_item", "native_register_item", 1)
 }
 
 public plugin_precache()
@@ -323,6 +326,8 @@ public plugin_precache()
 	g_SpWpn_Price = ArrayCreate(32, 1)
 	g_GashWpn_Name = ArrayCreate(32, 1)
 	g_GashWpn_Price = ArrayCreate(32, 1)
+	g_Item_Name = ArrayCreate(32, 1)
+	g_Item_Price = ArrayCreate(32, 1)
 	
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
@@ -385,6 +390,9 @@ public plugin_precache()
 	cvar_NooneWinGetXp = register_cvar("de_win_noone_getxp", "1000")
 	cvar_NooneWinGetCoin = register_cvar("de_win_noone_getcoin", "2")
 	
+	cvar_ConvertCoinToGash = register_cvar("de_convert_coin_to_gash", "100")
+	cvar_ConvertGashToCoin = register_cvar("de_convert_gash_to_coin", "95")
+	
 	// cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
 	// cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
 	// cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
@@ -405,10 +413,9 @@ public plugin_init()
 	register_menu("Bossskill Menu", KEYSMENU, "menu_bossskill")
 	register_menu("Weapon Menu", KEYSMENU, "menu_weapon")
 	register_menu("WeaponFree Menu", KEYSMENU, "menu_weapon_free")
-	// register_menu("WeaponGash Menu", KEYSMENU, "menu_weapon_gash")
-	// register_menu("WeaponSpecial Menu", KEYSMENU, "menu_weapon_special")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	register_menu("Shop Menu", KEYSMENU, "menu_shop")
+	register_menu("Convert Menu", KEYSMENU, "menu_convert")
 	register_menu("Admin Menu", KEYSMENU, "menu_admin")
 	register_menu("AdminGive Menu", KEYSMENU, "menu_admin_give")
 	
@@ -462,7 +469,7 @@ public plugin_init()
 	//Multi Forward
 	g_fwSpWpnSelect = CreateMultiForward("de_spwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwGashWpnSelect = CreateMultiForward("de_gashwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
-	
+	g_fwItemSelect = CreateMultiForward("de_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	//Vars
 	g_MaxPlayer = get_maxplayers()
 	server_cmd("mp_autoteambalance 0")
@@ -1168,7 +1175,18 @@ public task_round_start()
 	set_user_gravity(id, get_pcvar_float(cvar_DevilGravity))
 	
 	fm_set_user_model(id, "devil1")
-	engfunc(EngFunc_SetOrigin, id, g_TSpawn[random_num(0, g_TSpawnCount-1)])
+	
+	static hull
+	for(new i = 0; i < sizeof g_TSpawnCount; i++)
+	{
+		hull = (pev(id, pev_flags) & FL_DUCKING) ? HULL_HEAD : HULL_HUMAN
+		
+		if(is_hull_vacant(g_TSpawn[i], hull))
+		{
+			engfunc(EngFunc_SetOrigin, id, g_TSpawn[i])
+			break
+		}
+	}
 	
 	if(!is_user_bot(id))
 	{
@@ -1407,6 +1425,7 @@ public show_menu_main(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_PACK")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n", id, "MENU_EQUIP")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w%L^n", id, "MENU_SHOP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r6. \y%L^n", id, "MENU_CONVERT")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r9. \w%L^n", id, "MENU_ADMIN")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
@@ -1424,6 +1443,7 @@ public menu_main(id, key)
 		case 2: show_menu_pack(id)
 		case 3: show_menu_equip(id)
 		case 4: show_menu_shop(id)
+		case 5: show_menu_convert(id)
 		case 8: show_menu_admin(id)
 	}
 	
@@ -2372,6 +2392,66 @@ public menu_plrlist(id, menu, item)
 	
 	return PLUGIN_HANDLED;
 }
+
+public show_menu_convert(id)
+{
+	new Menu[256], Len;
+	new Coin2Gash = get_pcvar_num(cvar_ConvertCoinToGash)
+	new Gash2Coin = get_pcvar_num(cvar_ConvertGashToCoin)
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_CONVERT")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%d %L = 1 %L^n", Coin2Gash, id, "COIN", id, "GASH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%d %L = 10 %L^n", Coin2Gash * 10, id, "COIN", id, "GASH")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%d %L = 100 %L^n", Coin2Gash * 100, id, "COIN", id, "GASH")
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w1 %L = %d %L^n", id, "GASH", Gash2Coin, id, "COIN")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w10 %L = %d %L^n", id, "GASH", Gash2Coin*10, id, "COIN")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r6. \w100 %L = %d %L^n", id, "GASH", Gash2Coin*100, id, "COIN")
+	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	show_menu(id,KEYSMENU,Menu,-1,"Convert Menu")
+	
+	return PLUGIN_HANDLED
+}
+
+public menu_convert(id, key)
+{
+	if(key <= 2)
+	{
+		new Coin2Gash = get_pcvar_num(cvar_ConvertCoinToGash)
+		new mul = 1
+		for(new i = 0; i < key; i++)
+			mul *= 10
+		
+		Coin2Gash *= mul
+		if(g_Coin[id] < Coin2Gash)	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
+		else{
+			g_Coin[id] -= Coin2Gash; g_Gash[id] += mul
+			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
+		}
+		
+		return PLUGIN_HANDLED
+	}
+	
+	if(key >= 3 && key <= 5)
+	{
+		new mul = 1
+		new Gash2Coin = get_pcvar_num(cvar_ConvertGashToCoin)
+		for(new i = 0; i < key - 3; i++)
+			mul *= 10
+		
+		Gash2Coin *= mul
+		if(g_Gash[id] < mul) client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
+		else {
+			g_Gash[id] -= mul; g_Coin[id] += Gash2Coin
+			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
+		}
+			
+		return PLUGIN_HANDLED
+	}
+	
+	return PLUGIN_HANDLED
+}
 /* =====================
 
 			 Game Function
@@ -2932,7 +3012,22 @@ public native_register_gash_wpn(const name[], const cost)
 	return g_GashWpn_Num-1
 }
 
-public native_get_sp_wpn_id(const name[])
+public native_register_item(const name[], const cost)
+{
+	if(g_Item_Num > ArraySize(g_Item_Name))
+	{
+		server_print("警告:%s(Item ID:%d)超出数组界限", name, g_Item_Num-1)
+		return -1
+	}
+	param_convert(1)
+	ArrayPushString(g_Item_Name, name)
+	ArrayPushCell(g_Item_Price, cost)
+	
+	g_Item_Num ++
+	return g_Item_Num-1
+}
+
+/* public native_get_sp_wpn_id(const name[])
 {
 	
 }
@@ -2941,7 +3036,7 @@ public native_get_gash_wpn_id(const name[])
 {
 	
 }
-
+ */
 /* ==========================
 
 					[Stocks]
@@ -3308,15 +3403,15 @@ stock client_color_print(target,  const message[], any:...)
 	}
 }
 
-stock is_hull_vacant(Float:origin[3], hull)
+stock is_hull_vacant(Float:origin[], hull)
 {
 	engfunc(EngFunc_TraceHull, origin, origin, 0, hull, 0, 0)
-	if (!get_tr2(0, TR_StartSolid) && !get_tr2(0, TR_AllSolid) && get_tr2(0, TR_InOpen))
+	
+	if (!get_tr2(0, TraceResult:TR_StartSolid) && !get_tr2(0, TraceResult:TR_AllSolid) && get_tr2(0, TraceResult:TR_InOpen))
 		return true;
 	
 	return false;
 }
-
 team_join(id, team[] = "5")
 {
 	new msg_block = get_msg_block(g_Msg_ShowMenu)
