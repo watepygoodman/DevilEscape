@@ -214,6 +214,7 @@ new g_Abi_Agi[33];
 new g_Abi_Gra[33];
 new g_Pack[33][MAX_PACKSLOT+1];
 new bool:g_Pack_SpWpn[33][32];
+new bool:g_Pack_GashWpn[33][32]
 
 new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
 new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
@@ -267,7 +268,7 @@ new Array:g_GashWpn_Price
 new g_SpWpn_Num, g_GashWpn_Num
 
 //Forward Handles
-new g_fwSpWpnSelect, g_fwDummyResult
+new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwDummyResult
 
 public plugin_natives()
 {
@@ -321,7 +322,7 @@ public plugin_precache()
 	g_SpWpn_Name = ArrayCreate(32, 1)
 	g_SpWpn_Price = ArrayCreate(32, 1)
 	g_GashWpn_Name = ArrayCreate(32, 1)
-	g_GashWpn_Name = ArrayCreate(32, 1)
+	g_GashWpn_Price = ArrayCreate(32, 1)
 	
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
@@ -460,6 +461,7 @@ public plugin_init()
 	
 	//Multi Forward
 	g_fwSpWpnSelect = CreateMultiForward("de_spwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
+	g_fwGashWpnSelect = CreateMultiForward("de_gashwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	
 	//Vars
 	g_MaxPlayer = get_maxplayers()
@@ -1454,7 +1456,7 @@ public menu_weapon(id, key)
 	switch(key)
 	{
 		case 0: show_menu_weapon_free(id)
-		// case 1: show_menu_weapon_gash(id)
+		case 1: show_menu_weapon_gash(id)
 		case 2: show_menu_weapon_special(id)
 		case 3: show_menu_weapon_second(id)
 	}
@@ -1571,10 +1573,83 @@ public menu_weapon_free(id, key)
 	return PLUGIN_HANDLED
 }
 
-// public show_menu_weapon_gash(id)
-// {
+public show_menu_weapon_gash(id)
+{
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	new Menuitem[64], Menu, CharNum[3]
+	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_WEAPON_GASH")
+	Menu = menu_create(Menuitem, "menu_weapon_gash")
+	for(new i = 0; i < g_GashWpn_Num; i++)
+	{
+		num_to_str(i+1, CharNum, 2)
+		if(g_Pack_GashWpn[id][i])
+			ArrayGetString(g_GashWpn_Name, i, Menuitem, charsmax(Menuitem))
+		else
+		{
+			new buffer[32]
+			ArrayGetString(g_GashWpn_Name, i, buffer, charsmax(buffer))
+			formatex(Menuitem, charsmax(Menuitem), "\d%s", buffer)
+		}
+		menu_additem(Menu, Menuitem, CharNum)
+	}
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+	
+	return PLUGIN_HANDLED
+}
 
-// }
+public menu_weapon_gash(id, menu, item)
+{
+	if(id==g_whoBoss)
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		return PLUGIN_HANDLED;
+	}
+	
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	if(get_bit(g_isBuyWpnMain, bit_id))
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		menu_destroy(menu);
+		return PLUGIN_HANDLED
+	}
+	
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	new key = str_to_num(data);
+	
+	if(!g_Pack_GashWpn[id][key-1])	//没这玩意儿
+	{
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	ExecuteForward(g_fwGashWpnSelect, g_fwDummyResult, id, key-1)
+	
+	new buffer[32]
+	ArrayGetString(g_GashWpn_Name, key-1, buffer, charsmax(buffer))
+	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
+	set_bit(g_isBuyWpnMain, bit_id)
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+	
+}
 
 public show_menu_weapon_special(id)
 {
@@ -1863,8 +1938,7 @@ public menu_shop(id, key)
 	switch(key)
 	{
 		case 0: show_menu_shop_item(id)
-		// case 1: show_menu_shop_weapon(id)
-		// case 2: show_menu_shop_weapon_gash(id)
+		case 1: show_menu_shop_weapon_gash(id)
 		case 2: show_menu_shop_weapon_special(id)
 	}
 	
@@ -1907,6 +1981,63 @@ public menu_shop_item(id, menu, item)
 	
 }
 
+public show_menu_shop_weapon_gash(id)
+{
+	new Menuitem[32], Menu, CharNum[3]
+	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_SHOP_WEAPON_GASH")
+	Menu = menu_create(Menuitem, "menu_shop_weapon_gash")
+	new buffer[32]
+	for(new i = 0; i < g_GashWpn_Num; i++)
+	{
+		num_to_str(i+1, CharNum, 2)
+		ArrayGetString(g_GashWpn_Name, i, buffer, charsmax(buffer))
+		formatex(Menuitem, charsmax(Menuitem), "%s \d%d %L", buffer, ArrayGetCell(g_GashWpn_Price, i), id, "GASH")
+		menu_additem(Menu, Menuitem, CharNum)
+	}
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+}
+
+public menu_shop_weapon_gash(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	new key = str_to_num(data);
+	
+	if(g_Pack_GashWpn[id][key-1])
+	{
+		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new GashCost = ArrayGetCell(g_GashWpn_Price, key-1)
+	new buffer[32]
+	
+	if(g_Gash[id] >= GashCost)
+	{
+		g_Gash[id] -= GashCost
+		ArrayGetString(g_GashWpn_Name, key-1, buffer, charsmax(buffer))
+		g_Pack_GashWpn[id][key-1] = true
+		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", buffer)
+	}
+	else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+	
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+}
+
 public show_menu_shop_weapon_special(id)
 {
 	new Menuitem[32], Menu, CharNum[3]
@@ -1919,7 +2050,7 @@ public show_menu_shop_weapon_special(id)
 	{
 		num_to_str(i+1, CharNum, 2)
 		ArrayGetString(g_SpWpn_Name, i, buffer, charsmax(buffer))
-		formatex(Menuitem, charsmax(Menuitem), "%s \d%d%L", buffer, ArrayGetCell(g_SpWpn_Price, i), id, "GASH")
+		formatex(Menuitem, charsmax(Menuitem), "%s \d%d %L", buffer, ArrayGetCell(g_SpWpn_Price, i), id, "GASH")
 		menu_additem(Menu, Menuitem, CharNum)
 	}
 	
@@ -2405,6 +2536,18 @@ gm_user_save(id)
 	}
 	kv_add_sub_key(kv, spwpnpack)
 	
+	new gashwpnpack = kv_create("GashWpn Pack");
+	for(new i = 0; i < g_GashWpn_Num; i++)
+	{
+		ArrayGetString(g_GashWpn_Name, i, buffer, charsmax(buffer))
+		
+		if(g_Pack_GashWpn[id][i])
+			kv_set_int(gashwpnpack, buffer, 1)
+		else
+			kv_set_int(gashwpnpack, buffer, 0)
+	}
+	kv_add_sub_key(kv, gashwpnpack)
+	
 	kv_save_to_file(kv, szFileDir);
 	kv_delete(kv);
 	
@@ -2437,30 +2580,40 @@ gm_user_load(id)
 	g_Abi_Hea[id] = kv_get_int(abi, "Hea"); g_Abi_Agi[id] = kv_get_int(abi, "Agi")
 	g_Abi_Str[id] = kv_get_int(abi, "Str"); g_Abi_Gra[id] = kv_get_int(abi, "Gra")
 	
+	new i
 	new wpnlv = kv_find_key(kv, "WeaponLv");
-	for(new i = 1; i < sizeof g_WpnLv[]; i++)
+	for(i = 1; i < sizeof g_WpnLv[]; i++)
 		g_WpnLv[id][i] = kv_get_int(wpnlv, WEAPONCSWNAME[i])
 	
 	new wpnxp = kv_find_key(kv, "WeaponXp");
-	for(new i = 1; i < sizeof g_WpnXp[]; i++)
+	for(i = 1; i < sizeof g_WpnXp[]; i++)
 		g_WpnXp[id][i] = kv_get_int(wpnxp, WEAPONCSWNAME[i])
 	
 	new pack = kv_find_key(kv, "Pack")
 	new buffer[32]
 	new pack_slotname[8]
-	for(new i = 1; i < sizeof g_Pack[]; i++)
+	for(i = 1; i < sizeof g_Pack[]; i++)
 	{
 		formatex(pack_slotname, charsmax(pack_slotname), "Slot %d", i)
 		g_Pack[id][i] = kv_get_int(pack, pack_slotname)
 	}
 	
 	new spwpnpack = kv_find_key(kv,"SpWpn Pack");
-	for(new i = 0; i < g_SpWpn_Num; i++)
+	for(i = 0; i < g_SpWpn_Num; i++)
 	{
 		ArrayGetString(g_SpWpn_Name, i, buffer, charsmax(buffer))
 		if(kv_get_int(spwpnpack, buffer))
 			g_Pack_SpWpn[id][i] = true
 		else g_Pack_SpWpn[id][i] = false
+	}
+	
+	new gashwpnpack = kv_find_key(kv,"GashWpn Pack");
+	for(i = 0; i < g_GashWpn_Num; i++)
+	{
+		ArrayGetString(g_GashWpn_Name, i, buffer, charsmax(buffer))
+		if(kv_get_int(gashwpnpack, buffer))
+			g_Pack_GashWpn[id][i] = true
+		else g_Pack_GashWpn[id][i] = false
 	}
 	
 	kv_delete(kv)
@@ -2751,6 +2904,12 @@ public bossskill_disappear()
 
 public native_register_sp_wpn(const name[], const cost)
 {
+	if(g_SpWpn_Num > ArraySize(g_SpWpn_Name))
+	{
+		server_print("警告:%s(WID:%d)超出数组界限", name, g_SpWpn_Num-1)
+		return -1
+	}
+	
 	param_convert(1)
 	ArrayPushString(g_SpWpn_Name, name)
 	ArrayPushCell(g_SpWpn_Price, cost)
@@ -2760,6 +2919,11 @@ public native_register_sp_wpn(const name[], const cost)
 
 public native_register_gash_wpn(const name[], const cost)
 {
+	if(g_GashWpn_Num > ArraySize(g_GashWpn_Name))
+	{
+		server_print("警告:%s(WID:%d)超出数组界限", name, g_GashWpn_Num-1)
+		return -1
+	}
 	param_convert(1)
 	ArrayPushString(g_GashWpn_Name, name)
 	ArrayPushCell(g_GashWpn_Price, cost)

@@ -160,7 +160,6 @@ public fw_SetModel(Ent, model[])
 //开火
 public fw_Weapon_PrimaryAttack(Ent)
 {
-	engfunc(EngFunc_EmitSound, Ent, CHAN_ITEM, g_WpnSound[0], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 	if(pev(Ent, pev_weapons) != WEAPON_THUNDERBOLT)
 		return HAM_IGNORED
 	
@@ -175,6 +174,7 @@ public fw_Weapon_PrimaryAttack(Ent)
 	set_pdata_float(Ent, m_flNextSecondaryAttack, 2.88, 4)
 	cs_set_user_zoom(id, 1,1) 
 	SetWeaponAnimation(id, 1)
+	engfunc(EngFunc_EmitSound, Ent, CHAN_ITEM, g_WpnSound[0], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 	return HAM_SUPERCEDE
 }
 

@@ -7,7 +7,7 @@
 #include <engine>
 #include <cstrike>
 
-#define PLUGIN_NAME		"M4A1黑騎士"
+#define PLUGIN_NAME		"M4A1黑骑士"
 #define PLUGIN_VERSION	"450.0"
 #define PLUGIN_AUTHOR	"Apppppppppp"
 
@@ -49,11 +49,11 @@ new g_Wpnid
 
 public plugin_precache()
 {
-	cvar_damage = register_cvar("wpn_m4a1bk_damage", "450.0")
+	cvar_damage = register_cvar("wpn_m4a1bk_damage", "100.0")
 	cvar_clip = register_cvar("wpn_m4a1bk_clip", "38")
-	cvar_seconddamage = register_cvar("wpn_m4a1bk_secdamage","12450.0")
+	cvar_seconddamage = register_cvar("wpn_m4a1bk_secdamage","1245.0")
 	cvar_rad = register_cvar("wpn_m4a1bk_secondrad", "75.0")
-	cvar_price = register_cvar("de_wpn_m4a1bk_price","450")
+	cvar_price = register_cvar("de_wpn_m4a1bk_price","88")
 	g_smokepuff_id = engfunc(EngFunc_PrecacheModel, "sprites/wall_puff1.spr")
 	
 	new i
@@ -90,10 +90,10 @@ public plugin_init()
 	}
 	
 	register_clcmd("weapon_m4a1bk", "hook_weapon")
-	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
+	g_Wpnid = de_register_gash_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 }
 
-public de_spwpn_select(id, wid)
+public de_gashwpn_select(id, wid)
 {
 	if(g_Wpnid == wid)
 		Give_BlackKnight(id)
@@ -226,9 +226,9 @@ public fw_Weapon_PrimaryAttack(iEntity)
 
 	UTIL_PlayWeaponAnimation(id, random_num(1, 3))
 	
-	set_pdata_float(iEntity, m_flNextPrimaryAttack, 0.1, 4)
-	set_pdata_float(iEntity, m_flNextSecondaryAttack, 0.1, 4)
-	set_pdata_float(id, m_flNextAttack, 0.1, 5)
+	set_pdata_float(iEntity, m_flNextPrimaryAttack, 0.11, 4)
+	set_pdata_float(iEntity, m_flNextSecondaryAttack, 0.11, 4)
+	set_pdata_float(id, m_flNextAttack, 0.11, 5)
 	
 	engfunc(EngFunc_EmitSound, iEntity, CHAN_ITEM, g_WpnSound[random_num(0, 2)], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 	g_isSecAtt[id] = false
@@ -238,20 +238,24 @@ public fw_Weapon_PrimaryAttack(iEntity)
 
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
-	if(!is_user_connected(attacker) || !is_user_connected(victim))
+	if(!is_user_connected(attacker) || !is_user_connected(victim) || victim == attacker)
 		return HAM_IGNORED
 	
-	if (victim != attacker && is_user_connected(attacker))
-	{
-		if(g_isSecAtt[attacker])
-			return HAM_IGNORED
+	if(g_isSecAtt[attacker])
+		return HAM_IGNORED
 		
-		new WpnEnt = get_pdata_cbase(attacker, m_pActiveItem)
-		if(pev(WpnEnt, pev_weapons) == WEAPON_M4A1BLACKKNIGHT)
+	new WpnEnt = get_pdata_cbase(attacker, m_pActiveItem)
+	if(pev(WpnEnt, pev_weapons) == WEAPON_M4A1BLACKKNIGHT)
+	{
+		new Float:truedamage = get_pcvar_float(cvar_damage)
+		switch(get_pdata_int(victim, m_LastHitGroup, 5))
 		{
-			SetHamParamFloat(4,  get_pcvar_float(cvar_damage))
-			return HAM_SUPERCEDE
+			case HIT_HEAD: truedamage*= 1.5
+			case HIT_CHEST..HIT_STOMACH: truedamage*= 1.25
+			case HIT_LEFTARM..HIT_RIGHTARM: truedamage*= 1.1
+			case HIT_LEFTLEG..HIT_RIGHTLEG: truedamage*= 0.9
 		}
+		SetHamParamFloat(4,  truedamage)
 	}
 	return HAM_IGNORED
 }

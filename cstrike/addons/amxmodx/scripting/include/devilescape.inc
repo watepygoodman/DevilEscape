@@ -12,13 +12,17 @@ stock m_pActiveItem = 373
 stock m_flNextPrimaryAttack = 46
 stock m_flNextSecondaryAttack = 47
 stock m_flTimeWeaponIdle = 48
-// stock m_flNextReload = 75
+stock m_LastHitGroup = 75 // int
+
+// stock m_flNextReload = 75 //float
 
 stock m_iAmmoType_M249 = 379
 stock m_iAmmoType_M4A1 = 380
 stock m_iAmmoType_XM1014 = 381
 
 //Wpn Key
+const WEAPON_LR300 = 6644
+const WEAPON_ETHEREAL = 6655
 const WEAPON_PLASMAGUN = 6688
 const WEAPON_THUNDERBOLT = 6699
 const WEAPON_SALAMANDER = 7011
@@ -29,6 +33,15 @@ const WEAPON_WATERCANNON = 7088
 //Wpn Register
 native de_register_sp_wpn(const name[], const cost)
 native de_register_gash_wpn(const name[], const cost)
+
+//Wpn Give
+/* native wpn_give_plasmagun(id)
+native wpn_give_thunderbolt(id)
+native wpn_give_salamander(id)
+native wpn_give_watercannon(id)
+native wpn_give_m4a1blackknight(id)
+native wpn_give_qbs09(id) */
+
 
 
 

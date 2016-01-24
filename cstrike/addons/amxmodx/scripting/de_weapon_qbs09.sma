@@ -55,7 +55,7 @@ public plugin_precache()
 	cvar_reloadtime = register_cvar("wpn_qbs09_reloadtime","3.5")
 	cvar_attacktime = register_cvar("wpn_qbs09_attacktime","0.3")
 	cvar_startreloadtime = register_cvar("wpn_qbs09_startreloadtime","0.6")
-	cvar_price = register_cvar("de_wpn_qbs09_price","50")
+	cvar_price = register_cvar("de_wpn_qbs09_price","45")
 	
 	g_smokepuff_id = engfunc(EngFunc_PrecacheModel, "sprites/wall_puff1.spr")
 	
@@ -90,10 +90,10 @@ public plugin_init()
 		RegisterHam(Ham_TakeDamage, g_EntNames[i], "fw_TakeDamage")
 	}
 	
-	g_Wpnid = de_register_sp_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
+	g_Wpnid = de_register_gash_wpn(PLUGIN_NAME, get_pcvar_num(cvar_price))
 	register_clcmd("weapon_qbs09", "hook_weapon")
 }
-public de_spwpn_select(id, wid)
+public de_gashwpn_select(id, wid)
 {
 	if(g_Wpnid == wid)
 		give_weapon(id)
