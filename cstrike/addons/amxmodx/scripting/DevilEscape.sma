@@ -127,11 +127,6 @@ new const spr_minicrit[] = "sprites/DevilEscape/MiniCrit.spr"
 
 new const spr_scare[] = "sprites/DevilEscape/Boss_Scare.spr"
 
-//offset
-const m_CsTeam = 114 				//队伍
-const m_MapZone = 235				//所在区域
-const m_ModelIndex = 491 				//模型索引
-
 const KEYSMENU = (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 
 new const InvalidChars[]= { "/", "\", "*", ":", "?", "^"", "<", ">", "|", " " }
@@ -272,8 +267,11 @@ new Array:g_Item_Name
 new Array:g_Item_Info
 new Array:g_Shop_Item_Name
 new Array:g_Shop_Item_Price
+new Array:g_Shop_Item_Max
 
 new g_SpWpn_Num, g_GashWpn_Num, g_Item_Num, g_Shop_Item_Num
+
+new g_Shop_Item_Times[33][32]
 
 //Forward Handles
 new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwItemSelect, g_fwShopItemSelect, g_fwDummyResult
@@ -339,6 +337,7 @@ public plugin_precache()
 	g_SpWpn_Price = ArrayCreate(1, 1)
 	g_GashWpn_Price = ArrayCreate(1, 1)
 	g_Shop_Item_Price = ArrayCreate(1, 1)
+	g_Shop_Item_Max = ArrayCreate(1, 1)
 	
 	//Cvar
 	cvar_LoginTime = register_cvar("de_logintime","120")
@@ -406,12 +405,12 @@ public plugin_precache()
 	
 	cvar_ItemOpen = register_cvar("de_item_open", "1")
 	
-	cvar_NvgColor_Human[0] = register_cvar("de_nvg_human_color_R", "64")
-	cvar_NvgColor_Human[1] = register_cvar("de_nvg_human_color_G", "64")
-	cvar_NvgColor_Human[2] = register_cvar("de_nvg_human_color_B", "64")
+	cvar_NvgColor_Human[0] = register_cvar("de_nvg_human_color_R", "32")
+	cvar_NvgColor_Human[1] = register_cvar("de_nvg_human_color_G", "32")
+	cvar_NvgColor_Human[2] = register_cvar("de_nvg_human_color_B", "32")
 	cvar_NvgColor_Boss[0] = register_cvar("de_nvg_boss_color_R", "128")
-	cvar_NvgColor_Boss[1] = register_cvar("de_nvg_boss_color_G", "64")
-	cvar_NvgColor_Boss[2] = register_cvar("de_nvg_boss_color_B", "64")
+	cvar_NvgColor_Boss[1] = register_cvar("de_nvg_boss_color_G", "32")
+	cvar_NvgColor_Boss[2] = register_cvar("de_nvg_boss_color_B", "32")
 	
 	// cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
 	// cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
@@ -516,7 +515,7 @@ public event_round_start()
 	g_RoundStatus = Round_Start;
 	
 	//Light
-	engfunc(EngFunc_LightStyle, 0, 'f')
+	engfunc(EngFunc_LightStyle, 0, 'c')
 	
 	gm_reset_vars()
 	remove_task(TASK_BALANCE)
@@ -2082,12 +2081,14 @@ public show_menu_shop_item(id)
 	formatex(Menuitem, charsmax(Menuitem), "\w%L", LANG_PLAYER, "MENU_SHOP_ITEM")
 	Menu = menu_create(Menuitem, "menu_shop_item")
 	
-	new itemname[29]
+	new itemname[29], use_max
 	for(new i = 0; i < g_Shop_Item_Num; i++)
 	{
 		num_to_str(i+1, CharNum, 2)
 		ArrayGetString(g_Shop_Item_Name, i, itemname, charsmax(itemname))
-		formatex(Menuitem, charsmax(Menuitem), "%s \d%d %L", itemname, ArrayGetCell(g_Shop_Item_Price, i), LANG_PLAYER, "COIN") 
+		if(!(use_max = ArrayGetCell(g_Shop_Item_Max, i)))
+			formatex(Menuitem, charsmax(Menuitem), "%s \d%d %L", itemname, ArrayGetCell(g_Shop_Item_Price, i), LANG_PLAYER, "COIN")
+		else formatex(Menuitem, charsmax(Menuitem), "%s [\y%d/%d\w] \d%d %L", itemname, g_Shop_Item_Times[id][i], use_max, ArrayGetCell(g_Shop_Item_Price, i), LANG_PLAYER, "COIN")
 		menu_additem(Menu, Menuitem, CharNum)
 	}
 	
@@ -2116,16 +2117,26 @@ public menu_shop_item(id, menu, item)
 	new select = str_to_num(data) - 1
 	
 	new itemprice = ArrayGetCell(g_Shop_Item_Price, select)
-	new itemname[29]
+	new itemname[29], itemmax
 	
 	ArrayGetString(g_Shop_Item_Name, select, itemname, charsmax(itemname))
-	
-	if(g_Coin[id] < itemprice)
-		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
-	else{
-		g_Coin[id] -= itemprice
-		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", itemname)
-		ExecuteForward(g_fwShopItemSelect, g_fwDummyResult, id, select)
+	itemmax = ArrayGetCell(g_Shop_Item_Max, select)
+	if(itemmax <= g_Shop_Item_Times[id][select] && itemmax)
+		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_MAX")
+	else
+	{
+		if(g_Coin[id] < itemprice)
+			client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+		else{
+			if(itemmax)
+				g_Shop_Item_Times[id][select] += 1
+			g_Coin[id] -= itemprice
+			ExecuteForward(g_fwShopItemSelect, g_fwDummyResult, id, select)
+			if(!g_fwDummyResult)
+				client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+			else
+				client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", itemname)
+		}
 	}
 	
 	menu_destroy(menu);
@@ -2623,6 +2634,8 @@ gm_reset_vars()
 		remove_task(i+TASK_CRITICAL)
 		remove_task(i+TASK_NVISION)
 		func_critical(i);
+		for(new j = 0; j < g_Shop_Item_Num; j ++)
+			g_Shop_Item_Times[i][j] = 0
 	}
 	
 }
@@ -3163,7 +3176,7 @@ public native_register_item(const name[], const info[])
 	return g_Item_Num-1
 }
 
-public native_register_shop_item(const name[], const price)
+public native_register_shop_item(const name[], const price, const max)
 {
 	if(g_Shop_Item_Num > ArraySize(g_Shop_Item_Name))
 	{
@@ -3173,6 +3186,7 @@ public native_register_shop_item(const name[], const price)
 	param_convert(1)
 	ArrayPushString(g_Shop_Item_Name, name)
 	ArrayPushCell(g_Shop_Item_Price, price)
+	ArrayPushCell(g_Shop_Item_Max, max)
 	
 	g_Shop_Item_Num ++
 	return g_Shop_Item_Num-1

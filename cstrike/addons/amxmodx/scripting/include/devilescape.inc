@@ -4,6 +4,9 @@
 #define _devilescape_included
 
 //Offset
+stock m_CsTeam = 114 				//队伍
+stock m_MapZone = 235			//所在区域
+stock m_ModelIndex = 491 			//模型索引
 stock m_BloodColor = 89
 stock m_iClip = 51
 stock m_fInReload = 54
@@ -34,7 +37,7 @@ const WEAPON_WATERCANNON = 7088
 native de_register_sp_wpn(const name[], const cost)
 native de_register_gash_wpn(const name[], const cost)
 native de_register_item(const name[], const info[])
-native de_register_shop_item(const name[], const price)
+native de_register_shop_item(const name[], const price, const max)
 native de_set_user_nightvision(const id, const set)
 //Wpn Give
 /* native wpn_give_plasmagun(id)
