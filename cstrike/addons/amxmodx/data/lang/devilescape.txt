@@ -10,7 +10,7 @@ LOGIN_SUCCESS = 登陆成功,若要更改密码请输入/pwchange
 LOGIN_FAILED = 登录失败,密码错误
 
 HUD_NO_REGISTER = [DevilEscape]^n您还没有注册,请按Y输入你的密码^n剩余%d秒
-HUD_NO_LOGIN = [DevilEscape]^n您还没有登录,请按Y输入你的密码^n剩余%d秒
+HUD_NO_LOGIN = [DevilEscape]^n您还没有登录,请按Y输入你的密码^n剩余%d秒^n使用了[%d/%d]次机会
 HUD_CHANGING_PW = [DevilEscape]^n请按Y输入你的新密码
 HUD_LEVEL_UP = [Lv.%d]
 HUD_WPN_LEVEL_UP = [%s Lv.%d]
@@ -58,6 +58,7 @@ MENU_EXIT = 退出
 
 SHOP_BUY_SUCCESS = 你成功购买了:
 SHOP_BUY_FAILED = 购买失败
+SHOP_BUY_MAX = 购买次数已满
 SHOP_HAD_THIS_WPN = 你已经有这个武器了！
 
 SKILL_LEARN_SUCCESS = 技能学习成功！

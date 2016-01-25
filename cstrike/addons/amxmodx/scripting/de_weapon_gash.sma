@@ -253,7 +253,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	}
 	
 	SetHamParamFloat(4,  truedamage)
-	return HAM_IGNORED
+	return HAM_HANDLED
 }
 
 public fw_TraceAttack(ent, attacker, Float:Damage, Float:fDir[3], ptr, iDamageType)

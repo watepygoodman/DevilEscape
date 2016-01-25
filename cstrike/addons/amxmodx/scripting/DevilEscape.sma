@@ -157,7 +157,7 @@ new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 #define MAX_PACKSLOT 16
 
 //Cvar
-new cvar_DmgReward, cvar_LoginTime, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
+new cvar_MapBright, cvar_DmgReward, cvar_LoginTime, cvar_LoginRetryMax, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
 cvar_DevilSlashDmgMulti,  cvar_DevilDisappearTime, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilLongjumpDistance, 
 cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDisappearCost , cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, 
 cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
@@ -223,6 +223,7 @@ new Float:g_DmgDealt[33]
 new Float:g_AttackCooldown[33];
 new g_BossMana;
 new g_LoginTime[33];
+new g_LoginRetry[33];
 new g_UsersAmmo[33];
 new g_UsersWeapon[33];
 
@@ -340,6 +341,8 @@ public plugin_precache()
 	g_Shop_Item_Max = ArrayCreate(1, 1)
 	
 	//Cvar
+	cvar_MapBright = register_cvar("de_map_bright","d")
+	cvar_LoginRetryMax = register_cvar("de_login_retry_max","3")
 	cvar_LoginTime = register_cvar("de_logintime","120")
 	cvar_AutosaveTime = register_cvar("de_autosavetime","120")
 	
@@ -511,11 +514,13 @@ public event_round_start()
 		g_RoundNeedStart = true
 		return
 	}
+	static LightStyle[2]
+	get_pcvar_string(cvar_MapBright, LightStyle, 1) 
 	
 	g_RoundStatus = Round_Start;
-	
 	//Light
-	engfunc(EngFunc_LightStyle, 0, 'c')
+	engfunc(EngFunc_LightStyle, 0, LightStyle[0])
+	
 	
 	gm_reset_vars()
 	remove_task(TASK_BALANCE)
@@ -841,7 +846,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		return HAM_HANDLED;
 	}
 	//Str
-	TrueDamage *=  (1.0 + (g_Abi_Str[attacker]*get_pcvar_num(cvar_AbilityStrAdd)))
+	TrueDamage =  TrueDamage * (1.0 + g_Abi_Str[attacker]*get_pcvar_float(cvar_AbilityStrAdd))
 	
 	//Crit
 	if(get_bit(g_isCrit, attacker-1))
@@ -1149,6 +1154,7 @@ public client_putinserver(id)
 	}
 	
 	g_LoginTime[id] = get_pcvar_num(cvar_LoginTime)
+	g_LoginRetry[id] = 0
 	delete_bit(g_isRegister, bit_id)
 	delete_bit(g_isLogin, bit_id)
 	gm_user_load(id)
@@ -1290,7 +1296,7 @@ public task_user_login(id)
 	else
 	{
 		set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
-		ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_NO_LOGIN", g_LoginTime[id])
+		ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_NO_LOGIN", g_LoginTime[id], g_LoginRetry[id], get_pcvar_num(cvar_LoginRetryMax))
 	}
 	
 	if(g_LoginTime[id] <= 0)
@@ -1301,6 +1307,13 @@ public task_user_login(id)
 		remove_task(id+TASK_USERLOGIN)
 	}
 	
+	if(g_LoginRetry[id] >= get_pcvar_num(cvar_LoginRetryMax))
+	{
+		new Name[32]
+		get_user_name(id, Name, charsmax(Name))
+		server_cmd("kick %s", Name)
+		remove_task(id+TASK_USERLOGIN)
+	}
 }
 
 public task_pw_change(id)
@@ -2707,7 +2720,10 @@ gm_user_login(id, const password[])
 		set_task(get_pcvar_float(cvar_AutosaveTime), "task_autosave", id+TASK_AUTOSAVE, _, _, "b")
 	}
 	else
+	{
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_FAILED")
+		g_LoginRetry[id] ++
+	}
 	
 	msg_change_team_info(id, iteam)
 }
