@@ -26,12 +26,15 @@ stock m_iAmmoType_XM1014 = 381
 //Wpn Key
 const WEAPON_LR300 = 6644
 const WEAPON_ETHEREAL = 6655
+const WEAPON_M4A1BLACKKNIGHT = 6666
+const WEAPON_QBS09 = 6677
 const WEAPON_PLASMAGUN = 6688
 const WEAPON_THUNDERBOLT = 6699
 const WEAPON_SALAMANDER = 7011
-const WEAPON_M4A1BLACKKNIGHT = 7022
-const WEAPON_QBS09 = 7033
-const WEAPON_WATERCANNON = 7088
+const WEAPON_WATERCANNON = 7022
+const WEAPON_AT4CS = 7033
+
+const DE_DMG_ROCKET = 95123
 
 //Wpn Register
 native de_register_sp_wpn(const name[], const cost)

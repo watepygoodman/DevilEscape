@@ -330,8 +330,18 @@ public fw_Item_AddToPlayer(Ent, id)
 		return HAM_IGNORED
 	if(pev(Ent, pev_weapons) == WEAPON_LR300)
 	{
+		set_pev(id, pev_viewmodel2, g_Mdl_LR300[0])
+		set_pev(id, pev_weaponmodel2, g_Mdl_LR300[0])
 		set_pev(Ent, pev_owner, id)
 		set_pdata_float(id, m_flNextAttack, 0.85)
+	}
+	
+	if(pev(Ent, pev_weapons) == WEAPON_ETHEREAL)
+	{
+		set_pev(id, pev_viewmodel2, g_Mdl_Ethereal[0])
+		set_pev(id, pev_weaponmodel2, g_Mdl_Ethereal[1])
+		set_pev(Ent, pev_owner, id)
+		set_pdata_float(id, m_flNextAttack, 0.65)
 	}
 	
 	return HAM_HANDLED
@@ -385,8 +395,7 @@ public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
 		return FMRES_IGNORED	
 	
 	new Ent = get_pdata_cbase(id, m_pActiveItem)
-	
-	if(!pev_valid(Ent))
+	if(Ent <= 0)
 		return FMRES_IGNORED
 	
 	if(pev(Ent, pev_gashgun) == GASHGUN_CODE)
@@ -404,7 +413,7 @@ public fw_PlaybackEvent(flags, invoker, eventid, Float:delay, Float:origin[3], F
 	if(!pev_valid(Ent))
 		return FMRES_IGNORED
 		
-	if(pev(Ent, pev_gashgun) == GASHGUN_CODE)
+	if(pev(Ent, pev_gashgun) != GASHGUN_CODE)
 		return FMRES_IGNORED
 	
 	engfunc(EngFunc_PlaybackEvent, flags | FEV_HOSTONLY, invoker, eventid, delay, origin, angles, fparam1, fparam2, iParam1, iParam2, bParam1, bParam2)

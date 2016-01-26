@@ -324,7 +324,11 @@ public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
 	if(!is_user_alive(id))
 		return FMRES_IGNORED	
 	
-	if(pev(get_pdata_cbase(id, m_pActiveItem), pev_weapons) == WEAPON_THUNDERBOLT)
+	new Ent = get_pdata_cbase(id, m_pActiveItem)
+	if(Ent <= 0)
+		return FMRES_IGNORED
+	
+	if(pev(Ent, pev_weapons) == WEAPON_THUNDERBOLT)
 		set_cd(cd_handle, CD_flNextAttack, get_gametime() + 0.001) 
 	
 	return FMRES_HANDLED
@@ -334,7 +338,7 @@ public fw_PlaybackEvent(flags, invoker, eventid, Float:delay, Float:origin[3], F
 {
 	if (!is_user_connected(invoker))
 		return FMRES_IGNORED	
-	if(pev(get_pdata_cbase(invoker, m_pActiveItem), pev_weapons) == WEAPON_THUNDERBOLT)
+	if(pev(get_pdata_cbase(invoker, m_pActiveItem), pev_weapons) != WEAPON_THUNDERBOLT)
 		return FMRES_IGNORED
 	
 	engfunc(EngFunc_PlaybackEvent, flags | FEV_HOSTONLY, invoker, eventid, delay, origin, angles, fparam1, fparam2, iParam1, iParam2, bParam1, bParam2)

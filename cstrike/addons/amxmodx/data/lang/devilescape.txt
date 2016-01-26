@@ -97,6 +97,10 @@ USE_ITEM = %s使用了道具:%s
 MENU_ITEM_CONFIRM = 确认
 MENU_ITEM_DROP = 丢弃
 
+SPEC_HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n累计伤害: %f
+HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f
+RANK_INFO = 第一名^n名字:%s^n伤害:%f^n^n第二名^n名字:%s^n伤害:%f^n^n第三名^n名字:%s^n伤害:%f
+
 COIN = Coin
 GASH = Gash
 LEVEL = 等级

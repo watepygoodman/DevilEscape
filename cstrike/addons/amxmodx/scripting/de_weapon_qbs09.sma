@@ -125,9 +125,13 @@ public task_bots_ham(id)
 public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
 {
 	if(!is_user_alive(id))
-		return FMRES_IGNORED	
+		return FMRES_IGNORED
 	
-	if(pev(get_pdata_cbase(id, m_pActiveItem), pev_weapons) == WEAPON_QBS09)
+	new Ent = get_pdata_cbase(id, m_pActiveItem)
+	if(Ent <= 0)
+		return FMRES_IGNORED
+	
+	if(pev(Ent, pev_weapons) == WEAPON_QBS09)
 		set_cd(cd_handle, CD_flNextAttack, get_gametime() + 0.001) 
 	
 	return FMRES_HANDLED
@@ -242,7 +246,7 @@ public fw_Weapon_PrimaryAttack(iEntity)
 public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 {
 	if(!is_user_connected(attacker) || !is_user_connected(victim))
-	return HAM_HANDLED
+	return HAM_IGNORED
 	
 	if (victim != attacker && is_user_connected(attacker))
 	{
@@ -250,10 +254,10 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		if(pev(WpnEnt, pev_weapons) == WEAPON_QBS09)
 		{
 			SetHamParamFloat(4,  damage + get_pcvar_float(cvar_damage))
-			return HAM_SUPERCEDE
+			return HAM_HANDLED
 		}
 	}
-	return HAM_HANDLED
+	return HAM_IGNORED
 }
 
 public fw_TraceAttack(ent, attacker, Float:Damage, Float:fDir[3], ptr, iDamageType)
@@ -379,6 +383,8 @@ public fw_Item_AddToPlayer(Ent, id)
 	
 	if(pev(Ent, pev_weapons) == WEAPON_QBS09)
 	{
+		set_pev(id, pev_viewmodel2, g_WpnModel[0])
+		set_pev(id, pev_weaponmodel2, g_WpnModel[1])
 		set_pev(Ent, pev_owner, id)
 		set_pdata_float(id, m_flNextAttack, 0.75)
 		UTIL_PlayWeaponAnimation(id, DRAW_ANIM)

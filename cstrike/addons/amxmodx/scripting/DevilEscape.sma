@@ -75,7 +75,8 @@ enum(+= 66)
 	TASK_BOTHAM = 100, TASK_USERLOGIN, TASK_PWCHANGE,
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
 	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF,TASK_CRITICAL, TASK_SCARE_OFF, 
-	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO, TASK_NVISION
+	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO, TASK_NVISION, TASK_RANK,
+	TASK_SPEC_NVISION
 }
 
 enum{
@@ -163,7 +164,7 @@ cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDi
 cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
-cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
+cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_WpnLvMax, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin, cvar_ItemOpen, cvar_NvgColor_Human[3], cvar_NvgColor_Boss[3]
 
 // new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
@@ -190,6 +191,7 @@ new g_isBuyWpnSec;
 new g_isSemiclip;
 new g_isSolid;
 new g_isNvision;
+new g_isAlive;
 new g_hasNvision;
 
 new g_whoBoss;
@@ -250,8 +252,13 @@ new Float:g_TSpawn[32][3];
 new Float:g_CTSpawn[32][3];
 new g_TSpawnCount;
 new g_CTSpawnCount;
+
+//Rank
+new Float:g_1st_Dmg, Float:g_2nd_Dmg, Float:g_3rd_Dmg
+new g_1st_ID, g_2nd_ID, g_3rd_ID
+
 //Hud
-new g_Hud_Center, g_Hud_Status, g_Hud_Reward;
+new g_Hud_Center, g_Hud_Status, g_Hud_Reward, g_Hud_Rank;
 
 //Msg
 new g_Msg_VGUI, g_Msg_ShowMenu;
@@ -395,6 +402,7 @@ public plugin_precache()
 	cvar_RewardWpnXp = register_cvar("de_wpnxp_reward", "1")
 	cvar_WpnLvAddDmg = register_cvar("de_wpnlv_add_dmg", "1.0")
 	cvar_WpnLvNeedXp = register_cvar("de_wpnlv_need_xp", "100")
+	cvar_WpnLvMax = register_cvar("de_wpnlv_max", "250")
 	
 	cvar_DevilWinGetBaseXp = register_cvar("de_win_devil_base_getxp", "650")
 	cvar_DevilWinGetBaseCoin = register_cvar("de_win_devil_base_getcoin", "2")
@@ -485,6 +493,7 @@ public plugin_init()
 	g_Hud_Center = CreateHudSyncObj();
 	g_Hud_Status = CreateHudSyncObj();
 	g_Hud_Reward = CreateHudSyncObj();
+	g_Hud_Rank = CreateHudSyncObj();
 	
 	//Unregister
 	unregister_forward(FM_Spawn, g_fwSpawn)
@@ -525,6 +534,7 @@ public event_round_start()
 	gm_reset_vars()
 	remove_task(TASK_BALANCE)
 	set_task(0.2, "task_balance", TASK_BALANCE)
+	set_task(1.0, "task_show_rank", TASK_RANK, _ ,_ ,"b")
 	
 	set_dhudmessage( 255, 255, 255, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
@@ -536,7 +546,16 @@ public event_round_start()
 //Round_End
 public event_round_end()
 {
+	g_RoundStatus = Round_End;
+	remove_task(TASK_DEVILMANA_RECO)
+	remove_task(TASK_BALANCE)
+	set_task(0.2, "task_balance", TASK_BALANCE)
+	
 	new GetXp, GetCoin
+	
+	if(g_RoundNeedStart)
+		return
+	
 	if(!fnGetHumans())
 	{
 		GetXp = get_pcvar_num(cvar_DevilWinGetBaseXp) * g_PlayerInGame
@@ -545,14 +564,8 @@ public event_round_end()
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_WIN" );
 		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_devil_win)
-		
-		for(new i = 1; i <= g_MaxPlayer; i++)
-		{
-			if(i == g_whoBoss || !is_user_valid_connected(i))
-				continue
-			g_Xp[i] += GetXp
-			g_Coin[i] += GetCoin
-		}
+		g_Xp[g_whoBoss] += GetXp
+		g_Coin[g_whoBoss] += GetCoin
 	}
 	else if(!is_user_alive(g_whoBoss))
 	{
@@ -562,8 +575,13 @@ public event_round_end()
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_HUMAN_WIN" );
 		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_human_win)
-		g_Xp[g_whoBoss] += GetXp
-		g_Coin[g_whoBoss] += GetCoin
+		for(new i = 1; i <= g_MaxPlayer; i++)
+		{
+			if(i == g_whoBoss || !is_user_valid_connected(i))
+				continue
+			g_Xp[i] += GetXp
+			g_Coin[i] += GetCoin
+		}
 	}
 	else
 	{
@@ -580,11 +598,8 @@ public event_round_end()
 			g_Xp[i] += GetXp
 			g_Coin[i] += GetCoin
 		}
+		
 	}
-	g_RoundStatus = Round_End;
-	remove_task(TASK_DEVILMANA_RECO)
-	remove_task(TASK_BALANCE)
-	set_task(0.2, "task_balance", TASK_BALANCE)
 }
 
 public event_ammo_x(id)
@@ -725,17 +740,19 @@ public fw_PlayerSpawn_Post(id)
 	set_user_gravity(id, 1.0-get_pcvar_float(cvar_AbilityGraAdd)*g_Abi_Gra[id])
 	fm_set_user_health(id, 100+g_Abi_Hea[id]*get_pcvar_num(cvar_AbilityHeaAdd))
 	
+	set_bit(g_isAlive, bit_id)
 	new Float:test[3]
 	pev(id, pev_origin, test)
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
 	if(!is_user_bot(id))
-	{
 		set_task(1.0, "task_showhud", id+TASK_SHOWHUD, _ ,_ ,"b")
-	}	
 }
 
 public fw_PlayerKilled(victim, attacker, shouldgib)
 {
+	delete_bit(g_isAlive, victim-1)
+	set_task(0.1, "task_spec_nvision", victim+TASK_SPEC_NVISION)
+	
 	if(victim == attacker || !is_user_alive(attacker))
 		return HAM_IGNORED
 	
@@ -845,6 +862,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		SetHamParamFloat(4, TrueDamage)
 		return HAM_HANDLED;
 	}
+
 	//Str
 	TrueDamage =  TrueDamage * (1.0 + g_Abi_Str[attacker]*get_pcvar_float(cvar_AbilityStrAdd))
 	
@@ -861,9 +879,9 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		TrueDamage *= get_pcvar_float(cvar_HumanMiniCritMulti)
 		msg_create_crit(attacker,victim,2)
 	}
-	
 	//WpnLv
-	TrueDamage += get_pcvar_float(cvar_WpnLvAddDmg) * g_WpnLv[attacker][g_UsersWeapon[attacker]]
+	if(damage_type != DE_DMG_ROCKET)
+		TrueDamage += get_pcvar_float(cvar_WpnLvAddDmg) * g_WpnLv[attacker][g_UsersWeapon[attacker]]
 	
 	SetHamParamFloat(4, TrueDamage)
 		
@@ -876,7 +894,7 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 	Vic_team = fm_cs_get_user_team(victim)
 	Att_Team = fm_cs_get_user_team(attacker)
 		
-	if(Vic_team == Att_Team)
+	if(Vic_team == Att_Team || victim == attacker)
 		return HAM_IGNORED
 	
 	g_Dmg[attacker] += damage;
@@ -889,27 +907,70 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 		{
 			i ++;
 			g_DmgDealt[attacker] -= get_pcvar_num(cvar_DmgReward);
-			g_Coin[attacker] += get_pcvar_num(cvar_RewardCoin);
-			g_Xp[attacker] += get_pcvar_num(cvar_RewardXp);
-			g_WpnXp[attacker][g_UsersWeapon[attacker]] += get_pcvar_num(cvar_RewardWpnXp);
 		}
-		set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
-		ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n +%d Wpn Xp" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), i*get_pcvar_num(cvar_RewardWpnXp))
 		
-		new WpnLvNeedXp = get_pcvar_num(cvar_WpnLvNeedXp)
-		if(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+		g_Coin[attacker] += get_pcvar_num(cvar_RewardCoin) * i;
+		g_Xp[attacker] += get_pcvar_num(cvar_RewardXp) * i;
+		if(g_WpnLv[attacker][g_UsersWeapon[attacker]] < get_pcvar_num(cvar_WpnLvMax))
 		{
-			while(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
-			{
-				g_WpnXp[attacker][g_UsersWeapon[attacker]] -= WpnLvNeedXp
-				g_WpnLv[attacker][g_UsersWeapon[attacker]] ++
+			set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
+			ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n +%d %s Exp" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), i*get_pcvar_num(cvar_RewardWpnXp), WEAPONCSWNAME[g_UsersWeapon[attacker]])
+			g_WpnXp[attacker][g_UsersWeapon[attacker]] += get_pcvar_num(cvar_RewardWpnXp) * i
+			
+			new WpnLvNeedXp = get_pcvar_num(cvar_WpnLvNeedXp)
+			if(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+			{	
+				while(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+				{
+					g_WpnXp[attacker][g_UsersWeapon[attacker]] -= WpnLvNeedXp
+					g_WpnLv[attacker][g_UsersWeapon[attacker]] ++
+				}
+				set_hudmessage(192, 0, 0, -1.0, 0.55, 1, 6.0, 1.5, 0.3, 0.3, 0)
+				ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
 			}
-			set_hudmessage(192, 0, 0, -1.0, 0.55, 1, 6.0, 1.5, 0.3, 0.3, 0)
-			ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
+		}
+		else
+		{
+			set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
+			ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n %s Lv.Max" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), WEAPONCSWNAME[g_UsersWeapon[attacker]])
+		}			
+	}
+	
+	if(attacker != g_whoBoss && is_user_valid_connected(attacker))
+	{
+		if(g_Dmg[attacker] >= g_1st_Dmg)
+		{
+			if(attacker != g_1st_ID)
+			{
+				if(g_2nd_ID == attacker)
+				{
+					g_2nd_ID = g_1st_ID 
+					g_2nd_Dmg = g_1st_Dmg 	//交换2和1不管3
+				}
+				else	//从其他到1 (3或以下)
+				{
+					g_3rd_Dmg = g_2nd_Dmg; g_3rd_ID = g_2nd_ID	//2到3
+					g_2nd_Dmg = g_1st_Dmg; g_2nd_ID = g_1st_ID	//1到2
+				}
+				g_1st_ID = attacker	//1变
+			}
+			g_1st_Dmg = g_Dmg[attacker]; //刷新
+		}
+		else if(g_Dmg[attacker] >= g_2nd_Dmg)
+		{
+			if(attacker != g_1st_ID && attacker != g_2nd_ID) //自己本来不是1或2
+			{
+				g_3rd_Dmg = g_2nd_Dmg;g_3rd_ID = g_2nd_ID	//2到3
+				g_2nd_ID = attacker	//2变
+			}
+			g_2nd_Dmg = g_Dmg[attacker];	//刷新
+		}
+		else if(g_Dmg[attacker] >= g_3rd_Dmg)
+		{
+			g_3rd_Dmg = g_Dmg[attacker]	//直接当3
+			g_3rd_ID = attacker
 		}
 	}
-	//这里应该是HUD提示
-	
 	return HAM_IGNORED
 }
 
@@ -1147,9 +1208,14 @@ public client_putinserver(id)
 	set_bit(g_isConnect, bit_id)
 	g_Online ++
 	
-	if(is_user_bot(id) && !g_hasBot)
+	if(is_user_bot(id))
 	{
-		set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
+		if(!g_hasBot)
+			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
+		
+		//强行登陆
+		set_bit(g_isRegister, bit_id)
+		set_bit(g_isLogin, bit_id)
 		return
 	}
 	
@@ -1253,14 +1319,43 @@ public task_balance()
 	}
 }
 
+public task_show_rank()
+{
+	static PlrName_1[20], PlrName_2[20], PlrName_3[20]
+	
+	if(!g_1st_ID) formatex(PlrName_1, 19, "暂无")
+	else get_user_name(g_1st_ID, PlrName_1, charsmax(PlrName_1))
+	if(!g_2nd_ID) formatex(PlrName_2, 19, "暂无")
+	else get_user_name(g_2nd_ID, PlrName_2, charsmax(PlrName_2))
+	if(!g_3rd_ID) formatex(PlrName_3, 19, "暂无")
+	else get_user_name(g_3rd_ID, PlrName_3, charsmax(PlrName_3))
+	
+	static RankInfo[188]
+	formatex(RankInfo, charsmax(RankInfo), "%L", LANG_PLAYER, "RANK_INFO", PlrName_1, g_1st_Dmg, PlrName_2, g_2nd_Dmg, PlrName_3, g_3rd_Dmg)
+	set_hudmessage(255, 255, 255, 0.87, -1.0, 1, 1.0, 1.0, 0.0, 0.0, 0)
+	ShowSyncHudMsg(0, g_Hud_Rank, RankInfo)
+}
+
 public task_showhud(id)
 {
 	id -= TASK_SHOWHUD
-	set_hudmessage(25, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
-	ShowSyncHudMsg(id, g_Hud_Status, "HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f^n",
-	pev(id, pev_health), g_Coin[id], g_Gash[id], g_Level[id], g_Xp[id], g_NeedXp[id], g_Sp[id],
-	WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , WEAPONCSWNAME[g_UsersWeapon[id]], 
-	g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id])
+	
+	if(!get_bit(g_isAlive, bit_id))
+	{
+		static specid
+		specid = pev(id, pev_iuser2)
+		set_hudmessage(255, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
+		ShowSyncHudMsg(id, g_Hud_Status, "%L", LANG_PLAYER, "SPEC_HUD_INFO", pev(specid, pev_health), g_Coin[specid], g_Gash[specid], 
+		g_Level[specid], g_Xp[specid], g_NeedXp[specid], g_Sp[specid], g_Dmg[specid])
+	}
+	else
+	{
+		set_hudmessage(25, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
+		ShowSyncHudMsg(id, g_Hud_Status, "%L", LANG_PLAYER, "HUD_INFO",
+		pev(id, pev_health), g_Coin[id], g_Gash[id], g_Level[id], g_Xp[id], g_NeedXp[id], g_Sp[id],
+		WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , WEAPONCSWNAME[g_UsersWeapon[id]], 
+		g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id])
+	}
 }
 
 public task_plrspawn(id)
@@ -1271,7 +1366,14 @@ public task_plrspawn(id)
 	fm_give_item(id, "weapon_knife")
 	
 	if(is_user_bot(id))
-		fm_give_item(id, g_WpnFreeFrist[random_num(0, (sizeof g_WpnFreeFrist) -1)])
+	{
+		switch(random_num(0, 3))
+		{
+			case 0: fm_give_item(id, g_WpnFreeFrist[random_num(0, (sizeof g_WpnFreeFrist) -1)])
+			case 1: ExecuteForward(g_fwGashWpnSelect, g_fwDummyResult, id, random_num(0, g_GashWpn_Num-1))
+			case 2: ExecuteForward(g_fwSpWpnSelect, g_fwDummyResult, id, random_num(0, g_SpWpn_Num-1))
+		}
+	}
 	show_menu_weapon(id)
 	remove_task(id+TASK_PLRSPAWN);
 }
@@ -1450,6 +1552,16 @@ public task_set_user_nvision(id)
 	write_byte(2) // life
 	write_byte(0) // decay rate
 	message_end()
+}
+
+public task_spec_nvision(id)
+{
+	id -= TASK_SPEC_NVISION
+	
+	if(!is_user_valid_connected(id) || get_bit(g_isAlive, bit_id) || is_user_bot(id))
+		return;
+	
+	native_set_user_nightvision(id, 1)
 }
 
 public func_critical(taskid)
@@ -2636,10 +2748,20 @@ gm_reset_vars()
 	g_isBuyWpnMain = 0;
 	g_isBuyWpnSec = 0;
 	g_isNvision = 0;
+	g_isAlive = 0;
 	g_hasNvision = 0;
 	g_Admin_Select_Boss = 0
+	
+	g_1st_Dmg = 0.0
+	g_1st_ID = 0
+	g_2nd_Dmg = 0.0
+	g_2nd_ID = 0
+	g_3rd_Dmg = 0.0
+	g_3rd_ID = 0
+	
 	remove_task(TASK_DEVILMANA_RECO)
 	remove_task(TASK_GODMODE_LIGHT)
+	remove_task(TASK_RANK)
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
 		g_Dmg[i] = 0.0;
@@ -3647,4 +3769,19 @@ fnGetAlive()
 			iAlive++
 	}
 	return iAlive
+}
+
+stock SortDamage()
+{
+	new First, Second, Third
+	new Float:Temp, Float:Temp1,
+	for(new i = 1; i < g_MaxPlayer; i ++)
+	{
+		if(g_Dmg[i] > g_Dmg[i+1])
+		{
+			First = i
+			Temp = max(Temp, g_Dmg[i])
+		}
+		else Temp = max(Temp, g_Dmg[i+1])
+	}
 }
