@@ -3770,18 +3770,3 @@ fnGetAlive()
 	}
 	return iAlive
 }
-
-stock SortDamage()
-{
-	new First, Second, Third
-	new Float:Temp, Float:Temp1,
-	for(new i = 1; i < g_MaxPlayer; i ++)
-	{
-		if(g_Dmg[i] > g_Dmg[i+1])
-		{
-			First = i
-			Temp = max(Temp, g_Dmg[i])
-		}
-		else Temp = max(Temp, g_Dmg[i+1])
-	}
-}

@@ -98,6 +98,7 @@ public give_weapon(id)
 	{
 		set_pev(iEntity, pev_weapons, WEAPON_THUNDERBOLT)
 		set_pev(iEntity, pev_owner, id)
+		SetWeaponAnimation(id, 1)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
 		cs_set_user_bpammo(id, CSW_AWP, 40)
 	}
@@ -115,7 +116,6 @@ public event_curweapon(id)
 	{
 		set_pev(id, pev_viewmodel2, g_WpnModel[0])
 		set_pev(id, pev_weaponmodel2, g_WpnModel[1])
-		SetWeaponAnimation(id, 2)
 	}
 }
 
@@ -127,6 +127,7 @@ public fw_Item_AddToPlayer(Ent, id)
 	if(pev(Ent, pev_weapons) == WEAPON_THUNDERBOLT)
 	{
 		set_pev(Ent, pev_owner, id)
+		SetWeaponAnimation(id, 2)
 		set_pdata_float(id, m_flNextAttack, 1.0)
 	}
 	return HAM_HANDLED
@@ -167,8 +168,7 @@ public fw_Weapon_PrimaryAttack(Ent)
 		return HAM_SUPERCEDE
 	
 	new id = pev(Ent, pev_owner)
-	Weapon_ShootLine(id)
-	Weapon_OpenFire(id, Ent)
+	Weapon_ShootLine(id, Ent)
 	set_pdata_float(Ent, m_flTimeWeaponIdle, 3.1, 5) 
 	set_pdata_float(Ent, m_flNextPrimaryAttack, 2.88, 4)
 	set_pdata_float(Ent, m_flNextSecondaryAttack, 2.88, 4)
@@ -199,7 +199,7 @@ public fw_Item_Deploy_Post(Ent)
 	return HAM_SUPERCEDE
 }
 
-public Weapon_ShootLine(id)
+public Weapon_ShootLine(id, Ent)
 {
 	if(!is_user_alive(id))
 		return
@@ -214,7 +214,7 @@ public Weapon_ShootLine(id)
 	pev(id, pev_angles, Angles)
 	
 	xs_vec_add(PlrOrg, Vec, PlrOrg)
-	velocity_by_aim(id, 800, Vec)
+	velocity_by_aim(id, 999, Vec)
 	xs_vec_add(PlrOrg, Vec, TargetOrigin)
 	
 	message_begin(MSG_BROADCAST,SVC_TEMPENTITY);
@@ -238,25 +238,15 @@ public Weapon_ShootLine(id)
 	write_byte(255);
 	message_end();
 	
-}
-
-public Weapon_OpenFire(id, Ent)
-{
 	new tr, cross, ignoredent, i, hitgroup
 	new Float:dmg = get_pcvar_float(cvar_damage)
-	new Float:vec[3], Float:start[3], Float:end[3], Float:aim[3]
-	
-	GetAimOrg(id, start)
-	velocity_by_aim(id, 998, vec)
-	xs_vec_add(start, vec, end)
-	velocity_by_aim(id, 8, vec)
 	
 	ignoredent = id
 	cross = 5
 	while (cross && dmg>0.0)
 	{
 		cross--
-		engfunc(EngFunc_TraceLine, start, end, 0, ignoredent, tr)
+		engfunc(EngFunc_TraceLine, StartOrigin, TargetOrigin, 0, ignoredent, tr)
 		if(get_tr2(tr,TR_AllSolid)) break
 		i = get_tr2(tr, TR_pHit)
 		ignoredent = i
@@ -272,7 +262,6 @@ public Weapon_OpenFire(id, Ent)
 		}
 		
 		hitgroup = get_tr2(tr,TR_iHitgroup)
-		get_tr2(tr, TR_vecEndPos, aim)
 		if(pev_valid(i) && pev(i,pev_takedamage))
 		{
 			new Float:idmg = dmg
@@ -292,6 +281,7 @@ public Weapon_OpenFire(id, Ent)
 		}
 		
 	}
+	
 }
 
 public fw_Weapon_WeaponIdle_Post(Ent)
