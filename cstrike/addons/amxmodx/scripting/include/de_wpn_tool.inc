@@ -6,8 +6,8 @@
 #define pev_gashgun pev_iuser1
 const GASHGUN_CODE = 10086
 
-//获取视角位置
-stock GetAimOrg(id, Float:origin[3])
+//获取武器位置
+stock GetWpnPos(id, Float:origin[3])
 {
 	new Float:org[3], Float:ofs[3]
 	pev(id, pev_origin, org)
@@ -32,7 +32,6 @@ stock SetWeaponAnimation(id, anim)
 
 stock make_bullet(id, Float:Origin[3])
 {
-	new decal = random_num(41, 45)
 	const loop_time = 2
 	
 	static Body, Target
@@ -41,6 +40,7 @@ stock make_bullet(id, Float:Origin[3])
 	if(is_user_connected(Target))
 		return
 	
+	new decal = random_num(41, 45)
 	for(new i = 0; i < loop_time; i++)
 	{
 		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)

@@ -16,6 +16,8 @@ stock m_flNextPrimaryAttack = 46
 stock m_flNextSecondaryAttack = 47
 stock m_flTimeWeaponIdle = 48
 stock m_LastHitGroup = 75 // int
+stock m_iWeaponState = 74 //int
+stock m_iShotsFired = 64 // int
 
 // stock m_flNextReload = 75 //float
 
@@ -24,6 +26,7 @@ stock m_iAmmoType_M4A1 = 380
 stock m_iAmmoType_XM1014 = 381
 
 //Wpn Key
+const WEAPON_INFINITY = 4000
 const WEAPON_LR300 = 6644
 const WEAPON_ETHEREAL = 6655
 const WEAPON_M4A1BLACKKNIGHT = 6666
@@ -39,6 +42,7 @@ const DE_DMG_ROCKET = 95123
 //Wpn Register
 native de_register_sp_wpn(const name[], const cost)
 native de_register_gash_wpn(const name[], const cost)
+native de_register_second_wpn(const name[], const lvneed)
 native de_register_item(const name[], const info[])
 native de_register_shop_item(const name[], const price, const max)
 native de_set_user_nightvision(const id, const set)
