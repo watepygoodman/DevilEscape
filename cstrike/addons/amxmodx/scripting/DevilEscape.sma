@@ -33,9 +33,8 @@ log:
 
 ================== */
 
-#define bit_id (id-1)
 #define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
-#define is_user_valid_connected(%1) (1 <= %1 <= g_MaxPlayer && get_bit(g_isConnect, %1-1))
+#define is_user_valid_connected(%1) (1 <= %1 <= g_MaxPlayer && get_bit(g_isConnect, %1))
 
 #define Game_Description "[魔王 Alpha]"
 
@@ -271,23 +270,26 @@ new Array:g_SpWpn_Name
 new Array:g_SpWpn_Price
 new Array:g_GashWpn_Name
 new Array:g_GashWpn_Price
+new Array:g_SecondWpn_Name
+new Array:g_SecondWpn_Lv
 new Array:g_Item_Name
 new Array:g_Item_Info
 new Array:g_Shop_Item_Name
 new Array:g_Shop_Item_Price
 new Array:g_Shop_Item_Max
 
-new g_SpWpn_Num, g_GashWpn_Num, g_Item_Num, g_Shop_Item_Num
+new g_SpWpn_Num, g_GashWpn_Num, g_SecondWpn_Num, g_Item_Num, g_Shop_Item_Num
 
 new g_Shop_Item_Times[33][32]
 
 //Forward Handles
-new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwItemSelect, g_fwShopItemSelect, g_fwDummyResult
+new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwSecondWpnSelect, g_fwItemSelect, g_fwShopItemSelect, g_fwDummyResult
 
 public plugin_natives()
 {
 	register_native("de_register_sp_wpn", "native_register_sp_wpn", 1)
 	register_native("de_register_gash_wpn", "native_register_gash_wpn", 1)
+	register_native("de_register_second_wpn", "native_register_second_wpn", 1)
 	register_native("de_register_item", "native_register_item", 1)
 	register_native("de_register_shop_item", "native_register_shop_item", 1)
 	register_native("de_set_user_nightvision", "native_set_user_nightvision", 1)
@@ -338,12 +340,14 @@ public plugin_precache()
 	//Array
 	g_SpWpn_Name = ArrayCreate(32, 1)
 	g_GashWpn_Name = ArrayCreate(32, 1)
+	g_SecondWpn_Name = ArrayCreate(32, 1)
 	g_Item_Name = ArrayCreate(32, 1)
 	g_Item_Info = ArrayCreate(64, 1)
 	g_Shop_Item_Name = ArrayCreate(32, 1)
 	
 	g_SpWpn_Price = ArrayCreate(1, 1)
 	g_GashWpn_Price = ArrayCreate(1, 1)
+	g_SecondWpn_Lv = ArrayCreate(1, 1)
 	g_Shop_Item_Price = ArrayCreate(1, 1)
 	g_Shop_Item_Max = ArrayCreate(1, 1)
 	
@@ -501,6 +505,7 @@ public plugin_init()
 	//Multi Forward
 	g_fwSpWpnSelect = CreateMultiForward("de_spwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwGashWpnSelect = CreateMultiForward("de_gashwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
+	g_fwSecondWpnSelect = CreateMultiForward("de_secondwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwItemSelect = CreateMultiForward("de_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwShopItemSelect = CreateMultiForward("de_shop_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	//Vars
@@ -648,28 +653,28 @@ public event_shoot(id)
 		get_user_origin(id, vec2, 4);
 		if(weapon==CSW_M3 || weapon==CSW_XM1014)
 		{
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 
 			vec2[0]+=SHOTGUN_AIMING;
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 			vec2[1]+=SHOTGUN_AIMING;
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 			vec2[2]+=SHOTGUN_AIMING;
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 			vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[0]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 			vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[1]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
 			vec2[2]-=SHOTGUN_AIMING; // Repeated substraction is faster then multiplication !
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 		}
 		else
-			msg_trace(vec1,vec2,get_bit(g_isCrit, bit_id));
+			msg_trace(vec1,vec2,get_bit(g_isCrit, id));
 		g_UsersAmmo[id]=ammo;
-		if(get_bit(g_isCrit, bit_id))
+		if(get_bit(g_isCrit, id))
 			engfunc(EngFunc_EmitSound,id, CHAN_STATIC, snd_crit_shoot, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
     }
 	else
@@ -740,7 +745,7 @@ public fw_PlayerSpawn_Post(id)
 	set_user_gravity(id, 1.0-get_pcvar_float(cvar_AbilityGraAdd)*g_Abi_Gra[id])
 	fm_set_user_health(id, 100+g_Abi_Hea[id]*get_pcvar_num(cvar_AbilityHeaAdd))
 	
-	set_bit(g_isAlive, bit_id)
+	set_bit(g_isAlive, id)
 	new Float:test[3]
 	pev(id, pev_origin, test)
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
@@ -750,7 +755,7 @@ public fw_PlayerSpawn_Post(id)
 
 public fw_PlayerKilled(victim, attacker, shouldgib)
 {
-	delete_bit(g_isAlive, victim-1)
+	delete_bit(g_isAlive, victim)
 	set_task(0.1, "task_spec_nvision", victim+TASK_SPEC_NVISION)
 	
 	if(victim == attacker || !is_user_alive(attacker))
@@ -792,15 +797,15 @@ public fw_PlayerPreThink(id)
 		fw_SemiClipThink()
 	LastSemiThink = id
 	
-	if(get_bit(g_isSolid, bit_id))
+	if(get_bit(g_isSolid, id))
 	{
 		for(new i = 1; i <= g_MaxPlayer; i++)
 		{
-			if(!get_bit(g_isSolid, i-1) || id == i) continue
+			if(!get_bit(g_isSolid, i) || id == i) continue
 			if(g_PlayerTeam[id] == g_PlayerTeam[i])
 			{
 				set_pev(i, pev_solid, SOLID_NOT)
-				set_bit(g_isSemiclip, i-1)
+				set_bit(g_isSemiclip, i)
 			}
 		}
 	}
@@ -814,10 +819,10 @@ public fw_PlayerPostThink(id)
 	static plr
 	for(plr = 1; plr<= g_MaxPlayer; plr++)
 	{
-		if(get_bit(g_isSemiclip, plr-1))
+		if(get_bit(g_isSemiclip, plr))
 		{
 			set_pev(plr, pev_solid, SOLID_SLIDEBOX)
-			delete_bit(g_isSemiclip, plr-1)
+			delete_bit(g_isSemiclip, plr)
 		}
 	}
 }
@@ -828,13 +833,13 @@ public fw_SemiClipThink()
 	{
 		if(!is_user_alive(i))
 		{
-			delete_bit(g_isSolid, i-1)
+			delete_bit(g_isSolid, i)
 			continue
 		}
 		
 		if(pev(i, pev_solid) == SOLID_SLIDEBOX) 
-			set_bit(g_isSolid, i-1)
-		else delete_bit(g_isSolid, i-1)
+			set_bit(g_isSolid, i)
+		else delete_bit(g_isSolid, i)
 		
 		pev(i, pev_origin, g_PlayerOrg[i])
 	}
@@ -867,14 +872,14 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	TrueDamage =  TrueDamage * (1.0 + g_Abi_Str[attacker]*get_pcvar_float(cvar_AbilityStrAdd))
 	
 	//Crit
-	if(get_bit(g_isCrit, attacker-1))
+	if(get_bit(g_isCrit, attacker))
 	{
 		TrueDamage *= get_pcvar_float(cvar_HumanCritMulti)
 		msg_create_crit(attacker,victim,1)
 	}
 	
 	//MiniCrit
-	else if(get_bit(g_isMiniCrit, attacker-1))
+	else if(get_bit(g_isMiniCrit, attacker))
 	{
 		TrueDamage *= get_pcvar_float(cvar_HumanMiniCritMulti)
 		msg_create_crit(attacker,victim,2)
@@ -988,7 +993,7 @@ public fw_TouchWeapon(weapon, id)
 //Disconnect
 public fw_ClientDisconnect(id)
 {
-	delete_bit(g_isConnect, bit_id)
+	delete_bit(g_isConnect, id)
 	g_Online --
 	if(!g_Online)
 		g_RoundNeedStart = true
@@ -1066,12 +1071,12 @@ public fw_ClientCommand(id)
 	read_argv(1, szText, charsmax(szText));
 	
 	//未登录时
-	if(!get_bit(g_isLogin, bit_id))
+	if(!get_bit(g_isLogin, id))
 	{
 		if(!strcmp(szCommand, "say"))
 		{
 			//注册与登录
-			if(!get_bit(g_isRegister, bit_id))
+			if(!get_bit(g_isRegister, id))
 				gm_user_register(id, szText);
 			else
 				gm_user_login(id, szText);
@@ -1084,10 +1089,10 @@ public fw_ClientCommand(id)
 		if(equal(szText, "/pwchange"))
 		{
 			set_task(1.0, "task_pw_change", id+TASK_PWCHANGE, _, _, "b")
-			set_bit(g_isChangingPW, bit_id)
+			set_bit(g_isChangingPW, id)
 			return FMRES_SUPERCEDE;
 		}
-		if(get_bit(g_isChangingPW, bit_id))
+		if(get_bit(g_isChangingPW, id))
 		{
 			gm_user_register(id, szText)
 			return FMRES_SUPERCEDE;
@@ -1125,7 +1130,7 @@ public fw_ClientCommand(id)
 		if (team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
 			return FMRES_IGNORED;
 		
-		if(get_bit(g_isLogin,bit_id))
+		if(get_bit(g_isLogin,id))
 			show_menu_main(id)
 		
 		return FMRES_SUPERCEDE;
@@ -1133,9 +1138,9 @@ public fw_ClientCommand(id)
 	
 	if(!strcmp(szCommand, "nightvision"))
 	{
-		if(get_bit(g_hasNvision, bit_id))
+		if(get_bit(g_hasNvision, id))
 		{
-			if(get_bit(g_isNvision, bit_id)) native_set_user_nightvision(id, 0)
+			if(get_bit(g_isNvision, id)) native_set_user_nightvision(id, 0)
 			else native_set_user_nightvision(id, 1)
 		}
 	}
@@ -1147,7 +1152,7 @@ public fw_AddToFullPack_Post(es, e, ent, host, hostflags, player, pSet)
 {
 	if(player)
 	{
-		if(get_bit(g_isSolid, host-1) && get_bit(g_isSolid, ent-1) && g_PlayerTeam[host] == g_PlayerTeam[ent])
+		if(get_bit(g_isSolid, host) && get_bit(g_isSolid, ent) && g_PlayerTeam[host] == g_PlayerTeam[ent])
 		{
 			if(get_distance_f(g_PlayerOrg[host], g_PlayerOrg[ent]) <= 200.0)
 			{
@@ -1163,7 +1168,7 @@ public fw_AddToFullPack_Post(es, e, ent, host, hostflags, player, pSet)
 public fw_ClientUserInfoChanged(id)
 {
 	//玩家是否使用自定义模型
-	if(!get_bit(g_isModeled, bit_id))
+	if(!get_bit(g_isModeled, id))
 		return FMRES_IGNORED;
 	
 	static RightModel[32]
@@ -1178,7 +1183,7 @@ public fw_ClientUserInfoChanged(id)
 public fw_SetClientKeyValue(id, const infobuffer[], const key[])
 {
 	// 阻止CS换模型
-	if (get_bit(g_isModeled, bit_id) && equal(key, "model"))
+	if (get_bit(g_isModeled, id) && equal(key, "model"))
 		return FMRES_SUPERCEDE;
 	
 	return FMRES_IGNORED;
@@ -1205,7 +1210,7 @@ public client_putinserver(id)
 		g_RoundNeedStart = false
 	}
 	
-	set_bit(g_isConnect, bit_id)
+	set_bit(g_isConnect, id)
 	g_Online ++
 	
 	if(is_user_bot(id))
@@ -1214,15 +1219,15 @@ public client_putinserver(id)
 			set_task(0.1, "task_bots_ham", id+TASK_BOTHAM)
 		
 		//强行登陆
-		set_bit(g_isRegister, bit_id)
-		set_bit(g_isLogin, bit_id)
+		set_bit(g_isRegister, id)
+		set_bit(g_isLogin, id)
 		return
 	}
 	
 	g_LoginTime[id] = get_pcvar_num(cvar_LoginTime)
 	g_LoginRetry[id] = 0
-	delete_bit(g_isRegister, bit_id)
-	delete_bit(g_isLogin, bit_id)
+	delete_bit(g_isRegister, id)
+	delete_bit(g_isLogin, id)
 	gm_user_load(id)
 	set_task(1.0, "task_user_login", id+TASK_USERLOGIN, _, _, "b")
 }
@@ -1308,7 +1313,7 @@ public task_balance()
 	new team
 	for(new id = 1; id <= g_MaxPlayer; id++)
 	{
-		if(!get_bit(g_isConnect, bit_id))
+		if(!get_bit(g_isConnect, id))
 			continue
 		
 		team = fm_cs_get_user_team(id)
@@ -1340,7 +1345,7 @@ public task_showhud(id)
 {
 	id -= TASK_SHOWHUD
 	
-	if(!get_bit(g_isAlive, bit_id))
+	if(!get_bit(g_isAlive, id))
 	{
 		static specid
 		specid = pev(id, pev_iuser2)
@@ -1384,13 +1389,13 @@ public task_user_login(id)
 	g_LoginTime[id] --
 	msg_screen_fade(id, 0, 0, 0, 255)
 	
-	if(get_bit(g_isLogin, bit_id))
+	if(get_bit(g_isLogin, id))
 	{
 		msg_screen_fade(id, 255, 255, 255, 0)
 		remove_task(id+TASK_USERLOGIN)
 	}
 	
-	if(!get_bit(g_isRegister, bit_id))
+	if(!get_bit(g_isRegister, id))
 	{
 		set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_NO_REGISTER", g_LoginTime[id])
@@ -1424,7 +1429,7 @@ public task_pw_change(id)
 	msg_screen_fade(id, 0, 0, 0, 255)
 	set_hudmessage(25, 255, 25, -1.0, -1.0, 1, 1.0, 1.0, 1.0, 1.0, 0)
 	ShowSyncHudMsg(id, g_Hud_Center, "%L", LANG_PLAYER, "HUD_CHANGING_PW")
-	if(!get_bit(g_isChangingPW, bit_id))
+	if(!get_bit(g_isChangingPW, id))
 	{
 		msg_screen_fade(id, 255, 255, 255, 0)
 		remove_task(id+TASK_PWCHANGE)
@@ -1435,7 +1440,7 @@ public task_pw_change(id)
 public task_bots_ham(id)
 {
 	id-=TASK_BOTHAM
-	if (!get_bit(g_isConnect, bit_id) || g_hasBot)
+	if (!get_bit(g_isConnect, id) || g_hasBot)
 		return;
 	
 	RegisterHamFromEntity(Ham_Spawn, id, "fw_PlayerSpawn_Post", 1)
@@ -1489,7 +1494,7 @@ public task_godmode_light()
 
 public task_longjump_off()
 {
-	delete_bit(g_isNoDamage, g_whoBoss-1)
+	delete_bit(g_isNoDamage, g_whoBoss)
 	fm_set_rendering(g_whoBoss,kRenderFxNone, 0,0,0, kRenderNormal, 0)
 	set_pev(g_whoBoss, pev_takedamage, 2.0)
 }
@@ -1497,7 +1502,7 @@ public task_longjump_off()
 public task_godmode_off()
 {
 	set_pev(g_whoBoss, pev_takedamage, 2.0)
-	delete_bit(g_isNoDamage, g_whoBoss-1)
+	delete_bit(g_isNoDamage, g_whoBoss)
 	fm_set_rendering(g_whoBoss,kRenderFxNone, 0,0,0, kRenderNormal, 0)
 	remove_task( TASK_GODMODE_LIGHT )
 }
@@ -1558,7 +1563,7 @@ public task_spec_nvision(id)
 {
 	id -= TASK_SPEC_NVISION
 	
-	if(!is_user_valid_connected(id) || get_bit(g_isAlive, bit_id) || is_user_bot(id))
+	if(!is_user_valid_connected(id) || get_bit(g_isAlive, id) || is_user_bot(id))
 		return;
 	
 	native_set_user_nightvision(id, 1)
@@ -1575,13 +1580,13 @@ public func_critical(taskid)
 	if(g_whoBoss == id)
 	{
 		remove_task(taskid)
-		delete_bit(g_isCrit, bit_id)
+		delete_bit(g_isCrit, id)
 		return;
 	}
 	
-	if(get_bit(g_isCrit, bit_id))
+	if(get_bit(g_isCrit, id))
 	{
-		delete_bit(g_isCrit, bit_id)
+		delete_bit(g_isCrit, id)
 		func_critical(id)
 		return;
 	}
@@ -1590,7 +1595,7 @@ public func_critical(taskid)
 	
 	if(percent <= get_pcvar_num(cvar_HumanCritPercent))
 	{
-		set_bit(g_isCrit, bit_id)
+		set_bit(g_isCrit, id)
 		set_task(1.0,"func_critical",id+TASK_CRITICAL)
 		return;
 	}
@@ -1740,7 +1745,7 @@ public menu_weapon_free(id, key)
 		}
 		return PLUGIN_HANDLED
 	}
-	if(get_bit(g_isBuyWpnMain, bit_id))
+	if(get_bit(g_isBuyWpnMain, id))
 	{
 		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		return PLUGIN_HANDLED
@@ -1775,7 +1780,7 @@ public menu_weapon_free(id, key)
 		args[0] = g_WpnFreeSec_CSW[key]
 	}
 	task_refill_bpammo(args[0], id)
-	set_bit(g_isBuyWpnMain, bit_id)
+	set_bit(g_isBuyWpnMain, id)
 	g_Menu_WpnFree_Page[id] = 0;
 	
 	return PLUGIN_HANDLED
@@ -1830,7 +1835,7 @@ public menu_weapon_gash(id, menu, item)
 		return PLUGIN_HANDLED;
 	}
 	
-	if(get_bit(g_isBuyWpnMain, bit_id))
+	if(get_bit(g_isBuyWpnMain, id))
 	{
 		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		menu_destroy(menu);
@@ -1853,7 +1858,7 @@ public menu_weapon_gash(id, menu, item)
 	new buffer[32]
 	ArrayGetString(g_GashWpn_Name, key-1, buffer, charsmax(buffer))
 	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
-	set_bit(g_isBuyWpnMain, bit_id)
+	set_bit(g_isBuyWpnMain, id)
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
 	
@@ -1912,7 +1917,7 @@ public menu_weapon_special(id, menu, item)
 		return PLUGIN_HANDLED;
 	}
 	
-	if(get_bit(g_isBuyWpnMain, bit_id))
+	if(get_bit(g_isBuyWpnMain, id))
 	{
 		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		menu_destroy(menu);
@@ -1935,7 +1940,7 @@ public menu_weapon_special(id, menu, item)
 	new buffer[32]
 	ArrayGetString(g_SpWpn_Name, key-1, buffer, charsmax(buffer))
 	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
-	set_bit(g_isBuyWpnMain, bit_id)
+	set_bit(g_isBuyWpnMain, id)
 	// task_refill_bpammo(args[0], id)
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -1951,9 +1956,14 @@ public show_menu_weapon_second(id)
 	}
 	
 	new Menu[60],Len;
+	new WpnName[32]
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON_SECOND")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \wUSP^n")
+	for(new i = 0; i < g_SecondWpn_Num; i++)
+	{
+		ArrayGetString(g_SecondWpn_Name, i, WpnName, charsmax(WpnName))
+		Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r%d. \w%s \dLv.%d^n", i+1, WpnName, ArrayGetCell(g_SecondWpn_Lv, i))
+	}
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id,KEYSMENU,Menu,-1,"WeaponSecond Menu")
 	
@@ -1968,23 +1978,18 @@ public menu_weapon_second(id, key)
 		return PLUGIN_HANDLED;
 	}
 	
-	if(get_bit(g_isBuyWpnSec, bit_id))
+	if(get_bit(g_isBuyWpnSec, id))
 	{
 		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_SEC_WPN");
 		return PLUGIN_HANDLED
 	}
-	
-	new args[1]
-	switch(key)
+	if(g_Level[id] >= ArrayGetCell(g_SecondWpn_Lv, key))
 	{
-		case 0: {
-			args[0] = CSW_USP
-			fm_give_item(id, "weapon_usp")
-		}
+		set_bit(g_isBuyWpnSec, id)
+		ExecuteForward(g_fwSecondWpnSelect, g_fwDummyResult, id, key)
 	}
-	
-	task_refill_bpammo(args[0], id)
-	set_bit(g_isBuyWpnSec, bit_id)
+	else
+		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
 	
 	return PLUGIN_HANDLED
 }
@@ -2586,7 +2591,7 @@ public show_menu_plrlist(id)
 	new Count, PlrName[28], Char_Count[3]
 	for(new i = 1; i < g_MaxPlayer; i++)
 	{
-		if(!get_bit(g_isConnect, i-1))
+		if(!get_bit(g_isConnect, i))
 			continue;
 		
 		get_user_name(i, PlrName, charsmax(PlrName))
@@ -2730,7 +2735,7 @@ public menu_convert(id, key)
 gm_choose_boss()
 {
 	new id
-	while(!is_user_alive(id) || !get_bit(g_isConnect, bit_id))
+	while(!is_user_alive(id) || !get_bit(g_isConnect, id))
 		id = random_num(1, g_MaxPlayer)
 	
 	return id
@@ -2801,7 +2806,7 @@ gm_user_register(id, const password[])
 	}
 	
 	//重要的事情说三遍
-	if(get_bit(g_isChangingPW, bit_id))
+	if(get_bit(g_isChangingPW, id))
 	{
 		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
 		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
@@ -2814,8 +2819,8 @@ gm_user_register(id, const password[])
 		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
 	}
 	msg_change_team_info(id, iteam)
-	set_bit(g_isRegister, bit_id)
-	delete_bit(g_isChangingPW, bit_id)
+	set_bit(g_isRegister, id)
+	delete_bit(g_isChangingPW, id)
 	
 	//储存密码
 	new szFileDir[128], szUserName[32];
@@ -2837,7 +2842,7 @@ gm_user_login(id, const password[])
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		set_bit(g_isLogin, bit_id)
+		set_bit(g_isLogin, id)
 		client_cmd(id, "chooseteam")
 		set_task(get_pcvar_float(cvar_AutosaveTime), "task_autosave", id+TASK_AUTOSAVE, _, _, "b")
 	}
@@ -2934,7 +2939,7 @@ gm_user_load(id)
 	if(!kv_is_empty(kv))
 	{
 		kv_get_string(kv, "Password", g_PlayerPswd[id], 11)
-		set_bit(g_isRegister, bit_id)
+		set_bit(g_isRegister, id)
 	}
 	
 	new sta = kv_find_key(kv, "Status")
@@ -3118,7 +3123,7 @@ public msg_vgui_menu(msgid, dest, id)
 
 public menu_team_select(id, key)
 {
-	if(!get_bit(g_isLogin, bit_id))
+	if(!get_bit(g_isLogin, id))
 	return PLUGIN_HANDLED;
 	switch(key)
 	{
@@ -3151,7 +3156,7 @@ public bossskill_longjump()
 	velocity[2] = get_pcvar_float(cvar_DevilLongjumpDistance)
 	set_pev(g_whoBoss, pev_velocity, velocity)
 	engfunc(EngFunc_EmitSound, g_whoBoss, CHAN_VOICE, snd_boss_ljump, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-	set_bit(g_isNoDamage, g_whoBoss-1)
+	set_bit(g_isNoDamage, g_whoBoss)
 	set_pev(g_whoBoss, pev_takedamage, 0.0)
 	fm_set_rendering(g_whoBoss,kRenderFxGlowShell, 255, 25, 25, kRenderNormal, 32);
 	set_task(1.0, "task_longjump_off")
@@ -3235,7 +3240,7 @@ public bossskill_godmode()
 		return 0
 	
 	set_pev(g_whoBoss, pev_takedamage, 0.0)
-	set_bit(g_isNoDamage, g_whoBoss-1)
+	set_bit(g_isNoDamage, g_whoBoss)
 	fm_set_rendering(g_whoBoss,kRenderFxGlowShell,250,0,0, kRenderNormal);
 	set_task(0.1, "task_godmode_light", TASK_GODMODE_LIGHT, _, _, "b")
 	set_task(get_pcvar_float(cvar_DevilGodTime), "task_godmode_off", TASK_GODMODE_OFF)
@@ -3270,12 +3275,6 @@ public bossskill_disappear()
 
 public native_register_sp_wpn(const name[], const cost)
 {
-	if(g_SpWpn_Num > ArraySize(g_SpWpn_Name))
-	{
-		server_print("警告:%s(WID:%d)超出数组界限", name, g_SpWpn_Num-1)
-		return -1
-	}
-	
 	param_convert(1)
 	ArrayPushString(g_SpWpn_Name, name)
 	ArrayPushCell(g_SpWpn_Price, cost)
@@ -3285,11 +3284,6 @@ public native_register_sp_wpn(const name[], const cost)
 
 public native_register_gash_wpn(const name[], const cost)
 {
-	if(g_GashWpn_Num > ArraySize(g_GashWpn_Name))
-	{
-		server_print("警告:%s(WID:%d)超出数组界限", name, g_GashWpn_Num-1)
-		return -1
-	}
 	param_convert(1)
 	ArrayPushString(g_GashWpn_Name, name)
 	ArrayPushCell(g_GashWpn_Price, cost)
@@ -3298,13 +3292,18 @@ public native_register_gash_wpn(const name[], const cost)
 	return g_GashWpn_Num-1
 }
 
+public native_register_second_wpn(const name[], const lvneed)
+{
+	param_convert(1)
+	ArrayPushString(g_SecondWpn_Name, name)
+	ArrayPushCell(g_SecondWpn_Lv, lvneed)
+	
+	g_SecondWpn_Num++
+	return g_SecondWpn_Num-1
+}
+
 public native_register_item(const name[], const info[])
 {
-	if(g_Item_Num > ArraySize(g_Item_Name))
-	{
-		server_print("警告:%s(Item ID:%d)超出数组界限", name, g_Item_Num-1)
-		return -1
-	}
 	param_convert(1)
 	param_convert(2)
 	ArrayPushString(g_Item_Name, name)
@@ -3316,11 +3315,6 @@ public native_register_item(const name[], const info[])
 
 public native_register_shop_item(const name[], const price, const max)
 {
-	if(g_Shop_Item_Num > ArraySize(g_Shop_Item_Name))
-	{
-		server_print("警告:%s(Item ID:%d)超出数组界限", name, g_Shop_Item_Num-1)
-		return -1
-	}
 	param_convert(1)
 	ArrayPushString(g_Shop_Item_Name, name)
 	ArrayPushCell(g_Shop_Item_Price, price)
@@ -3334,17 +3328,18 @@ public native_set_user_nightvision(id, set)
 {
 	if(set)
 	{
-		set_bit(g_hasNvision, bit_id)
-		set_bit(g_isNvision, bit_id)
+		set_bit(g_hasNvision, id)
+		set_bit(g_isNvision, id)
 		remove_task(id+TASK_NVISION)
 		set_task(0.1, "task_set_user_nvision", id+TASK_NVISION, _, _, "b")
 	}
 	else
 	{
 		remove_task(id + TASK_NVISION)
-		delete_bit(g_isNvision, bit_id)
+		delete_bit(g_isNvision, id)
 	}
 }
+
 
 /* public native_get_sp_wpn_id(const name[])
 {
@@ -3401,7 +3396,7 @@ stock fm_cs_set_user_team_msg(id)
 
 stock fm_set_user_health(id, health)
 {
-	if(get_bit(g_isConnect, bit_id))
+	if(get_bit(g_isConnect, id))
 		(health > 0 ) ? set_pev(id, pev_health, float(health)) : dllfunc(DLLFunc_ClientKill, id);
 	else return;
 }
@@ -3415,7 +3410,7 @@ stock fm_cs_set_user_model(id, const model[])
 //设定模型2
 stock fm_set_user_model(id, const model[])
 {
-	set_bit(g_isModeled, bit_id)
+	set_bit(g_isModeled, id)
 	engfunc(EngFunc_SetClientKeyValue, id, engfunc(EngFunc_GetInfoKeyBuffer, id), "model", model)
 	copy(g_PlayerModel[id], sizeof g_PlayerModel[] - 1, model)
 	
@@ -3427,10 +3422,11 @@ stock fm_set_user_model(id, const model[])
 //重置模型
 stock fm_reset_user_model(id)
 {
-	if (!get_bit(g_isConnect, bit_id))
+	if (!get_bit(g_isConnect, id))
 		return
 
-	delete_bit(g_isModeled, bit_id)
+	delete_bit(g_isModeled, id)
+	delete_bit(g_isModeled, id)
 	dllfunc(DLLFunc_ClientUserInfoChanged, id, engfunc(EngFunc_GetInfoKeyBuffer, id))
 }
 
@@ -3679,7 +3675,7 @@ stock client_color_print(target,  const message[], any:...)
 		for (player = 1; player <= g_MaxPlayer; player++)
 		{
 			// 断线
-			if (!get_bit(g_isConnect, player-1))
+			if (!get_bit(g_isConnect, player))
 				continue;
 			
 			// 记住变化的变量

@@ -159,10 +159,14 @@ public fw_Weapon_PrimaryAttack(Ent)
 	if(pev(Ent, pev_weapons) != WEAPON_SALAMANDER)
 		return HAM_IGNORED
 	
-	new iClip = get_pdata_int(Ent, m_iClip, 4)
-	if (!iClip) return HAM_IGNORED
-	
 	new id = pev(Ent, pev_owner)
+	new iClip = get_pdata_int(Ent, m_iClip, 4)
+	if (!iClip) 
+	{
+		g_isFiring[id] = false
+		return HAM_SUPERCEDE
+	}
+	
 	remove_task(id+TASK_STOPFIRE)
 	set_pdata_float(Ent, m_flTimeWeaponIdle, 1.0, 5) 
 	set_pdata_float(Ent, m_flNextPrimaryAttack, 0.12, 4)
@@ -223,6 +227,8 @@ public fw_Weapon_Reload(Ent)
 	
 	if(iClip >= get_pcvar_num(cvar_clip) || !get_pdata_int(id, m_iAmmoType_M249))
 		return HAM_SUPERCEDE
+	
+	g_isFiring[id] = false
 	
 	if(iClip == 100) //Bug
 	{

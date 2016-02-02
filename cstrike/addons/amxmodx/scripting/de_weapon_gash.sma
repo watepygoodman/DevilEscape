@@ -266,10 +266,9 @@ public fw_TraceAttack(ent, attacker, Float:Damage, Float:fDir[3], ptr, iDamageTy
 	if(pev(Ent, pev_gashgun) != GASHGUN_CODE)
 		return HAM_IGNORED
 	
-	static Float:flEnd[3], Float:vecPlane[3]
+	static Float:flEnd[3]
 	
 	get_tr2(ptr, TR_vecEndPos, flEnd)
-	get_tr2(ptr, TR_vecPlaneNormal, vecPlane)
 	
 	if(!is_user_alive(ent))
 		make_bullet(attacker, flEnd)
