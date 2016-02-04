@@ -33,7 +33,6 @@ log:
 
 ================== */
 
-#define g_NeedXp[%1] (g_Level[%1]*g_Level[%1]*100)
 #define is_user_valid_connected(%1) (1 <= %1 <= g_MaxPlayer && get_bit(g_isConnect, %1))
 
 #define Game_Description "[魔王 Alpha]"
@@ -205,6 +204,7 @@ new g_Level[33];
 new g_Coin[33];
 new g_Gash[33];
 new g_Xp[33];
+new g_NeedXp[33];
 new g_Sp[33];
 new g_Abi_Hea[33]
 new g_Abi_Str[33];
@@ -441,7 +441,6 @@ public plugin_init()
 	register_dictionary("devilescape.txt");
 	
 	//Menu
-	register_menu("Main Menu", KEYSMENU, "menu_main")
 	register_menu("Ability Menu", KEYSMENU, "menu_ability")
 	register_menu("Skill Menu", KEYSMENU, "menu_skill")
 	register_menu("Bossskill Menu", KEYSMENU, "menu_bossskill")
@@ -781,6 +780,7 @@ public fw_PlayerPreThink(id)
 		while(g_Xp[id] >= g_NeedXp[id])
 		{
 			g_Xp[id] -= g_NeedXp[id]
+			g_NeedXp[id] = ((200 +(g_Level[id] - 1)*200) * (g_Level[id]-1) / 2 + 100)
 			g_Level[id] ++
 			g_Sp[id] += get_pcvar_num(cvar_SpPreLv)
 		}
@@ -1608,38 +1608,63 @@ public func_critical(taskid)
 			 Menu
 			 
 ===================== */
+
 public show_menu_main(id)
 {
-	new Menu[256],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, Game_Description)
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_WEAPON")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_ABILITY")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_PACK")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n", id, "MENU_EQUIP")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w%L^n", id, "MENU_SHOP")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r6. \y%L^n", id, "MENU_CONVERT")
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r9. \w%L^n", id, "MENU_ADMIN")
+	new Menuitem[32], Menu
+	formatex(Menuitem, charsmax(Menuitem), Game_Description)
+	Menu = menu_create(Menuitem, "menu_main")
 	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_WEAPON")
+	menu_additem(Menu, Menuitem, "1")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_ABILITY")
+	menu_additem(Menu, Menuitem, "2")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_PACK")
+	menu_additem(Menu, Menuitem, "3")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EQUIP")
+	menu_additem(Menu, Menuitem, "4")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_SHOP")
+	menu_additem(Menu, Menuitem, "5")
+	formatex(Menuitem, charsmax(Menuitem), "\y%L", LANG_PLAYER, "MENU_CONVERT")
+	menu_additem(Menu, Menuitem, "6")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_ADMIN")
+	menu_additem(Menu, Menuitem, "7")
 	
-	show_menu(id, KEYSMENU, Menu, -1, "Main Menu")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+	
 	return PLUGIN_HANDLED
 }
 
-public menu_main(id, key)
+public menu_main(id, menu, item)
 {
-	switch(key)
+	if( item == MENU_EXIT )
 	{
-		case 0: show_menu_weapon(id)
-		case 1: show_menu_ability(id)
-		case 2: show_menu_pack(id)
-		case 3: show_menu_equip(id)
-		case 4: show_menu_shop(id)
-		case 5: show_menu_convert(id)
-		case 8: show_menu_admin(id)
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
 	}
 	
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	new key = str_to_num(data);
+
+	switch(key)
+	{
+		case 1: show_menu_weapon(id)
+		case 2: show_menu_ability(id)
+		case 3: show_menu_pack(id)
+		case 4: show_menu_equip(id)
+		case 5: show_menu_shop(id)
+		case 6: show_menu_convert(id)
+		case 7: show_menu_admin(id)
+	}
+	menu_destroy(menu);
 	return PLUGIN_HANDLED;
 }
 
@@ -2946,6 +2971,8 @@ gm_user_load(id)
 	g_Sp[id] = kv_get_int(sta, "Sp"); g_Level[id] = kv_get_int(sta, "Level")
 	g_Coin[id] = kv_get_int(sta, "Coin"); g_Gash[id] = kv_get_int(sta, "Gash")
 	g_Xp[id] = kv_get_int(sta, "Xp")
+	
+	g_NeedXp[id] = ((200 +(g_Level[id] - 1)*200) * (g_Level[id]-1) / 2 + 100)
 	
 	new abi = kv_find_key(kv, "Ability")
 	g_Abi_Hea[id] = kv_get_int(abi, "Hea"); g_Abi_Agi[id] = kv_get_int(abi, "Agi")
