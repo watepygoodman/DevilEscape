@@ -74,7 +74,7 @@ enum(+= 66)
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
 	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF,TASK_CRITICAL, TASK_SCARE_OFF, 
 	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO, TASK_NVISION, TASK_RANK,
-	TASK_SPEC_NVISION
+	TASK_SPEC_NVISION, TASK_TIPS
 }
 
 enum{
@@ -84,7 +84,8 @@ enum{
 }
 
 enum(+=10){
-	ADMIN_SELECT_BOSS = 32, ADMIN_GIVE, ADMIN_GIVE_COIN, ADMIN_GIVE_GASH, ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL = 82
+	ADMIN_SELECT_BOSS = 32, ADMIN_GIVE, ADMIN_GIVE_COIN, ADMIN_GIVE_GASH, 
+	ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL = 82
 }
 
 new const g_RemoveEnt[][] = {
@@ -94,6 +95,10 @@ new const g_RemoveEnt[][] = {
 
 //资源
 new const mdl_player_devil1[] = "models/player/devil1/devil1.mdl"
+new const mdl_player_billy[] = "models/player/billy/billy.mdl"
+new const mdl_player_BRS[] = "models/player/BRS/BRS.mdl"
+new const mdl_player_ezio[] = "models/player/ezio/ezio.mdl"
+new const mdl_player_mcdonald[] = "models/player/mcdonald/mcdonald.mdl"
 
 new const mdl_v_devil1[] = "models/v_devil_hand1.mdl"
 
@@ -163,7 +168,8 @@ cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCrit
 cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMax, cvar_AbilityAgiMax, cvar_AbilityStrMax, cvar_AbilityGraMax,
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_WpnLvMax, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
-cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin, cvar_ItemOpen, cvar_NvgColor_Human[3], cvar_NvgColor_Boss[3]
+cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin, cvar_ItemOpen, cvar_NvgColor_Human[3], cvar_NvgColor_Boss[3],
+cvar_ComboAddDmg, cvar_BossComboGetCoin, cvar_BossComboGetXp
 
 // new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
 
@@ -215,6 +221,10 @@ new g_Pack[33][MAX_PACKSLOT+1];
 new g_Pack_Select[33]
 new bool:g_Pack_SpWpn[33][32];
 new bool:g_Pack_GashWpn[33][32]
+new bool:g_Pack_Character[33][32]
+
+new g_Choosed_Character[33]
+new g_Using_Character[33]
 
 new g_WpnXp[33][31]	//武器熟练度经验 1-30 P228-P90
 new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
@@ -222,6 +232,8 @@ new g_WpnLv[33][31]	//武器熟练度等级 1-30 P228-P90
 new Float:g_Dmg[33];
 new Float:g_DmgDealt[33]
 new Float:g_AttackCooldown[33];
+
+new g_Combo[33];
 new g_BossMana;
 new g_LoginTime[33];
 new g_LoginRetry[33];
@@ -277,13 +289,19 @@ new Array:g_Item_Info
 new Array:g_Shop_Item_Name
 new Array:g_Shop_Item_Price
 new Array:g_Shop_Item_Max
+new Array:g_Character_Name
+new Array:g_Character_Info
+new Array:g_Character_Price
 
-new g_SpWpn_Num, g_GashWpn_Num, g_SecondWpn_Num, g_Item_Num, g_Shop_Item_Num
+new g_SpWpn_Num, g_GashWpn_Num, g_SecondWpn_Num, g_Item_Num, g_Shop_Item_Num, g_Character_Num
 
 new g_Shop_Item_Times[33][32]
 
 //Forward Handles
 new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwSecondWpnSelect, g_fwItemSelect, g_fwShopItemSelect, g_fwDummyResult
+
+//Character Register
+new g_Cid_Billy, g_Cid_RBS, g_Cid_Ezio, g_Cid_Mcdonald
 
 public plugin_natives()
 {
@@ -292,6 +310,7 @@ public plugin_natives()
 	register_native("de_register_second_wpn", "native_register_second_wpn", 1)
 	register_native("de_register_item", "native_register_item", 1)
 	register_native("de_register_shop_item", "native_register_shop_item", 1)
+	register_native("de_register_character", "native_register_character", 1)
 	register_native("de_set_user_nightvision", "native_set_user_nightvision", 1)
 }
 
@@ -308,6 +327,10 @@ public plugin_precache()
 	g_fwSpawn = register_forward(FM_Spawn, "fw_Spawn");
 	
 	engfunc(EngFunc_PrecacheModel, mdl_player_devil1)
+	engfunc(EngFunc_PrecacheModel, mdl_player_BRS)
+	engfunc(EngFunc_PrecacheModel, mdl_player_billy)
+	engfunc(EngFunc_PrecacheModel, mdl_player_mcdonald)
+	engfunc(EngFunc_PrecacheModel, mdl_player_ezio)
 	
 	engfunc(EngFunc_PrecacheModel, mdl_v_devil1)
 	
@@ -344,12 +367,20 @@ public plugin_precache()
 	g_Item_Name = ArrayCreate(32, 1)
 	g_Item_Info = ArrayCreate(64, 1)
 	g_Shop_Item_Name = ArrayCreate(32, 1)
+	g_Character_Name = ArrayCreate(32, 1)
+	g_Character_Info = ArrayCreate(64, 1)
 	
 	g_SpWpn_Price = ArrayCreate(1, 1)
 	g_GashWpn_Price = ArrayCreate(1, 1)
 	g_SecondWpn_Lv = ArrayCreate(1, 1)
 	g_Shop_Item_Price = ArrayCreate(1, 1)
 	g_Shop_Item_Max = ArrayCreate(1, 1)
+	g_Character_Price = ArrayCreate(1, 1)
+	
+	//..
+	// ArrayPushString(g_Character_Name, "无")
+	// ArrayPushString(g_Character_Info, " ")
+	// ArrayPushCell(g_Character_Price, 0)
 	
 	//Cvar
 	cvar_MapBright = register_cvar("de_map_bright","d")
@@ -360,9 +391,9 @@ public plugin_precache()
 	cvar_BaseWpnPreLv = register_cvar("de_basewpn_prelv","5")
 	cvar_BaseWpnNeedLv = register_cvar("de_basewpn_needlv", "0")
 	
-	cvar_DmgReward = register_cvar("de_human_dmg_reward", "1500")
+	cvar_DmgReward = register_cvar("de_human_dmg_reward", "2000")
 	cvar_RewardCoin = register_cvar("de_reward_coin", "1")
-	cvar_RewardXp = register_cvar("de_reward_xp", "200")
+	cvar_RewardXp = register_cvar("de_reward_xp", "2000")
 	cvar_SpPreLv = register_cvar("de_sp_per_lv", "2")
 	
 	cvar_DevilHea = register_cvar("de_devil_basehea","230000")
@@ -371,7 +402,7 @@ public plugin_precache()
 	cvar_DevilRecoManaTime = register_cvar("de_devil_reco_manatime","0.3")
 	cvar_DevilRecoManaNum = register_cvar("de_devil_reco_mananum","6")
 	cvar_DevilManaMax = register_cvar("de_devil_manamax","999")
-	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.5")
+	cvar_DevilSlashDmgMulti = register_cvar("de_devil_slashdmg_multi", "1.1")
 	cvar_DevilScareRange = register_cvar("de_devil_scarerange", "512.0")
 	cvar_DevilBlindRange = register_cvar("de_devil_blindrange", "512.0")
 	cvar_DevilLongjumpDistance = register_cvar("de_devil_longjumpdistance", "300.0")
@@ -427,6 +458,9 @@ public plugin_precache()
 	cvar_NvgColor_Boss[1] = register_cvar("de_nvg_boss_color_G", "32")
 	cvar_NvgColor_Boss[2] = register_cvar("de_nvg_boss_color_B", "32")
 	
+	cvar_ComboAddDmg = register_cvar("de_combo_add_dmg", "0.02")
+	cvar_BossComboGetCoin = register_cvar("de_boss_combo_getcoin", "1")
+	cvar_BossComboGetXp = register_cvar("de_boss_combo_getxp", "488")
 	// cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
 	// cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
 	// cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
@@ -444,7 +478,7 @@ public plugin_init()
 	register_menu("Ability Menu", KEYSMENU, "menu_ability")
 	register_menu("Skill Menu", KEYSMENU, "menu_skill")
 	register_menu("Bossskill Menu", KEYSMENU, "menu_bossskill")
-	register_menu("Weapon Menu", KEYSMENU, "menu_weapon")
+	register_menu("Weapon Menu", KEYSMENU, "menu_choose")
 	register_menu("WeaponFree Menu", KEYSMENU, "menu_weapon_free")
 	register_menu("WeaponSecond Menu", KEYSMENU, "menu_weapon_second")
 	register_menu("Shop Menu", KEYSMENU, "menu_shop")
@@ -507,9 +541,19 @@ public plugin_init()
 	g_fwSecondWpnSelect = CreateMultiForward("de_secondwpn_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwItemSelect = CreateMultiForward("de_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	g_fwShopItemSelect = CreateMultiForward("de_shop_item_select", ET_CONTINUE, FP_CELL, FP_CELL)
+	// g_fwCharacterSelect = CreateMultiForward("de_character_select", ET_CONTINUE, FP_CELL, FP_CELL)
 	//Vars
 	g_MaxPlayer = get_maxplayers()
 	server_cmd("mp_autoteambalance 0")
+	
+	//Character Register
+	
+	native_register_character("无", "", 0)
+	g_Cid_Billy = native_register_character("比利海灵顿", "+2.5 Speed && + 10HP", 100)	//1
+	g_Cid_RBS = native_register_character("黑岩射手", "+5% Damage", 100)					//2
+	g_Cid_Ezio = native_register_character("艾吉奥", "+5% Reward", 100)	
+	g_Cid_Mcdonald = native_register_character("蓝蓝路", "+5 Speed", 100)	
+	
 }
 
 
@@ -538,7 +582,10 @@ public event_round_start()
 	gm_reset_vars()
 	remove_task(TASK_BALANCE)
 	set_task(0.2, "task_balance", TASK_BALANCE)
+	remove_task(TASK_RANK)
 	set_task(1.0, "task_show_rank", TASK_RANK, _ ,_ ,"b")
+	remove_task(TASK_TIPS)
+	set_task(30.0, "task_tips", TASK_TIPS, _ ,_ ,"b")
 	
 	set_dhudmessage( 255, 255, 255, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 	show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_ROUND_START" );
@@ -566,7 +613,7 @@ public event_round_end()
 		GetCoin = get_pcvar_num(cvar_DevilWinGetBaseCoin) * g_PlayerInGame
 		set_dhudmessage( 255, 0, 0, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_WIN" );
-		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		client_color_print(0, "^x04[提示]^x03%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_devil_win)
 		g_Xp[g_whoBoss] += GetXp
 		g_Coin[g_whoBoss] += GetCoin
@@ -577,7 +624,7 @@ public event_round_end()
 		GetCoin = get_pcvar_num(cvar_HumanWinGetCoin)
 		set_dhudmessage( 0, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_HUMAN_WIN" );
-		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		client_color_print(0, "^x04[提示]^x03%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_human_win)
 		for(new i = 1; i <= g_MaxPlayer; i++)
 		{
@@ -593,7 +640,7 @@ public event_round_end()
 		GetCoin = get_pcvar_num(cvar_NooneWinGetCoin)
 		set_dhudmessage( 255, 255, 255, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_NOONE_WIN" );
-		client_color_print(0, "^x04[DevilEscape]^x03%L%L",  LANG_PLAYER, "DHUD_NOONE_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		client_color_print(0, "^x04[提示]^x03%L%L",  LANG_PLAYER, "DHUD_NOONE_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_noone_win)
 		for(new i = 1; i <= g_MaxPlayer; i++)
 		{
@@ -744,7 +791,21 @@ public fw_PlayerSpawn_Post(id)
 	set_user_gravity(id, 1.0-get_pcvar_float(cvar_AbilityGraAdd)*g_Abi_Gra[id])
 	fm_set_user_health(id, 100+g_Abi_Hea[id]*get_pcvar_num(cvar_AbilityHeaAdd))
 	
+	static  Float:Speed
+	Speed = 50.0+ g_Abi_Agi[id] * get_pcvar_float(cvar_AbilityAgiAdd)
+			
+	if(g_Using_Character[id] == g_Cid_Billy)
+		Speed += 2.5
+	else if(g_Using_Character[id] == g_Cid_Mcdonald)
+		Speed += 5.0
+			
+	set_pev(id, pev_maxspeed, Speed)
+	
 	set_bit(g_isAlive, id)
+	
+	delete_bit(g_isBuyWpnMain, id)
+	delete_bit(g_isBuyWpnSec, id)
+	
 	new Float:test[3]
 	pev(id, pev_origin, test)
 	set_task(0.2, "task_plrspawn", id+TASK_PLRSPAWN)
@@ -753,12 +814,28 @@ public fw_PlayerSpawn_Post(id)
 }
 
 public fw_PlayerKilled(victim, attacker, shouldgib)
-{
+{	
 	delete_bit(g_isAlive, victim)
 	set_task(0.1, "task_spec_nvision", victim+TASK_SPEC_NVISION)
 	
 	if(victim == attacker || !is_user_alive(attacker))
 		return HAM_IGNORED
+	
+	g_Combo[attacker] += 1
+	if(attacker == g_whoBoss && victim != g_whoBoss && !(g_Combo[attacker] % 5))
+	{
+		new name[32], coin_get, xp_get
+		
+		get_user_name(attacker, name, 31)
+		coin_get = get_pcvar_num(cvar_BossComboGetCoin)
+		xp_get = get_pcvar_num(cvar_BossComboGetXp)
+		
+		client_color_print(0, "^x04[提示]^x03%L", LANG_PLAYER, "BOSS_COMBO",
+		name, g_Combo[attacker], xp_get * g_Combo[attacker], coin_get * g_Combo[attacker])
+		
+		g_Coin[attacker] += coin_get * 5
+		g_Xp[attacker] += xp_get * 5
+	}
 	
 	return HAM_IGNORED
 }
@@ -766,15 +843,6 @@ public fw_PlayerKilled(victim, attacker, shouldgib)
 //PreThink
 public fw_PlayerPreThink(id)
 {
-	if(g_AttackCooldown[id] > get_gametime())
-	{
-		if(is_user_alive(id))
-		{
-			set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
-			set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
-		}
-	}else set_view(id,CAMERA_NONE)
-		
 	if(g_Xp[id] >= g_NeedXp[id])
 	{
 		while(g_Xp[id] >= g_NeedXp[id])
@@ -784,28 +852,35 @@ public fw_PlayerPreThink(id)
 			g_Level[id] ++
 			g_Sp[id] += get_pcvar_num(cvar_SpPreLv)
 		}
-		set_hudmessage(192, 0, 0, -1.0, -1.0, 1, 6.0, 1.5, 0.3, 0.3, 0)
+		set_hudmessage(192, 0, 0, -1.0, 0.2, 1, 6.0, 1.5, 0.3, 0.3, 0)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_LEVEL_UP", g_Level[id])
 	}
-	if(id != g_whoBoss)
-		set_pev(id, pev_maxspeed, 250.0+ g_Abi_Agi[id] * get_pcvar_float(cvar_AbilityAgiAdd))
-	else set_pev(id, pev_maxspeed, get_pcvar_float(cvar_DevilSpeed))
 	
-	//穿人
-	static LastSemiThink
-	if( LastSemiThink > id )
-		fw_SemiClipThink()
-	LastSemiThink = id
-	
-	if(get_bit(g_isSolid, id))
+	if(is_user_alive(id))
 	{
-		for(new i = 1; i <= g_MaxPlayer; i++)
+		if(g_AttackCooldown[id] > get_gametime())
 		{
-			if(!get_bit(g_isSolid, i) || id == i) continue
-			if(g_PlayerTeam[id] == g_PlayerTeam[i])
+			set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK );
+			set_pev(id, pev_button, pev(id,pev_button) & ~IN_ATTACK2 );
+		}
+		else set_view(id,CAMERA_NONE)
+		
+		//穿人
+		static LastSemiThink
+		if( LastSemiThink > id )
+			fw_SemiClipThink()
+		LastSemiThink = id
+		
+		if(get_bit(g_isSolid, id))
+		{
+			for(new i = 1; i <= g_MaxPlayer; i++)
 			{
-				set_pev(i, pev_solid, SOLID_NOT)
-				set_bit(g_isSemiclip, i)
+				if(!get_bit(g_isSolid, i) || id == i) continue
+				if(g_PlayerTeam[id] == g_PlayerTeam[i])
+				{
+					set_pev(i, pev_solid, SOLID_NOT)
+					set_bit(g_isSemiclip, i)
+				}
 			}
 		}
 	}
@@ -860,6 +935,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 		return HAM_SUPERCEDE;
 	
 	new Float:TrueDamage = damage;
+	TrueDamage *= (1.0 + g_Combo[attacker] * get_pcvar_float(cvar_ComboAddDmg))
 	
 	if(g_whoBoss == attacker)
 	{
@@ -870,6 +946,9 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 
 	//Str
 	TrueDamage =  TrueDamage * (1.0 + g_Abi_Str[attacker]*get_pcvar_float(cvar_AbilityStrAdd))
+	
+	if(g_Using_Character[attacker] == g_Cid_RBS)
+		TrueDamage *= 1.05
 	
 	//Crit
 	if(get_bit(g_isCrit, attacker))
@@ -908,37 +987,57 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 	if(g_DmgDealt[attacker] > get_pcvar_num(cvar_DmgReward))
 	{
 		new i = 0;
+		new coin_get, xp_get, wpnxp_get
 		while(g_DmgDealt[attacker] > get_pcvar_num(cvar_DmgReward))
 		{
 			i ++;
 			g_DmgDealt[attacker] -= get_pcvar_num(cvar_DmgReward);
 		}
 		
-		g_Coin[attacker] += get_pcvar_num(cvar_RewardCoin) * i;
-		g_Xp[attacker] += get_pcvar_num(cvar_RewardXp) * i;
-		if(g_WpnLv[attacker][g_UsersWeapon[attacker]] < get_pcvar_num(cvar_WpnLvMax))
+		coin_get = get_pcvar_num(cvar_RewardCoin)  * i;
+		xp_get = get_pcvar_num(cvar_RewardXp) * i;
+		wpnxp_get = get_pcvar_num(cvar_RewardWpnXp) * i
+		
+		if(g_Using_Character[attacker] == g_Cid_Ezio && attacker != g_whoBoss)
 		{
+				coin_get += floatround(coin_get * 0.05)
+				xp_get += floatround(xp_get * 0.05)
+		}
+		g_Coin[attacker] += coin_get;
+		g_Xp[attacker] += xp_get;
+		
+		if(damage_type == DE_DMG_ROCKET)
+		{
+			//AT4不给武器经验
 			set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
-			ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n +%d %s Exp" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), i*get_pcvar_num(cvar_RewardWpnXp), WEAPONCSWNAME[g_UsersWeapon[attacker]])
-			g_WpnXp[attacker][g_UsersWeapon[attacker]] += get_pcvar_num(cvar_RewardWpnXp) * i
-			
-			new WpnLvNeedXp = get_pcvar_num(cvar_WpnLvNeedXp)
-			if(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
-			{	
-				while(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
-				{
-					g_WpnXp[attacker][g_UsersWeapon[attacker]] -= WpnLvNeedXp
-					g_WpnLv[attacker][g_UsersWeapon[attacker]] ++
-				}
-				set_hudmessage(192, 0, 0, -1.0, 0.55, 1, 6.0, 1.5, 0.3, 0.3, 0)
-				ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
-			}
+			ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin" , xp_get, coin_get)
 		}
 		else
 		{
-			set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
-			ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n %s Lv.Max" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), WEAPONCSWNAME[g_UsersWeapon[attacker]])
-		}			
+			if(g_WpnLv[attacker][g_UsersWeapon[attacker]] < get_pcvar_num(cvar_WpnLvMax))
+			{
+				set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
+				ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n +%d %s Exp" , xp_get, coin_get, wpnxp_get, WEAPONCSWNAME[g_UsersWeapon[attacker]])
+				g_WpnXp[attacker][g_UsersWeapon[attacker]] += wpnxp_get
+				
+				new WpnLvNeedXp = get_pcvar_num(cvar_WpnLvNeedXp)
+				if(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+				{	
+					while(g_WpnXp[attacker][g_UsersWeapon[attacker]] >= WpnLvNeedXp)
+					{
+						g_WpnXp[attacker][g_UsersWeapon[attacker]] -= WpnLvNeedXp
+						g_WpnLv[attacker][g_UsersWeapon[attacker]] ++
+					}
+					set_hudmessage(192, 0, 0, -1.0, 0.55, 1, 6.0, 1.5, 0.3, 0.3, 0)
+					ShowSyncHudMsg(attacker, g_Hud_Center, "%L" , LANG_PLAYER, "HUD_WPN_LEVEL_UP", WEAPONCSWNAME[g_UsersWeapon[attacker]] ,g_WpnLv[attacker][g_UsersWeapon[attacker]])
+				}
+			}
+			else
+			{
+				set_hudmessage(192, 0, 0, -1.0, 0.75, 1, 6.0, 1.5, 0.3, 0.3, 0)
+				ShowSyncHudMsg(attacker, g_Hud_Reward, "+%d xp ^n +%d coin ^n %s Lv.Max" , i * get_pcvar_num(cvar_RewardXp), i * get_pcvar_num(cvar_RewardCoin), WEAPONCSWNAME[g_UsersWeapon[attacker]])
+			}			
+		}
 	}
 	
 	if(attacker != g_whoBoss && is_user_valid_connected(attacker))
@@ -1102,7 +1201,7 @@ public fw_ClientCommand(id)
 		if(AdminPut == ADMIN_GIVE_COIN || AdminPut == ADMIN_GIVE_GASH || AdminPut == ADMIN_GIVE_XP || AdminPut == ADMIN_GIVE_LEVEL)
 		{
 			if(!is_str_num(szText))
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_INPUT_ERROR");
+				client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ADMIN_INPUT_ERROR");
 			else
 			{
 				g_Admin_Input[id] = str_to_num(szText)
@@ -1246,7 +1345,7 @@ public task_autosave(id)
 {
 	id -= TASK_AUTOSAVE
 	gm_user_save(id)
-	// client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
+	// client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
 }
 
 public task_round_start()
@@ -1276,6 +1375,8 @@ public task_round_start()
 	
 	fm_strip_user_weapons(id)
 	give_item( id, "weapon_knife")
+	
+	set_pev(id, pev_maxspeed, get_pcvar_float(cvar_DevilSpeed))
 
 	set_pev(id, pev_viewmodel2, "models/v_devil_hand1.mdl")
 	set_pev(id, pev_weaponmodel2, "")
@@ -1351,7 +1452,7 @@ public task_showhud(id)
 		specid = pev(id, pev_iuser2)
 		set_hudmessage(255, 255, 25, 0.625, 0.78, 1, 1.0, 1.0, 0.0, 0.0, 0)
 		ShowSyncHudMsg(id, g_Hud_Status, "%L", LANG_PLAYER, "SPEC_HUD_INFO", pev(specid, pev_health), g_Coin[specid], g_Gash[specid], 
-		g_Level[specid], g_Xp[specid], g_NeedXp[specid], g_Sp[specid], g_Dmg[specid])
+		g_Level[specid], g_Xp[specid], g_NeedXp[specid], g_Sp[specid], g_Dmg[specid], g_Combo[specid])
 	}
 	else
 	{
@@ -1359,7 +1460,7 @@ public task_showhud(id)
 		ShowSyncHudMsg(id, g_Hud_Status, "%L", LANG_PLAYER, "HUD_INFO",
 		pev(id, pev_health), g_Coin[id], g_Gash[id], g_Level[id], g_Xp[id], g_NeedXp[id], g_Sp[id],
 		WEAPONCSWNAME[g_UsersWeapon[id]], g_WpnLv[id][g_UsersWeapon[id]] , WEAPONCSWNAME[g_UsersWeapon[id]], 
-		g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id])
+		g_WpnXp[id][g_UsersWeapon[id]], get_pcvar_num(cvar_WpnLvNeedXp) ,g_Dmg[id], g_Combo[id])
 	}
 }
 
@@ -1369,17 +1470,25 @@ public task_plrspawn(id)
 	fm_reset_user_model(id)
 	fm_strip_user_weapons(id)
 	fm_give_item(id, "weapon_knife")
+	gm_set_character(id, g_Choosed_Character[id])
 	
 	if(is_user_bot(id))
 	{
 		switch(random_num(0, 3))
 		{
-			case 0: fm_give_item(id, g_WpnFreeFrist[random_num(0, (sizeof g_WpnFreeFrist) -1)])
+			case 0: 
+			{
+				new reasult = random_num(0, (sizeof g_WpnFreeFrist) -1)
+				new args[1]
+				args[0] = g_WpnFreeFrist_CSW[reasult]
+				fm_give_item(id, g_WpnFreeFrist[reasult])
+				task_refill_bpammo(args[0], id)
+			}
 			case 1: ExecuteForward(g_fwGashWpnSelect, g_fwDummyResult, id, random_num(0, g_GashWpn_Num-1))
 			case 2: ExecuteForward(g_fwSpWpnSelect, g_fwDummyResult, id, random_num(0, g_SpWpn_Num-1))
 		}
 	}
-	show_menu_weapon(id)
+	else show_menu_choose(id)
 	remove_task(id+TASK_PLRSPAWN);
 }
 
@@ -1569,6 +1678,18 @@ public task_spec_nvision(id)
 	native_set_user_nightvision(id, 1)
 }
 
+public task_tips()
+{
+	static tipsname[14], tipnum
+	tipnum ++
+	if(tipnum > 6)
+		tipnum = 1
+	
+	formatex(tipsname, 13, "DE_TIPS_%d", tipnum)
+	
+	client_color_print(0, "^x04[提示]^x03%L", LANG_PLAYER, tipsname)
+}
+
 public func_critical(taskid)
 {
 	static id
@@ -1609,13 +1730,15 @@ public func_critical(taskid)
 			 
 ===================== */
 
+
+//==========MAIN=========
 public show_menu_main(id)
 {
 	new Menuitem[32], Menu
 	formatex(Menuitem, charsmax(Menuitem), Game_Description)
 	Menu = menu_create(Menuitem, "menu_main")
 	
-	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_WEAPON")
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_CHOOSE")
 	menu_additem(Menu, Menuitem, "1")
 	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_ABILITY")
 	menu_additem(Menu, Menuitem, "2")
@@ -1656,7 +1779,7 @@ public menu_main(id, menu, item)
 
 	switch(key)
 	{
-		case 1: show_menu_weapon(id)
+		case 1: show_menu_choose(id)
 		case 2: show_menu_ability(id)
 		case 3: show_menu_pack(id)
 		case 4: show_menu_equip(id)
@@ -1668,14 +1791,16 @@ public menu_main(id, menu, item)
 	return PLUGIN_HANDLED;
 }
 
-public show_menu_weapon(id)
+//==========CHOOSE=========
+public show_menu_choose(id)
 {
 	new Menu[128],Len;
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_WEAPON")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n", id, "MENU_CHOOSE")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"MENU_WEAPON_FREE")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"MENU_WEAPON_GASH")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"MENU_WEAPON_SPECIAL")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"MENU_WEAPON_SECOND")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w%L^n",id,"MENU_CHARACTER")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id, KEYSMENU, Menu,-1,"Weapon Menu")
@@ -1683,11 +1808,11 @@ public show_menu_weapon(id)
 	return PLUGIN_HANDLED;
 }
 
-public menu_weapon(id, key)
+public menu_choose(id, key)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1697,15 +1822,17 @@ public menu_weapon(id, key)
 		case 1: show_menu_weapon_gash(id)
 		case 2: show_menu_weapon_special(id)
 		case 3: show_menu_weapon_second(id)
+		case 4: show_menu_character(id)
 	}
 	return PLUGIN_HANDLED;
 }
 
+//==========FREE WPN=========
 public show_menu_weapon_free(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1747,7 +1874,7 @@ public menu_weapon_free(id, key)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1772,7 +1899,7 @@ public menu_weapon_free(id, key)
 	}
 	if(get_bit(g_isBuyWpnMain, id))
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		return PLUGIN_HANDLED
 	}
 	
@@ -1786,10 +1913,10 @@ public menu_weapon_free(id, key)
 	{
 		if(NeedLv + LvPreWpn*key > g_Level[id])
 		{
-			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NO_LEVEL");
 			return PLUGIN_HANDLED
 		}
-		client_color_print(id, "^x04[DevilEscape]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeFrist_Name[key]);
+		client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeFrist_Name[key]);
 		fm_give_item(id, g_WpnFreeFrist[key])
 		args[0] = g_WpnFreeFrist_CSW[key]
 	}
@@ -1797,10 +1924,10 @@ public menu_weapon_free(id, key)
 	{
 		if(NeedLv + LvPreWpn*(key+7) > g_Level[id])
 		{
-			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NO_LEVEL");
 			return PLUGIN_HANDLED
 		}
-		client_color_print(id, "^x04[DevilEscape]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeSec_Name[key]);
+		client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeSec_Name[key]);
 		fm_give_item(id, g_WpnFreeSec[key])
 		args[0] = g_WpnFreeSec_CSW[key]
 	}
@@ -1811,11 +1938,12 @@ public menu_weapon_free(id, key)
 	return PLUGIN_HANDLED
 }
 
+//==========GASH WPN=========
 public show_menu_weapon_gash(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	new Menuitem[64], Menu, CharNum[3]
@@ -1850,7 +1978,7 @@ public menu_weapon_gash(id, menu, item)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1862,7 +1990,7 @@ public menu_weapon_gash(id, menu, item)
 	
 	if(get_bit(g_isBuyWpnMain, id))
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		menu_destroy(menu);
 		return PLUGIN_HANDLED
 	}
@@ -1873,7 +2001,7 @@ public menu_weapon_gash(id, menu, item)
 	
 	if(!g_Pack_GashWpn[id][key-1])	//没这玩意儿
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
@@ -1882,18 +2010,19 @@ public menu_weapon_gash(id, menu, item)
 	
 	new buffer[32]
 	ArrayGetString(g_GashWpn_Name, key-1, buffer, charsmax(buffer))
-	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
+	client_color_print(id, "^x04[提示]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
 	set_bit(g_isBuyWpnMain, id)
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
 	
 }
 
+//==========SP WPN=========
 public show_menu_weapon_special(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1932,7 +2061,7 @@ public menu_weapon_special(id, menu, item)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1944,7 +2073,7 @@ public menu_weapon_special(id, menu, item)
 	
 	if(get_bit(g_isBuyWpnMain, id))
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		menu_destroy(menu);
 		return PLUGIN_HANDLED
 	}
@@ -1955,7 +2084,7 @@ public menu_weapon_special(id, menu, item)
 	
 	if(!g_Pack_SpWpn[id][key-1])	//没这玩意儿
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
@@ -1964,7 +2093,7 @@ public menu_weapon_special(id, menu, item)
 	
 	new buffer[32]
 	ArrayGetString(g_SpWpn_Name, key-1, buffer, charsmax(buffer))
-	client_color_print(id, "^x04[DevilEscape]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
+	client_color_print(id, "^x04[提示]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
 	set_bit(g_isBuyWpnMain, id)
 	// task_refill_bpammo(args[0], id)
 	menu_destroy(menu);
@@ -1972,11 +2101,12 @@ public menu_weapon_special(id, menu, item)
 	
 }
 
+//==========SECOND WPN=========
 public show_menu_weapon_second(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1999,13 +2129,13 @@ public menu_weapon_second(id, key)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
 	if(get_bit(g_isBuyWpnSec, id))
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "HAVE_SEC_WPN");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_SEC_WPN");
 		return PLUGIN_HANDLED
 	}
 	if(g_Level[id] >= ArrayGetCell(g_SecondWpn_Lv, key))
@@ -2014,23 +2144,24 @@ public menu_weapon_second(id, key)
 		ExecuteForward(g_fwSecondWpnSelect, g_fwDummyResult, id, key)
 	}
 	else
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_LEVEL");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NO_LEVEL");
 	
 	return PLUGIN_HANDLED
 }
 
+//==========ABILITY=========
 public show_menu_ability(id)
 {
 	new Menu[256],Len;
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "%L^n^n",id,"MENU_ABILITY")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L \d%d Sp  %d/%d", id,"ABILITY_HEALTH", get_pcvar_num(cvar_AbilityHeaCost), g_Abi_Hea[id], get_pcvar_num(cvar_AbilityHeaMax))	
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [+%d HP]^n", get_pcvar_num(cvar_AbilityHeaAdd)*g_Abi_Hea[id])
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [\r+%d \dHP]^n", get_pcvar_num(cvar_AbilityHeaAdd)*g_Abi_Hea[id])
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L \d%d Sp  %d/%d", id,"ABILITY_AGILITY", get_pcvar_num(cvar_AbilityAgiCost), g_Abi_Agi[id], get_pcvar_num(cvar_AbilityAgiMax))
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [+%d Speed]^n", floatround(get_pcvar_float(cvar_AbilityAgiAdd) * g_Abi_Agi[id]))	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [\r+%d \dSpeed]^n", floatround(get_pcvar_float(cvar_AbilityAgiAdd) * g_Abi_Agi[id]))	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L \d%d Sp  %d/%d", id,"ABILITY_STRENGTH", get_pcvar_num(cvar_AbilityStrCost), g_Abi_Str[id], get_pcvar_num(cvar_AbilityStrMax))
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [+%d%% Dmg]^n", floatround(get_pcvar_float(cvar_AbilityStrAdd) * g_Abi_Str[id] * 100))	
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [\r+%d%% \dDmg]^n", floatround(get_pcvar_float(cvar_AbilityStrAdd) * g_Abi_Str[id] * 100))	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L \d%d Sp  %d/%d", id,"ABILITY_GRAVITY", get_pcvar_num(cvar_AbilityGraCost), g_Abi_Gra[id], get_pcvar_num(cvar_AbilityGraMax))
-	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [-%d%% g]^n", floatround(get_pcvar_float(cvar_AbilityGraAdd) * g_Abi_Gra[id] * 100))
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, " [\r-%d%% \dG]^n", floatround(get_pcvar_float(cvar_AbilityGraAdd) * g_Abi_Gra[id] * 100))
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id, KEYSMENU, Menu,-1,"Ability Menu")
@@ -2044,13 +2175,11 @@ public menu_ability(id, key)
 	new Sp_Cost[4]
 	Sp_Cost[0] = get_pcvar_num(cvar_AbilityHeaCost); Sp_Cost[1] = get_pcvar_num(cvar_AbilityAgiCost)
 	Sp_Cost[2] = get_pcvar_num(cvar_AbilityStrCost);  Sp_Cost[3] = get_pcvar_num(cvar_AbilityGraCost)
-	// Abi_Max[0] = get_pcvar_num(cvar_AbilityHeaMax); Abi_Max[1] = get_pcvar_num(cvar_AbilityAgiMax)
-	// Abi_Max[2] = get_pcvar_num(cvar_AbilityStrMax); Abi_Max[3] = get_pcvar_num(cvar_AbilityGraMax)
 	
 	
 	if(g_Sp[id] < Sp_Cost[key])
 	{
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "NO_SP");
+		client_print(id, print_center, "%L", LANG_PLAYER, "NO_SP");
 		show_menu_ability(id)
 		return PLUGIN_HANDLED
 	}
@@ -2060,7 +2189,7 @@ public menu_ability(id, key)
 		case 0: {
 			if(g_Abi_Hea[id] >= get_pcvar_num(cvar_AbilityHeaMax)) 
 			{
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				client_print(id, print_center, "%L", LANG_PLAYER, "SKILL_LEARN_FULL");
 				show_menu_ability(id)
 				return PLUGIN_HANDLED
 			}
@@ -2069,7 +2198,7 @@ public menu_ability(id, key)
 		case 1: {
 			if(g_Abi_Agi[id] >= get_pcvar_num(cvar_AbilityAgiMax)) 
 			{
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				client_print(id, print_center, "%L", LANG_PLAYER, "SKILL_LEARN_FULL");
 				show_menu_ability(id)
 				return PLUGIN_HANDLED
 			}
@@ -2078,7 +2207,7 @@ public menu_ability(id, key)
 		case 2: {
 			if(g_Abi_Str[id] >= get_pcvar_num(cvar_AbilityStrMax)) 
 			{
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				client_print(id, print_center, "%L", LANG_PLAYER, "SKILL_LEARN_FULL");
 				show_menu_ability(id)
 				return PLUGIN_HANDLED
 			}
@@ -2087,7 +2216,7 @@ public menu_ability(id, key)
 		case 3: {
 			if(g_Abi_Gra[id] >= get_pcvar_num(cvar_AbilityGraMax)) 
 			{
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_FULL");
+				client_print(id, print_center, "%L", LANG_PLAYER, "SKILL_LEARN_FULL");
 				show_menu_ability(id)
 				return PLUGIN_HANDLED
 			}
@@ -2097,12 +2226,13 @@ public menu_ability(id, key)
 	
 	g_Sp[id] -= Sp_Cost[key]		
 	
-	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SKILL_LEARN_SUCCESS");
+	client_print(id, print_center, "%L", LANG_PLAYER, "SKILL_LEARN_SUCCESS");
 	show_menu_ability(id)
 	
 	return PLUGIN_HANDLED
 }
 
+//========PACK========
 public show_menu_pack(id)
 {	
 	new Menuitem[32], Menu, CharNum[3]
@@ -2135,7 +2265,7 @@ public menu_pack(id, menu, item)
 	}
 	
 	if(!get_pcvar_num(cvar_ItemOpen))
-		client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ITEM_CLOSE");
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ITEM_CLOSE");
 	
 	new data[6],iName[64]
 	new access, callback;
@@ -2156,7 +2286,7 @@ public menu_pack(id, menu, item)
 	
 }
 
-
+//=========ITEM SELECT=========
 public show_menu_item_select(id, itemid)
 {
 	new Menu[128],Len;
@@ -2184,11 +2314,11 @@ public menu_item_select(id, key)
 		case 0:{
 			ExecuteForward(g_fwItemSelect, g_fwDummyResult, id, g_Pack[id][g_Pack_Select[id]])
 			g_Pack[id][g_Pack_Select[id]] = 0
-			client_color_print(0, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "USE_ITEM", plrname, itemname)
+			client_color_print(0, "^x04[提示]^x01%L", LANG_PLAYER, "USE_ITEM", plrname, itemname)
 		}
 		case 1:{
 			g_Pack[id][g_Pack_Select[id]] = 0
-			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "DROP_ITEM", itemname)
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "DROP_ITEM", itemname)
 		}
 	}
 	
@@ -2198,11 +2328,85 @@ public menu_item_select(id, key)
 
 public show_menu_equip(id)
 {
+	
 }
 
 public menu_equip(id, key)
 {
+	
 }
+
+//======Character=========
+
+public show_menu_character(id)
+{	
+	new Menuitem[96], Menu, CharNum[3], choosedname[32]
+	ArrayGetString(g_Character_Name, g_Choosed_Character[id], choosedname, charsmax(choosedname))
+	formatex(Menuitem, charsmax(Menuitem), "\w%L^n%L:%s", LANG_PLAYER, "MENU_CHARACTER", LANG_PLAYER, "CHOOSED_CHARACTER", choosedname)
+	Menu = menu_create(Menuitem, "menu_character")
+	
+	new name[32], info[64]
+	
+	
+	for(new i = 1; i < g_Character_Num; i++)
+	{
+		num_to_str(i, CharNum, 2)
+		ArrayGetString(g_Character_Name, i, name, charsmax(name))
+		ArrayGetString(g_Character_Info, i, info, charsmax(info))
+		
+		if(g_Pack_Character[id][i]) 
+			formatex(Menuitem, charsmax(Menuitem), "%s \d%s", name, info)
+		else formatex(Menuitem, charsmax(Menuitem), "\d%s %s", name, info)
+		
+		menu_additem(Menu, Menuitem, CharNum)
+	}
+	
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+	return PLUGIN_HANDLED;
+}
+
+public menu_character(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6], access, callback;
+	menu_item_getinfo(menu, item, access, data,5, _, _, callback);
+	
+	new select = str_to_num(data)
+	
+	new name[32]
+	ArrayGetString(g_Character_Name, select, name, charsmax(name))
+	
+	if(g_Pack_Character[id][select])
+	{
+		if(g_Choosed_Character[id] == select)
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "YOU_ALREADY_CHOOSE_THIS_CHARACTER", name)
+		else
+		{
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "YOU_CHOOSE_THIS_CHARACTER", name)
+			g_Choosed_Character[id] = select
+		}
+	}
+	else client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_CHARACTER")
+		
+	
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+	
+}
+
+//======SHOP========
 
 public show_menu_shop(id)
 {
@@ -2212,6 +2416,7 @@ public show_menu_shop(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n", id, "MENU_SHOP_ITEM")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n", id, "MENU_SHOP_WEAPON_GASH")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n", id, "MENU_SHOP_WEAPON_SPECIAL")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n", id, "MENU_SHOP_CHARACTER")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id,KEYSMENU,Menu,-1,"Shop Menu")
 	
@@ -2225,10 +2430,14 @@ public menu_shop(id, key)
 		case 0: show_menu_shop_item(id)
 		case 1: show_menu_shop_weapon_gash(id)
 		case 2: show_menu_shop_weapon_special(id)
+		case 3: show_menu_shop_character(id)
 	}
 	
 	return PLUGIN_HANDLED
 }
+
+
+//======ITEM SHOP=======
 
 public show_menu_shop_item(id)
 {	
@@ -2299,6 +2508,7 @@ public menu_shop_item(id, menu, item)
 	
 }
 
+//======GASH WPN SHOP=======
 public show_menu_shop_weapon_gash(id)
 {
 	new Menuitem[32], Menu, CharNum[3]
@@ -2356,6 +2566,7 @@ public menu_shop_weapon_gash(id, menu, item)
 	return PLUGIN_HANDLED;
 }
 
+//======SP WPN SHOP=======
 public show_menu_shop_weapon_special(id)
 {
 	new Menuitem[32], Menu, CharNum[3]
@@ -2417,6 +2628,74 @@ public menu_shop_weapon_special(id, menu, item)
 	
 }
 
+//======CHARACTER SHOP=======
+public show_menu_shop_character(id)
+{
+	new Menuitem[96], Menu, charnum[2]
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_SHOP_CHARACTER")
+	Menu = menu_create(Menuitem, "menu_shop_character")
+	
+	new name[32], info[64]
+	for(new i = 1; i < g_Character_Num; i++)
+	{
+		ArrayGetString(g_Character_Name, i, name, charsmax(name))
+		ArrayGetString(g_Character_Info, i, info, charsmax(info))
+		num_to_str(i, charnum, 1)
+		
+		formatex(Menuitem, charsmax(Menuitem), "%s \d%s \w%d %L", 
+		name, info, ArrayGetCell(g_Character_Price, i), LANG_PLAYER, "GASH") 
+		
+		menu_additem(Menu, Menuitem, charnum)
+	}
+	
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_BACK") 
+	menu_setprop(Menu, MPROP_BACKNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_NEXT") 
+	menu_setprop(Menu, MPROP_NEXTNAME, Menuitem)
+	formatex(Menuitem, charsmax(Menuitem), "%L", LANG_PLAYER, "MENU_EXIT") 
+	menu_setprop(Menu, MPROP_EXITNAME, Menuitem)
+	
+	menu_display(id, Menu)
+	
+	return PLUGIN_HANDLED
+}
+
+public menu_shop_character(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6],iName[64]
+	new access, callback;
+	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
+	
+	new select = str_to_num(data)
+	
+	new name[32]
+	ArrayGetString(g_Character_Name, select, name, charsmax(name))
+	
+	if(g_Pack_Character[id][select])
+		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "YOU_HAD_THIS_CHARACTER")
+	else
+	{
+		new price = ArrayGetCell(g_Character_Price, select)
+		if(g_Gash[id] >= ArrayGetCell(g_Character_Price,  select))
+		{
+			g_Gash[id] -= price
+			client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", name)
+			g_Pack_Character[id][select] = true
+		}
+		else
+			client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "SHOP_BUY_FAILED")
+	}
+	
+	return PLUGIN_HANDLED
+}
+	
+//======SKILL=======
 public show_menu_skill(id)
 {
 	new Menu[250],Len;
@@ -2441,6 +2720,7 @@ public menu_skill(id,key)
 	return PLUGIN_HANDLED;
 }
 
+//======BOSS SKILL=======
 public show_menu_bossskill(id)
 {
 	new Menu[250],Len;
@@ -2536,6 +2816,7 @@ public menu_bossskill(id,key)
 	return PLUGIN_HANDLED;
 }
 
+//======ADMIN=======
 public show_menu_admin(id)
 {
 	new Menu[250],Len;
@@ -2565,6 +2846,7 @@ public menu_admin(id, key)
 	}
 }
 
+//======ADMIN GIVE=======
 public show_menu_admin_give(id)
 {
 	new Menu[128], Len;
@@ -2595,6 +2877,7 @@ public menu_admin_give(id, key)
 	return PLUGIN_HANDLED;
 }
 
+//======Player List=======
 public show_menu_plrlist(id)
 {	
 	new Menuitem[32], Menu
@@ -2664,11 +2947,11 @@ public menu_plrlist(id, menu, item)
 		case ADMIN_SELECT_BOSS:
 		{
 			if(!is_user_alive(g_Menu_Admin_Select_PlrKey[id][key]))
-				client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_PLAYER_MUST_ALIVE");
+				client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ADMIN_PLAYER_MUST_ALIVE");
 			else
 			{
 				if(g_RoundStatus != Round_Start)
-					client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
+					client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
 				else
 				{
 					client_color_print(0, "^x04[ADMIN]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
@@ -2691,6 +2974,7 @@ public menu_plrlist(id, menu, item)
 	return PLUGIN_HANDLED;
 }
 
+//======Convert=======
 public show_menu_convert(id)
 {
 	new Menu[256], Len;
@@ -2722,10 +3006,10 @@ public menu_convert(id, key)
 			mul *= 10
 		
 		Coin2Gash *= mul
-		if(g_Coin[id] < Coin2Gash)	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
+		if(g_Coin[id] < Coin2Gash)	client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
 		else{
 			g_Coin[id] -= Coin2Gash; g_Gash[id] += mul
-			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
 		}
 		
 		return PLUGIN_HANDLED
@@ -2739,10 +3023,10 @@ public menu_convert(id, key)
 			mul *= 10
 		
 		Gash2Coin *= mul
-		if(g_Gash[id] < mul) client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
+		if(g_Gash[id] < mul) client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
 		else {
 			g_Gash[id] -= mul; g_Coin[id] += Gash2Coin
-			client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
+			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
 		}
 			
 		return PLUGIN_HANDLED
@@ -2794,6 +3078,8 @@ gm_reset_vars()
 	remove_task(TASK_RANK)
 	for(new i = 1 ; i <= g_MaxPlayer; i++)
 	{
+		g_Using_Character[i] = g_Choosed_Character[i]
+		g_Combo[i] = 0
 		g_Dmg[i] = 0.0;
 		g_AttackCooldown[i] = 0.0;
 		remove_task(i+TASK_CRITICAL)
@@ -2814,7 +3100,7 @@ gm_user_register(id, const password[])
 	new pw_len = strlen(password)
 	if( pw_len > 12 || pw_len < 6)
 	{
-		client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
+		client_color_print(id, "^x04[提示]^x03%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
 		return;
 	}
 	
@@ -2824,7 +3110,7 @@ gm_user_register(id, const password[])
 		{
 			if( password[i] == InvalidChars[j])
 			{
-				client_color_print(id, "^x04[DevilEscape]^x03%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
+				client_color_print(id, "^x04[提示]^x03%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
 				return;
 			}
 		}
@@ -2833,15 +3119,15 @@ gm_user_register(id, const password[])
 	//重要的事情说三遍
 	if(get_bit(g_isChangingPW, id))
 	{
-		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
-		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
-		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
 	}
 	else
 	{
-		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-		client_color_print(id, "^x04[DevilEscape]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
 	}
 	msg_change_team_info(id, iteam)
 	set_bit(g_isRegister, id)
@@ -2864,16 +3150,16 @@ gm_user_login(id, const password[])
 	
 	if(equal(g_PlayerPswd[id], password))
 	{
-		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		set_bit(g_isLogin, id)
 		client_cmd(id, "chooseteam")
 		set_task(get_pcvar_float(cvar_AutosaveTime), "task_autosave", id+TASK_AUTOSAVE, _, _, "b")
 	}
 	else
 	{
-		client_color_print(id, "^x04[DevilEscape]^x03%L",  LANG_PLAYER, "LOGIN_FAILED")
+		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_FAILED")
 		g_LoginRetry[id] ++
 	}
 	
@@ -2944,10 +3230,30 @@ gm_user_save(id)
 	}
 	kv_add_sub_key(kv, gashwpnpack)
 	
+	new characterpack = kv_create("Character Pack");
+	for(new i = 1; i < g_Character_Num; i++)
+	{	
+		ArrayGetString(g_Character_Name, i, buffer, charsmax(buffer))
+		
+		if(g_Choosed_Character[id])
+		{
+			new name[32]
+			ArrayGetString(g_Character_Name, g_Choosed_Character[id], name, 31)
+			kv_set_string(characterpack, "Default", name)
+		}
+		
+		if(g_Pack_Character[id][i])
+			kv_set_int(characterpack, buffer, 1)
+		else
+			kv_set_int(characterpack, buffer, 0)
+	}
+	kv_add_sub_key(kv, characterpack)
+	
+	
 	kv_save_to_file(kv, szFileDir);
 	kv_delete(kv);
 	
-	client_color_print(id, "^x04[DevilEscape]^x01%L", LANG_PLAYER, "SAVE_SUCCESS");
+	client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "SAVE_SUCCESS");
 	
 }
 
@@ -3014,6 +3320,21 @@ gm_user_load(id)
 		else g_Pack_GashWpn[id][i] = false
 	}
 	
+	new characterpack = kv_find_key(kv, "Character Pack");
+	new name[32]
+	kv_get_string(characterpack, "Default", name, 31)
+	
+	for(new i = 1; i < g_Character_Num; i++)
+	{
+		ArrayGetString(g_Character_Name, i, buffer, charsmax(buffer))
+		if(kv_get_int(characterpack, buffer))
+			g_Pack_Character[id][i] = true
+		else g_Pack_Character[id][i] = false
+		
+		if(equal(name, buffer))
+			g_Choosed_Character[id] = i
+	}
+	
 	kv_delete(kv)
 }
 
@@ -3049,6 +3370,25 @@ gm_admin_give(id)
 	gm_user_save(g_Admin_Select_Plr[id]) //保存一下
 	g_Admin_Select_Plr[id] = 0
 	g_Menu_Admin_Select[id] = 0
+}
+
+gm_set_character(id, cid)
+{
+	if(!is_user_alive(id) || !is_user_valid_connected(id))
+		return
+	
+	if(cid == g_Cid_Billy)
+	{
+		fm_set_user_model(id, "billy")
+		fm_set_user_health(id, pev(id, pev_health)+10)
+	}
+	else if(cid == g_Cid_RBS)
+		fm_set_user_model(id, "BRS")
+	else if(cid == g_Cid_Mcdonald)
+		fm_set_user_model(id, "mcdonald")
+	else if(cid == g_Cid_Ezio)
+		fm_set_user_model(id, "ezio")
+	
 }
 
 gm_create_fog()
@@ -3296,6 +3636,14 @@ public bossskill_disappear()
 
 /* ==========================
 
+					[Forward]
+			 
+==========================*/
+
+
+
+/* ==========================
+
 					[Natives]
 			 
 ==========================*/
@@ -3349,6 +3697,17 @@ public native_register_shop_item(const name[], const price, const max)
 	
 	g_Shop_Item_Num ++
 	return g_Shop_Item_Num-1
+}
+
+public native_register_character(const name[], const info[], const price)
+{
+	// param_convert(1)
+	ArrayPushString(g_Character_Name, name)
+	ArrayPushString(g_Character_Info, info)
+	ArrayPushCell(g_Character_Price, price)
+	
+	g_Character_Num ++
+	return g_Character_Num-1
 }
 
 public native_set_user_nightvision(id, set)

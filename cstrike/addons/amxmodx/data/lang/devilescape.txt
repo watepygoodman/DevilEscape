@@ -12,7 +12,7 @@ LOGIN_FAILED = 登录失败,密码错误
 HUD_NO_REGISTER = [DevilEscape]^n您还没有注册,请按Y输入你的密码^n剩余%d秒
 HUD_NO_LOGIN = [DevilEscape]^n您还没有登录,请按Y输入你的密码^n剩余%d秒^n使用了[%d/%d]次机会
 HUD_CHANGING_PW = [DevilEscape]^n请按Y输入你的新密码
-HUD_LEVEL_UP = [Lv.%d]
+HUD_LEVEL_UP = Level Up!!!^n你已达到Lv.%d
 HUD_WPN_LEVEL_UP = [%s Lv.%d]
 
 DHUD_ROUND_START = 10秒后魔王出现
@@ -33,11 +33,12 @@ NOT_HUMAN = 你不是人类！
 
 MENU_ABILITY = 能力菜单
 MENU_SKILL = 技能菜单
-MENU_WEAPON = 选择武器
+MENU_CHOOSE = 选择菜单
 MENU_WEAPON_FREE = 免费枪
 MENU_WEAPON_GASH = 永久枪
 MENU_WEAPON_SPECIAL = 特殊枪
 MENU_WEAPON_SECOND = 副武器
+MENU_CHARACTER = 人物选择
 MENU_HUMANSKILL = 人类技能
 MENU_BOSSSKILL = 魔王技能
 MENU_PACK = 背包菜单
@@ -48,6 +49,7 @@ MENU_SHOP_ITEM = 道具商店
 MENU_CONVERT = 货币转换
 MENU_SHOP_WEAPON_GASH = 永久枪商店
 MENU_SHOP_WEAPON_SPECIAL = 特殊枪商店
+MENU_SHOP_CHARACTER = 人物商店
 MENU_ADMIN_SELECT_BOSS = 选择魔王
 MENU_ADMIN_GIVE = 给予物品(个人)
 MENU_ADMIN_GIVE_ALL = 给予物品(所有人)
@@ -67,9 +69,9 @@ NO_SP = 你的技能点不足！
 NO_LEVEL = 你的等级不足！
 
 ABILITY_HEALTH = 生命
-ABILITY_AGILITY = 敏捷
+ABILITY_AGILITY = 速度
 ABILITY_STRENGTH = 力量
-ABILITY_GRAVITY = 重力
+ABILITY_GRAVITY = 跳跃力
 
 HUMANSKILL_FASTRUN = 急速
 HUMANSKILL_ONLYHEADSHOT = 精准射击
@@ -97,11 +99,26 @@ USE_ITEM = %s使用了道具:%s
 MENU_ITEM_CONFIRM = 确认
 MENU_ITEM_DROP = 丢弃
 
-SPEC_HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n累计伤害: %f
-HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f
+HAVE_NO_THIS_CHARACTER = 你没有这个人物！
+YOU_HAD_THIS_CHARACTER = 你已经拥有这个人物了！
+YOU_ALREADY_CHOOSE_THIS_CHARACTER = 你已经选择这个人物了！
+YOU_CHOOSE_THIS_CHARACTER = 你选择了%s,该人物要在下次复活生效
+CHOOSED_CHARACTER = 目前选择的人物
+
+BOSS_COMBO = 魔王%s已经杀掉了%d人类，已奖励%dExp, %d Coin!
+
+SPEC_HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n累计伤害: %f  |  Combo: %d
+HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f  |  Combo: %d
 RANK_INFO = 第一名^n名字:%s^n伤害:%f^n^n第二名^n名字:%s^n伤害:%f^n^n第三名^n名字:%s^n伤害:%f
 
 COIN = Coin
 GASH = Gash
 LEVEL = 等级
 XP = 经验值
+
+DE_TIPS_1 = 按M可以打开主菜单
+DE_TIPS_2 = 魔王按E可以打开技能菜单
+DE_TIPS_3 = 每集齐2000伤害可以得到Exp, Coin和WeaponExp
+DE_TIPS_4 = 枪械每提高一级,伤害就会增加1点
+DE_TIPS_5 = 杀敌可以增加Combo,Combo每增加1就会增加2%攻击力
+DE_TIPS_6 = 若有作弊现象请立即告知OP

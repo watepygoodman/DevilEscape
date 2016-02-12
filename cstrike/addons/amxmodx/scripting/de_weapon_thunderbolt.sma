@@ -98,7 +98,7 @@ public give_weapon(id)
 	{
 		set_pev(iEntity, pev_weapons, WEAPON_THUNDERBOLT)
 		set_pev(iEntity, pev_owner, id)
-		SetWeaponAnimation(id, 1)
+		SetWeaponAnimation(id, 2)
 		set_pdata_int(iEntity, m_iClip, get_pcvar_num(cvar_clip), 4)
 		cs_set_user_bpammo(id, CSW_AWP, 40)
 	}
@@ -174,6 +174,7 @@ public fw_Weapon_PrimaryAttack(Ent)
 	set_pdata_float(Ent, m_flNextSecondaryAttack, 2.88, 4)
 	cs_set_user_zoom(id, 1,1) 
 	SetWeaponAnimation(id, 1)
+	set_pev(id, pev_punchangle, {4.0, 0.0, 0.0})
 	engfunc(EngFunc_EmitSound, Ent, CHAN_ITEM, g_WpnSound[0], VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
 	return HAM_SUPERCEDE
 }
@@ -238,50 +239,25 @@ public Weapon_ShootLine(id, Ent)
 	write_byte(255);
 	message_end();
 	
-	new tr, cross, ignoredent, i, hitgroup
+	new tr, i, hitgroup
 	new Float:dmg = get_pcvar_float(cvar_damage)
-	
-	ignoredent = id
-	cross = 5
-	while (cross && dmg>0.0)
+
+	engfunc(EngFunc_TraceLine, StartOrigin, TargetOrigin, 0, id, tr)
+	if(get_tr2(tr,TR_AllSolid))
+		return 
+	i = get_tr2(tr, TR_pHit)
+	hitgroup = get_tr2(tr,TR_iHitgroup)
+	if(pev_valid(i) && pev(i,pev_takedamage))
 	{
-		cross--
-		engfunc(EngFunc_TraceLine, StartOrigin, TargetOrigin, 0, ignoredent, tr)
-		if(get_tr2(tr,TR_AllSolid)) break
-		i = get_tr2(tr, TR_pHit)
-		ignoredent = i
-		if( i<0 ){
-			i = 0
-			continue
-		}
-		
-		if(id == i)
+		switch(hitgroup)
 		{
-			cross ++
-			continue
+			case 1: dmg*= 1.5
+			case 2: dmg*= 1.25
+			case 3: dmg*= 1.25
 		}
-		
-		hitgroup = get_tr2(tr,TR_iHitgroup)
-		if(pev_valid(i) && pev(i,pev_takedamage))
-		{
-			new Float:idmg = dmg
-			switch(hitgroup)
-			{
-				case 1: idmg*= 1.5
-				case 2: idmg*= 1.25
-				case 3: idmg*= 1.25
-				case 4: idmg*= 1.10
-				case 5: idmg*= 1.10
-				case 6: idmg*= 0.9
-				case 7: idmg*= 0.9
-			}
 			
-			ExecuteHamB(Ham_TakeDamage, i, Ent, id, idmg, DMG_BULLET)
-			dmg-= get_pcvar_float(cvar_damage) / float(cross)
-		}
-		
+		ExecuteHamB(Ham_TakeDamage, i, Ent, id, dmg, DMG_BULLET)
 	}
-	
 }
 
 public fw_Weapon_WeaponIdle_Post(Ent)

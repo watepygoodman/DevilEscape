@@ -27,6 +27,8 @@ stock m_iAmmoType_XM1014 = 381
 
 //Wpn Key
 const WEAPON_INFINITY = 4000
+const WEAPON_FIRECRACKER = 4010
+
 const WEAPON_LR300 = 6644
 const WEAPON_ETHEREAL = 6655
 const WEAPON_M4A1BLACKKNIGHT = 6666
@@ -36,6 +38,7 @@ const WEAPON_THUNDERBOLT = 6699
 const WEAPON_SALAMANDER = 7011
 const WEAPON_WATERCANNON = 7022
 const WEAPON_AT4CS = 7033
+const WEAPON_COILGUN = 7044
 
 const DE_DMG_ROCKET = 95123
 
@@ -45,6 +48,7 @@ native de_register_gash_wpn(const name[], const cost)
 native de_register_second_wpn(const name[], const lvneed)
 native de_register_item(const name[], const info[])
 native de_register_shop_item(const name[], const price, const max)
+native de_register_character(const name[], const info[], const price)
 native de_set_user_nightvision(const id, const set)
 //Wpn Give
 /* native wpn_give_plasmagun(id)

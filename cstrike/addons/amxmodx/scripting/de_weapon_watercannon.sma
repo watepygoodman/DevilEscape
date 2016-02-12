@@ -383,7 +383,7 @@ public fw_Fire_Think(Ent)
 		Frame += 1.0
 		Frame = floatmin(21.0, Frame)
 	}
-	Scale = floatmin(entity_range(Ent, pev(Ent, pev_owner)) / 750 * 3.0, 10.0)
+	Scale = floatmin(entity_range(Ent, pev(Ent, pev_owner)) / 750 * 3.0, 1.5)
 	
 	
 	set_pev(Ent, pev_nextthink, get_gametime() + NextThink)
