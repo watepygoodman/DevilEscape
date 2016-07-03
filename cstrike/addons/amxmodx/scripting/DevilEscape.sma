@@ -3168,6 +3168,13 @@ gm_user_login(id, const password[])
 
 gm_user_save(id)
 {
+	if(!dir_exists(g_savesDir))
+	{
+		if(mkdir(g_savesDir))
+			client_color_print(id, "^x04[错误]^x03%L",  LANG_PLAYER, "ERROR_CANT_MKDIR")
+	}
+		
+	
 	new szUserName[32], szFileDir[128]
 	get_user_name(id, szUserName, charsmax(szUserName))
 	formatex(szFileDir, charsmax(szFileDir), "%s/%s.ini", g_savesDir, szUserName)

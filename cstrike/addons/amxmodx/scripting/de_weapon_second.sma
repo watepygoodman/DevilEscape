@@ -75,6 +75,9 @@ public plugin_init()
 }
 
 public event_curweapon(id)
+{
+	
+}
 
 
 public fw_UpdateClientData_Post(id, sendweapons, cd_handle)
