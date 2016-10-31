@@ -607,7 +607,7 @@ public event_round_end()
 		return
 	if(!g_GameStart)
 	{
-		client_color_print(0, "^x04[提示]^x03%L",  LANG_PLAYER, "GAME_NEED_PLAYER", get_pcvar_num(cvar_MinimumPlr))
+		client_color_print(0, "\g[提示]\t%L",  LANG_PLAYER, "GAME_NEED_PLAYER", get_pcvar_num(cvar_MinimumPlr))
 		return
 	}
 	
@@ -617,7 +617,7 @@ public event_round_end()
 		GetCoin = get_pcvar_num(cvar_DevilWinGetBaseCoin) * g_PlayerInGame
 		set_dhudmessage( 255, 0, 0, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_BOSS_WIN" );
-		client_color_print(0, "^x04[提示]^x03%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		client_color_print(0, "\g[提示]\t%L%L",  LANG_PLAYER, "DHUD_BOSS_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_devil_win)
 		g_Xp[g_whoBoss] += GetXp
 		g_Coin[g_whoBoss] += GetCoin
@@ -628,7 +628,7 @@ public event_round_end()
 		GetCoin = get_pcvar_num(cvar_HumanWinGetCoin)
 		set_dhudmessage( 0, 255, 0,  DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_HUMAN_WIN" );
-		client_color_print(0, "^x04[提示]^x03%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		client_color_print(0, "\g[提示]\t%L%L",  LANG_PLAYER, "DHUD_HUMAN_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_human_win)
 		for(new i = 1; i <= g_MaxPlayer; i++)
 		{
@@ -644,7 +644,7 @@ public event_round_end()
 		GetCoin = get_pcvar_num(cvar_NooneWinGetCoin)
 		set_dhudmessage( 255, 255, 255, DHUD_MSG_X, DHUD_MSG_Y, 1, 3.0, 1.0, 0.1, 1.0 );
 		show_dhudmessage( 0, " %L", LANG_PLAYER, "DHUD_NOONE_WIN" );
-		client_color_print(0, "^x04[提示]^x03%L%L",  LANG_PLAYER, "DHUD_NOONE_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
+		client_color_print(0, "\g[提示]\t%L%L",  LANG_PLAYER, "DHUD_NOONE_WIN", LANG_PLAYER, "WIN_GET_CHAT", GetXp, GetCoin)
 		PlaySound(snd_noone_win)
 		for(new i = 1; i <= g_MaxPlayer; i++)
 		{
@@ -835,7 +835,7 @@ public fw_PlayerKilled(victim, attacker, shouldgib)
 		coin_get = get_pcvar_num(cvar_BossComboGetCoin)
 		xp_get = get_pcvar_num(cvar_BossComboGetXp)
 		
-		client_color_print(0, "^x04[提示]^x03%L", LANG_PLAYER, "BOSS_COMBO",
+		client_color_print(0, "\g[提示]\t%L", LANG_PLAYER, "BOSS_COMBO",
 		name, g_Combo[attacker], xp_get * g_Combo[attacker], coin_get * g_Combo[attacker])
 		
 		g_Coin[attacker] += coin_get * 5
@@ -1209,7 +1209,7 @@ public fw_ClientCommand(id)
 		if(AdminPut == ADMIN_GIVE_COIN || AdminPut == ADMIN_GIVE_GASH || AdminPut == ADMIN_GIVE_XP || AdminPut == ADMIN_GIVE_LEVEL)
 		{
 			if(!is_str_num(szText))
-				client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ADMIN_INPUT_ERROR");
+				client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "ADMIN_INPUT_ERROR");
 			else
 			{
 				g_Admin_Input[id] = str_to_num(szText)
@@ -1356,7 +1356,7 @@ public task_autosave(id)
 {
 	id -= TASK_AUTOSAVE
 	gm_user_save(id)
-	// client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
+	// client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "AUTOSAVE_SUCCESS");
 }
 
 public task_round_start()
@@ -1698,7 +1698,7 @@ public task_tips()
 	
 	formatex(tipsname, 13, "DE_TIPS_%d", tipnum)
 	
-	client_color_print(0, "^x04[提示]^x03%L", LANG_PLAYER, tipsname)
+	client_color_print(0, "\g[提示]\t%L", LANG_PLAYER, tipsname)
 }
 
 public func_critical(taskid)
@@ -1823,7 +1823,7 @@ public menu_choose(id, key)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1843,7 +1843,7 @@ public show_menu_weapon_free(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1885,7 +1885,7 @@ public menu_weapon_free(id, key)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -1910,7 +1910,7 @@ public menu_weapon_free(id, key)
 	}
 	if(get_bit(g_isBuyWpnMain, id))
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		return PLUGIN_HANDLED
 	}
 	
@@ -1924,10 +1924,10 @@ public menu_weapon_free(id, key)
 	{
 		if(NeedLv + LvPreWpn*key > g_Level[id])
 		{
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NO_LEVEL");
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NO_LEVEL");
 			return PLUGIN_HANDLED
 		}
-		client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeFrist_Name[key]);
+		client_color_print(id, "\g[提示]\y%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeFrist_Name[key]);
 		fm_give_item(id, g_WpnFreeFrist[key])
 		args[0] = g_WpnFreeFrist_CSW[key]
 	}
@@ -1935,10 +1935,10 @@ public menu_weapon_free(id, key)
 	{
 		if(NeedLv + LvPreWpn*(key+7) > g_Level[id])
 		{
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NO_LEVEL");
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NO_LEVEL");
 			return PLUGIN_HANDLED
 		}
-		client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeSec_Name[key]);
+		client_color_print(id, "\g[提示]\y%L%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", g_WpnFreeSec_Name[key]);
 		fm_give_item(id, g_WpnFreeSec[key])
 		args[0] = g_WpnFreeSec_CSW[key]
 	}
@@ -1954,7 +1954,7 @@ public show_menu_weapon_gash(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	new Menuitem[64], Menu, CharNum[3]
@@ -1989,7 +1989,7 @@ public menu_weapon_gash(id, menu, item)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -2001,7 +2001,7 @@ public menu_weapon_gash(id, menu, item)
 	
 	if(get_bit(g_isBuyWpnMain, id))
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		menu_destroy(menu);
 		return PLUGIN_HANDLED
 	}
@@ -2012,7 +2012,7 @@ public menu_weapon_gash(id, menu, item)
 	
 	if(!g_Pack_GashWpn[id][key-1])	//没这玩意儿
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
@@ -2021,7 +2021,7 @@ public menu_weapon_gash(id, menu, item)
 	
 	new buffer[32]
 	ArrayGetString(g_GashWpn_Name, key-1, buffer, charsmax(buffer))
-	client_color_print(id, "^x04[提示]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
+	client_color_print(id, "\g[提示]\y%L\t%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
 	set_bit(g_isBuyWpnMain, id)
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -2033,7 +2033,7 @@ public show_menu_weapon_special(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -2072,7 +2072,7 @@ public menu_weapon_special(id, menu, item)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -2084,7 +2084,7 @@ public menu_weapon_special(id, menu, item)
 	
 	if(get_bit(g_isBuyWpnMain, id))
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_MAIN_WPN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_MAIN_WPN");
 		menu_destroy(menu);
 		return PLUGIN_HANDLED
 	}
@@ -2095,7 +2095,7 @@ public menu_weapon_special(id, menu, item)
 	
 	if(!g_Pack_SpWpn[id][key-1])	//没这玩意儿
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_NO_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
@@ -2104,7 +2104,7 @@ public menu_weapon_special(id, menu, item)
 	
 	new buffer[32]
 	ArrayGetString(g_SpWpn_Name, key-1, buffer, charsmax(buffer))
-	client_color_print(id, "^x04[提示]^x01%L^x03%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
+	client_color_print(id, "\g[提示]\y%L\t%s", LANG_PLAYER, "YOU_CHOOSE_THIS_WPN", buffer);
 	set_bit(g_isBuyWpnMain, id)
 	// task_refill_bpammo(args[0], id)
 	menu_destroy(menu);
@@ -2117,7 +2117,7 @@ public show_menu_weapon_second(id)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
@@ -2140,13 +2140,13 @@ public menu_weapon_second(id, key)
 {
 	if(id==g_whoBoss)
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NOT_HUMAN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_HUMAN");
 		return PLUGIN_HANDLED;
 	}
 	
 	if(get_bit(g_isBuyWpnSec, id))
 	{
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_SEC_WPN");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_SEC_WPN");
 		return PLUGIN_HANDLED
 	}
 	if(g_Level[id] >= ArrayGetCell(g_SecondWpn_Lv, key))
@@ -2155,7 +2155,7 @@ public menu_weapon_second(id, key)
 		ExecuteForward(g_fwSecondWpnSelect, g_fwDummyResult, id, key)
 	}
 	else
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "NO_LEVEL");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NO_LEVEL");
 	
 	return PLUGIN_HANDLED
 }
@@ -2276,7 +2276,7 @@ public menu_pack(id, menu, item)
 	}
 	
 	if(!get_pcvar_num(cvar_ItemOpen))
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ITEM_CLOSE");
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "ITEM_CLOSE");
 	
 	new data[6],iName[64]
 	new access, callback;
@@ -2325,11 +2325,11 @@ public menu_item_select(id, key)
 		case 0:{
 			ExecuteForward(g_fwItemSelect, g_fwDummyResult, id, g_Pack[id][g_Pack_Select[id]])
 			g_Pack[id][g_Pack_Select[id]] = 0
-			client_color_print(0, "^x04[提示]^x01%L", LANG_PLAYER, "USE_ITEM", plrname, itemname)
+			client_color_print(0, "\g[提示]\y%L", LANG_PLAYER, "USE_ITEM", plrname, itemname)
 		}
 		case 1:{
 			g_Pack[id][g_Pack_Select[id]] = 0
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "DROP_ITEM", itemname)
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "DROP_ITEM", itemname)
 		}
 	}
 	
@@ -2402,14 +2402,14 @@ public menu_character(id, menu, item)
 	if(g_Pack_Character[id][select])
 	{
 		if(g_Choosed_Character[id] == select)
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "YOU_ALREADY_CHOOSE_THIS_CHARACTER", name)
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "YOU_ALREADY_CHOOSE_THIS_CHARACTER", name)
 		else
 		{
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "YOU_CHOOSE_THIS_CHARACTER", name)
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "YOU_CHOOSE_THIS_CHARACTER", name)
 			g_Choosed_Character[id] = select
 		}
 	}
-	else client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "HAVE_NO_THIS_CHARACTER")
+	else client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "HAVE_NO_THIS_CHARACTER")
 		
 	
 	menu_destroy(menu);
@@ -2497,20 +2497,20 @@ public menu_shop_item(id, menu, item)
 	ArrayGetString(g_Shop_Item_Name, select, itemname, charsmax(itemname))
 	itemmax = ArrayGetCell(g_Shop_Item_Max, select)
 	if(itemmax <= g_Shop_Item_Times[id][select] && itemmax)
-		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_MAX")
+		client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_BUY_MAX")
 	else
 	{
 		if(g_Coin[id] < itemprice)
-			client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+			client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_BUY_FAILED")
 		else{
 			if(itemmax)
 				g_Shop_Item_Times[id][select] += 1
 			g_Coin[id] -= itemprice
 			ExecuteForward(g_fwShopItemSelect, g_fwDummyResult, id, select)
 			if(!g_fwDummyResult)
-				client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+				client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_BUY_FAILED")
 			else
-				client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", itemname)
+				client_color_print(id, "\g[Shop]\y%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", itemname)
 		}
 	}
 	
@@ -2556,7 +2556,7 @@ public menu_shop_weapon_gash(id, menu, item)
 	
 	if(g_Pack_GashWpn[id][key-1])
 	{
-		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
+		client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
@@ -2569,9 +2569,9 @@ public menu_shop_weapon_gash(id, menu, item)
 		g_Gash[id] -= GashCost
 		ArrayGetString(g_GashWpn_Name, key-1, buffer, charsmax(buffer))
 		g_Pack_GashWpn[id][key-1] = true
-		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", buffer)
+		client_color_print(id, "\g[Shop]\y%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", buffer)
 	}
-	else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+	else client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_BUY_FAILED")
 	
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -2617,7 +2617,7 @@ public menu_shop_weapon_special(id, menu, item)
 	new key = str_to_num(data);
 	if(g_Pack_SpWpn[id][key-1])
 	{
-		client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
+		client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_HAD_THIS_WPN")
 		menu_destroy(menu);
 		return PLUGIN_HANDLED;
 	}
@@ -2630,9 +2630,9 @@ public menu_shop_weapon_special(id, menu, item)
 		g_Gash[id] -= GashCost
 		ArrayGetString(g_SpWpn_Name, key-1, buffer, charsmax(buffer))
 		g_Pack_SpWpn[id][key-1] = true
-		client_color_print(id, "^x04[Shop]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", buffer)
+		client_color_print(id, "\g[Shop]\y%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", buffer)
 	}
-	else client_color_print(id, "^x04[Shop]^x01%L", LANG_PLAYER, "SHOP_BUY_FAILED")
+	else client_color_print(id, "\g[Shop]\y%L", LANG_PLAYER, "SHOP_BUY_FAILED")
 	
 	menu_destroy(menu);
 	return PLUGIN_HANDLED;
@@ -2689,18 +2689,18 @@ public menu_shop_character(id, menu, item)
 	ArrayGetString(g_Character_Name, select, name, charsmax(name))
 	
 	if(g_Pack_Character[id][select])
-		client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "YOU_HAD_THIS_CHARACTER")
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "YOU_HAD_THIS_CHARACTER")
 	else
 	{
 		new price = ArrayGetCell(g_Character_Price, select)
 		if(g_Gash[id] >= ArrayGetCell(g_Character_Price,  select))
 		{
 			g_Gash[id] -= price
-			client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", name)
+			client_color_print(id, "\g[提示]\y%L%s", LANG_PLAYER, "SHOP_BUY_SUCCESS", name)
 			g_Pack_Character[id][select] = true
 		}
 		else
-			client_color_print(id, "^x04[提示]^x01%L%s", LANG_PLAYER, "SHOP_BUY_FAILED")
+			client_color_print(id, "\g[提示]\y%L%s", LANG_PLAYER, "SHOP_BUY_FAILED")
 	}
 	
 	return PLUGIN_HANDLED
@@ -2958,14 +2958,14 @@ public menu_plrlist(id, menu, item)
 		case ADMIN_SELECT_BOSS:
 		{
 			if(!is_user_alive(g_Menu_Admin_Select_PlrKey[id][key]))
-				client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ADMIN_PLAYER_MUST_ALIVE");
+				client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "ADMIN_PLAYER_MUST_ALIVE");
 			else
 			{
 				if(g_RoundStatus != Round_Start)
-					client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
+					client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
 				else
 				{
-					client_color_print(0, "^x04[ADMIN]^x03%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
+					client_color_print(0, "\g[ADMIN]\t%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
 					g_Admin_Select_Boss = g_Menu_Admin_Select_PlrKey[id][key]
 					task_round_start()
 				}
@@ -3017,10 +3017,10 @@ public menu_convert(id, key)
 			mul *= 10
 		
 		Coin2Gash *= mul
-		if(g_Coin[id] < Coin2Gash)	client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
+		if(g_Coin[id] < Coin2Gash)	client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "CONVERT_FAILED");
 		else{
 			g_Coin[id] -= Coin2Gash; g_Gash[id] += mul
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "CONVERT_SUCCESS");
 		}
 		
 		return PLUGIN_HANDLED
@@ -3034,10 +3034,10 @@ public menu_convert(id, key)
 			mul *= 10
 		
 		Gash2Coin *= mul
-		if(g_Gash[id] < mul) client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_FAILED");
+		if(g_Gash[id] < mul) client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "CONVERT_FAILED");
 		else {
 			g_Gash[id] -= mul; g_Coin[id] += Gash2Coin
-			client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "CONVERT_SUCCESS");
+			client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "CONVERT_SUCCESS");
 		}
 			
 		return PLUGIN_HANDLED
@@ -3131,7 +3131,7 @@ gm_user_register(id, const password[])
 	new pw_len = strlen(password)
 	if( pw_len > 12 || pw_len < 6)
 	{
-		client_color_print(id, "^x04[提示]^x03%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
+		client_color_print(id, "\g[提示]\t%L", LANG_PLAYER, "REGISTER_OUTOFLEN");
 		return;
 	}
 	
@@ -3141,7 +3141,7 @@ gm_user_register(id, const password[])
 		{
 			if( password[i] == InvalidChars[j])
 			{
-				client_color_print(id, "^x04[提示]^x03%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
+				client_color_print(id, "\g[提示]\t%L", LANG_PLAYER, "REGISTER_INVAILDCHAR");
 				return;
 			}
 		}
@@ -3150,15 +3150,15 @@ gm_user_register(id, const password[])
 	//重要的事情说三遍
 	if(get_bit(g_isChangingPW, id))
 	{
-		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
-		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
-		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "\g[提示]%L\t%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "\g[提示]%L\t%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
+		client_color_print(id, "\g[提示]%L\t%s",  LANG_PLAYER, "CHANGEPASSWORD_SUCCESS", password)
 	}
 	else
 	{
-		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
-		client_color_print(id, "^x04[提示]%L^x03%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "\g[提示]%L\t%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "\g[提示]%L\t%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
+		client_color_print(id, "\g[提示]%L\t%s",  LANG_PLAYER, "REGISTER_SUCCESS", password)
 	}
 	msg_change_team_info(id, iteam)
 	set_bit(g_isRegister, id)
@@ -3181,16 +3181,16 @@ gm_user_login(id, const password[])
 	
 	if(equal(g_PlayerPswd[id], password))
 	{
-		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
-		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "\g[提示]\t%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "\g[提示]\t%L",  LANG_PLAYER, "LOGIN_SUCCESS")
+		client_color_print(id, "\g[提示]\t%L",  LANG_PLAYER, "LOGIN_SUCCESS")
 		set_bit(g_isLogin, id)
 		client_cmd(id, "chooseteam")
 		set_task(get_pcvar_float(cvar_AutosaveTime), "task_autosave", id+TASK_AUTOSAVE, _, _, "b")
 	}
 	else
 	{
-		client_color_print(id, "^x04[提示]^x03%L",  LANG_PLAYER, "LOGIN_FAILED")
+		client_color_print(id, "\g[提示]\t%L",  LANG_PLAYER, "LOGIN_FAILED")
 		g_LoginRetry[id] ++
 	}
 	
@@ -3202,7 +3202,7 @@ gm_user_save(id)
 	if(!dir_exists(g_savesDir))
 	{
 		if(mkdir(g_savesDir))
-			client_color_print(id, "^x04[错误]^x03%L",  LANG_PLAYER, "ERROR_CANT_MKDIR")
+			client_color_print(id, "\g[错误]\t%L",  LANG_PLAYER, "ERROR_CANT_MKDIR")
 	}
 		
 	
@@ -3291,7 +3291,7 @@ gm_user_save(id)
 	kv_save_to_file(kv, szFileDir);
 	kv_delete(kv);
 	
-	client_color_print(id, "^x04[提示]^x01%L", LANG_PLAYER, "SAVE_SUCCESS");
+	client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "SAVE_SUCCESS");
 	
 }
 
@@ -3386,23 +3386,23 @@ gm_admin_give(id)
 		case ADMIN_GIVE_COIN:
 		{
 			g_Coin[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
+			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
 		}
 		case ADMIN_GIVE_GASH:
 		{
 			g_Gash[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
+			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
 		}
 		case ADMIN_GIVE_LEVEL:
 		{
 			g_Level[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
 			g_Sp[g_Admin_Select_Plr[id]] += g_Admin_Input[id] * get_pcvar_num(cvar_SpPreLv)
-			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
+			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
 		}
 		case ADMIN_GIVE_XP:
 		{
 			g_Xp[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "^x04[ADMIN]^x03%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
+			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
 		}
 	}
 	gm_user_save(g_Admin_Select_Plr[id]) //保存一下
@@ -4088,57 +4088,31 @@ stock msg_show_scare(id)
 			 
 ===================== */
 
-stock client_color_print(target,  const message[], any:...)
+stock client_color_print(const id, const message[], any:...)
 {
-	static buffer[512], i, argscount
-	argscount = numargs()
-	// 发送给所有人
-	if (!target)
+	static buffer[256];
+	new i = 1, players[32];
+
+	vformat(buffer, charsmax(buffer), message, 3)
+
+	replace_all(buffer, charsmax(buffer), "\g", "^4")
+	replace_all(buffer, charsmax(buffer), "\y", "^1")
+	replace_all(buffer, charsmax(buffer), "\t", "^3")
+
+	if(id)
+		players[0] = id
+	else
+		get_players(players, i, "ch")
+
+	for(new j = 0; j < i; j++)
 	{
-		static player
-		for (player = 1; player <= g_MaxPlayer; player++)
+		if(get_bit(g_isConnect, players[j]))
 		{
-			// 断线
-			if (!get_bit(g_isConnect, player))
-				continue;
-			
-			// 记住变化的变量
-			static changed[5], changedcount // [5] = max LANG_PLAYER occurencies
-			changedcount = 0
-			
-			// 将player id 取代LANG_PLAYER
-			for (i = 2; i < argscount; i++)
-			{
-				if (getarg(i) == LANG_PLAYER)
-				{
-					setarg(i, 0, player)
-					changed[changedcount] = i
-					changedcount++
-				}
-			}
-			
-			// Format信息给玩家
-			vformat(buffer, charsmax(buffer), message, 3)
-			
-			// 发送信息
-			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("SayText"), _, player)
-			write_byte(player)
+			message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("SayText"),_, players[j])
+			write_byte(players[j])
 			write_string(buffer)
 			message_end()
-			
-			// 将back player id 取代LANG_PLAYER
-			for (i = 0; i < changedcount; i++)
-				setarg(changed[i], 0, LANG_PLAYER)
-		}
-	}
-	// 发送给指定目标
-	else
-	{
-		vformat(buffer, charsmax(buffer), message, 3)
-		message_begin(MSG_ONE, get_user_msgid("SayText"), _, target)
-		write_byte(target)
-		write_string(buffer)
-		message_end()
+		}	
 	}
 }
 
