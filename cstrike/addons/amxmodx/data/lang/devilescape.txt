@@ -23,6 +23,7 @@ DHUD_BOSS_WIN = 魔王胜利！
 DHUD_HUMAN_WIN = 人类胜利！
 DHUD_NOONE_WIN = 平局
 WIN_GET_CHAT = 获得 %d Exp, %d Coin奖励！
+GAME_NEED_PLAYER = 由于人数小于%d人,没有奖励
 
 HOW_MANY_LV_NEED = Lv.%d
 HAVE_MAIN_WPN = 你已经购买过主武器了！
