@@ -2,8 +2,29 @@
 	#endinput
 #endif
 #define _devilescape_included
+/* ====================
+*
+*				常量
+*
+==================== */
 
-//Offset
+#define CHARACTER_NAME_NONE "无"
+#define CHARACTER_NAME_BILLY "比利海灵顿"
+#define CHARACTER_NAME_BRS "黑岩射手"
+#define CHARACTER_NAME_EZIO "艾吉奥"
+#define CHARACTER_NAME_MCDONALD "蓝蓝路"
+
+
+#define CHARACTER_INFO_BILLY "\y新日暮里的王 \r[+%.2f速 & %dHP]"
+#define CHARACTER_INFO_BRS	"\y使用巨炮的少女\r[+%.2f%%伤害]"
+#define CHARACTER_INFO_EZIO "\y强大的刺客\r[+%.2f%%奖励]"
+#define CHARACTER_INFO_MCDONALD "\y麦当劳的守护者\r[+%.2f速]"
+
+/* ====================
+*
+*				OFFSET
+*
+==================== */
 stock m_CsTeam = 114 				//队伍
 stock m_MapZone = 235			//所在区域
 stock m_ModelIndex = 491 			//模型索引
@@ -18,14 +39,18 @@ stock m_flTimeWeaponIdle = 48
 stock m_LastHitGroup = 75 // int
 stock m_iWeaponState = 74 //int
 stock m_iShotsFired = 64 // int
-
 // stock m_flNextReload = 75 //float
 
+//Ammo Type
 stock m_iAmmoType_M249 = 379
 stock m_iAmmoType_M4A1 = 380
 stock m_iAmmoType_XM1014 = 381
 
-//Wpn Key
+/* ====================
+*
+*				武器ID
+*
+==================== */
 const WEAPON_INFINITY = 4000
 const WEAPON_FIRECRACKER = 4010
 
@@ -42,7 +67,11 @@ const WEAPON_COILGUN = 7044
 
 const DE_DMG_ROCKET = 95123
 
-//Wpn Register
+/* ====================
+*
+*				物品注册
+*
+==================== */
 native de_register_sp_wpn(const name[], const cost)
 native de_register_gash_wpn(const name[], const cost)
 native de_register_second_wpn(const name[], const lvneed)
@@ -50,13 +79,8 @@ native de_register_item(const name[], const info[])
 native de_register_shop_item(const name[], const price, const max)
 native de_register_character(const name[], const info[], const price)
 native de_set_user_nightvision(const id, const set)
-//Wpn Give
-/* native wpn_give_plasmagun(id)
-native wpn_give_thunderbolt(id)
-native wpn_give_salamander(id)
-native wpn_give_watercannon(id)
-native wpn_give_m4a1blackknight(id)
-native wpn_give_qbs09(id) */
+
+
 
 
 

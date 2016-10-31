@@ -169,7 +169,8 @@ cvar_AbilityAgiCost, cvar_AbilityStrCost, cvar_AbilityGraCost, cvar_AbilityHeaMa
 cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,cvar_BaseWpnNeedLv, cvar_BaseWpnPreLv, cvar_RewardWpnXp,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_WpnLvMax, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin, cvar_ItemOpen, cvar_NvgColor_Human[3], cvar_NvgColor_Boss[3],
-cvar_ComboAddDmg, cvar_BossComboGetCoin, cvar_BossComboGetXp
+cvar_ComboAddDmg, cvar_BossComboGetCoin, cvar_BossComboGetXp, cvar_CharaBillySpeed, cvar_CharaBillyHp, cvar_CharaBRSDmg, cvar_CharaMcdonaldSpeed,
+cvar_CharaEzioReward, cvar_CharaBillyPrice, cvar_CharaBRSPrice, cvar_CharaMcdonaldPrice, cvar_CharaEzioPrice
 
 // new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
 
@@ -301,7 +302,7 @@ new g_Shop_Item_Times[33][32]
 new g_fwSpWpnSelect, g_fwGashWpnSelect, g_fwSecondWpnSelect, g_fwItemSelect, g_fwShopItemSelect, g_fwDummyResult
 
 //Character Register
-new g_Cid_Billy, g_Cid_RBS, g_Cid_Ezio, g_Cid_Mcdonald
+new g_Cid_Billy, g_Cid_BRS, g_Cid_Ezio, g_Cid_Mcdonald
 
 public plugin_natives()
 {
@@ -376,11 +377,6 @@ public plugin_precache()
 	g_Shop_Item_Price = ArrayCreate(1, 1)
 	g_Shop_Item_Max = ArrayCreate(1, 1)
 	g_Character_Price = ArrayCreate(1, 1)
-	
-	//..
-	// ArrayPushString(g_Character_Name, "无")
-	// ArrayPushString(g_Character_Info, " ")
-	// ArrayPushCell(g_Character_Price, 0)
 	
 	//Cvar
 	cvar_MapBright = register_cvar("de_map_bright","d")
@@ -461,12 +457,18 @@ public plugin_precache()
 	cvar_ComboAddDmg = register_cvar("de_combo_add_dmg", "0.02")
 	cvar_BossComboGetCoin = register_cvar("de_boss_combo_getcoin", "1")
 	cvar_BossComboGetXp = register_cvar("de_boss_combo_getxp", "488")
-	// cvar_Wpn_PlasmagunPrice = register_cvar("de_wpn_plasmagun_price", "1888")
-	// cvar_Wpn_ThunderboltPrice = register_cvar("de_wpn_thunderbolt_price", "2288")
-	// cvar_Wpn_SalamanderPrice = register_cvar("de_wpn_salamander_price", "399")
-	// cvar_Wpn_WatercannonPrice = register_cvar("de_wpn_watercannon_price", "599")
-	// cvar_Wpn_M4A1BKPrice = register_cvar("de_wpn_m4a1bk_price","450")
-	// cvar_Wpn_QBS09Price = register_cvar("de_wpn_qbs09_price","50")
+	
+	cvar_CharaBillyHp = register_cvar("de_chara_billy_hp", "10")
+	cvar_CharaBillySpeed = register_cvar("de_chara_billy_speed", "2.5")
+	cvar_CharaBRSDmg = register_cvar("de_chara_brs_dmg", "0.05")
+	cvar_CharaEzioReward = register_cvar("de_chara_ezio_reward", "0.05")
+	cvar_CharaMcdonaldSpeed = register_cvar("de_chara_mcdonald_speed", "5.0")
+	
+	cvar_CharaBillyPrice = register_cvar("de_chara_billy_price", "100")
+	cvar_CharaBRSPrice = register_cvar("de_chara_brs_price", "120")
+	cvar_CharaMcdonaldPrice = register_cvar("de_chara_mcdonald_price", "100")
+	cvar_CharaEzioPrice = register_cvar("de_chara_ezio_price", "100")
+
 }
 
 public plugin_init()
@@ -547,12 +549,7 @@ public plugin_init()
 	server_cmd("mp_autoteambalance 0")
 	
 	//Character Register
-	
-	native_register_character("无", "", 0)
-	g_Cid_Billy = native_register_character("比利海灵顿", "+2.5 Speed && + 10HP", 100)	//1
-	g_Cid_RBS = native_register_character("黑岩射手", "+5% Damage", 100)					//2
-	g_Cid_Ezio = native_register_character("艾吉奥", "+5% Reward", 100)	
-	g_Cid_Mcdonald = native_register_character("蓝蓝路", "+5 Speed", 100)	
+	gm_register_character()
 	
 }
 
@@ -793,11 +790,12 @@ public fw_PlayerSpawn_Post(id)
 	
 	static  Float:Speed
 	Speed = 50.0+ g_Abi_Agi[id] * get_pcvar_float(cvar_AbilityAgiAdd)
-			
+	
+	//Character
 	if(g_Using_Character[id] == g_Cid_Billy)
-		Speed += 2.5
+		Speed += get_pcvar_float(cvar_CharaBillySpeed)
 	else if(g_Using_Character[id] == g_Cid_Mcdonald)
-		Speed += 5.0
+		Speed += get_pcvar_float(cvar_CharaMcdonaldSpeed)
 			
 	set_pev(id, pev_maxspeed, Speed)
 	
@@ -947,8 +945,9 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type)
 	//Str
 	TrueDamage =  TrueDamage * (1.0 + g_Abi_Str[attacker]*get_pcvar_float(cvar_AbilityStrAdd))
 	
-	if(g_Using_Character[attacker] == g_Cid_RBS)
-		TrueDamage *= 1.05
+	//BRS Character
+	if(g_Using_Character[attacker] == g_Cid_BRS)
+		TrueDamage *= (1.0+get_pcvar_float(cvar_CharaBRSDmg))
 	
 	//Crit
 	if(get_bit(g_isCrit, attacker))
@@ -1000,8 +999,8 @@ public fw_TakeDamage_Post(victim, inflictor, attacker, Float:damage, damage_type
 		
 		if(g_Using_Character[attacker] == g_Cid_Ezio && attacker != g_whoBoss)
 		{
-				coin_get += floatround(coin_get * 0.05)
-				xp_get += floatround(xp_get * 0.05)
+			coin_get = floatround(coin_get * (1.0 +  get_pcvar_float(cvar_CharaEzioReward)))
+			xp_get = floatround(xp_get * (1.0 +  get_pcvar_float(cvar_CharaEzioReward)))
 		}
 		g_Coin[attacker] += coin_get;
 		g_Xp[attacker] += xp_get;
@@ -3091,6 +3090,26 @@ gm_reset_vars()
 	
 }
 
+//注册人物
+gm_register_character()
+{
+	new _CHARA_INFO[64]
+	
+	native_register_character(CHARACTER_NAME_NONE, "", 0)
+	
+	formatex(_CHARA_INFO, 63, CHARACTER_INFO_BILLY, get_pcvar_float(cvar_CharaBillySpeed), get_pcvar_num(cvar_CharaBillyHp))
+	g_Cid_Billy = native_register_character(CHARACTER_NAME_BILLY, _CHARA_INFO, get_pcvar_num(cvar_CharaBillyPrice))	//1
+	
+	formatex(_CHARA_INFO, 63, CHARACTER_INFO_BRS, get_pcvar_float(cvar_CharaBRSDmg) *100)
+	g_Cid_BRS = native_register_character(CHARACTER_NAME_BRS, _CHARA_INFO, get_pcvar_num(cvar_CharaBRSPrice))					//2
+	
+	formatex(_CHARA_INFO, 63, CHARACTER_INFO_EZIO, get_pcvar_float(cvar_CharaEzioReward) *100)
+	g_Cid_Ezio = native_register_character(CHARACTER_NAME_EZIO, _CHARA_INFO, get_pcvar_num(cvar_CharaEzioPrice))	
+	
+	formatex(_CHARA_INFO, 63, CHARACTER_INFO_MCDONALD, get_pcvar_float(cvar_CharaMcdonaldSpeed))
+	g_Cid_Mcdonald = native_register_character(CHARACTER_NAME_MCDONALD, _CHARA_INFO, get_pcvar_num(cvar_CharaMcdonaldPrice))	
+}
+
 gm_user_register(id, const password[])
 {
 	msg_change_team_info(id, "SPECTATOR")
@@ -3387,9 +3406,9 @@ gm_set_character(id, cid)
 	if(cid == g_Cid_Billy)
 	{
 		fm_set_user_model(id, "billy")
-		fm_set_user_health(id, pev(id, pev_health)+10)
+		fm_set_user_health(id, pev(id, pev_health)+get_pcvar_num(cvar_CharaBillyHp))
 	}
-	else if(cid == g_Cid_RBS)
+	else if(cid == g_Cid_BRS)
 		fm_set_user_model(id, "BRS")
 	else if(cid == g_Cid_Mcdonald)
 		fm_set_user_model(id, "mcdonald")
