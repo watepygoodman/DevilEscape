@@ -161,7 +161,7 @@ new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 #define MAX_PACKSLOT 16
 
 //Cvar
-new cvar_MapBright, cvar_DmgReward, cvar_LoginTime, cvar_LoginRetryMax, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
+new cvar_MinimumPlr, cvar_MapBright, cvar_DmgReward, cvar_LoginTime, cvar_LoginRetryMax, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
 cvar_DevilSlashDmgMulti,  cvar_DevilDisappearTime, cvar_DevilScareTime,cvar_DevilGodTime, cvar_DevilBlindTime, cvar_DevilLongjumpDistance, 
 cvar_DevilScareRange, cvar_DevilBlindRange, cvar_DevilLongjumpCost, cvar_DevilDisappearCost , cvar_DevilScareCost, cvar_DevilBlindCost, cvar_DevilGodCost, 
 cvar_DevilTeleCost, cvar_RewardCoin, cvar_RewardXp, cvar_SpPreLv, cvar_HumanCritMulti, cvar_HumanCritPercent, cvar_HumanMiniCritMulti, cvar_AbilityHeaCost, 
@@ -206,6 +206,7 @@ new g_PlayerInGame;
 new g_RoundStatus;
 new bool:g_hasBot;
 new bool:g_RoundNeedStart;
+new bool:g_GameStart;
 
 new g_Level[33];
 new g_Coin[33];
@@ -383,6 +384,7 @@ public plugin_precache()
 	cvar_LoginRetryMax = register_cvar("de_login_retry_max","3")
 	cvar_LoginTime = register_cvar("de_logintime","120")
 	cvar_AutosaveTime = register_cvar("de_autosavetime","120")
+	cvar_MinimumPlr = register_cvar("de_minimum_player","5")
 	
 	cvar_BaseWpnPreLv = register_cvar("de_basewpn_prelv","5")
 	cvar_BaseWpnNeedLv = register_cvar("de_basewpn_needlv", "0")
@@ -603,6 +605,11 @@ public event_round_end()
 	
 	if(g_RoundNeedStart)
 		return
+	if(!g_GameStart)
+	{
+		client_color_print(0, "^x04[提示]^x03%L",  LANG_PLAYER, "GAME_NEED_PLAYER", get_pcvar_num(cvar_MinimumPlr))
+		return
+	}
 	
 	if(!fnGetHumans())
 	{
@@ -1095,6 +1102,8 @@ public fw_ClientDisconnect(id)
 	g_Online --
 	if(!g_Online)
 		g_RoundNeedStart = true
+	if(g_Online < cvar_MinimumPlr)
+		g_GameStart = false
 	
 	remove_task(id+TASK_AUTOSAVE)
 }
@@ -1310,6 +1319,9 @@ public client_putinserver(id)
 	
 	set_bit(g_isConnect, id)
 	g_Online ++
+	
+	if(g_Online >= cvar_MinimumPlr)
+		g_GameStart = true
 	
 	if(is_user_bot(id))
 	{
