@@ -74,7 +74,7 @@ enum(+= 66)
 	TASK_ROUNDSTART, TASK_BALANCE, TASK_SHOWHUD, TASK_PLRSPAWN, 
 	TASK_GODMODE_LIGHT, TASK_GODMODE_OFF,TASK_CRITICAL, TASK_SCARE_OFF, 
 	TASK_AUTOSAVE, TASK_BLIND_OFF, TASK_DEVILMANA_RECO, TASK_NVISION, TASK_RANK,
-	TASK_SPEC_NVISION, TASK_TIPS
+	TASK_SPEC_NVISION, TASK_TIPS, TASK_GET_RANDOM_ITEM
 }
 
 enum{
@@ -85,7 +85,7 @@ enum{
 
 enum(+=10){
 	ADMIN_SELECT_BOSS = 32, ADMIN_GIVE, ADMIN_GIVE_COIN, ADMIN_GIVE_GASH, 
-	ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL = 82
+	ADMIN_GIVE_XP, ADMIN_GIVE_LEVEL , ADMIN_GIVE_ITEM = 92
 }
 
 new const g_RemoveEnt[][] = {
@@ -158,7 +158,7 @@ new const g_WpnFreeSec_Name[][] = {"AUG", "SG550", "G3SG1", "AWP", "M249"}
 				
 ================== */
 
-#define MAX_PACKSLOT 16
+#define MAX_PACKSLOT 10
 
 //Cvar
 new cvar_MinimumPlr, cvar_MapBright, cvar_DmgReward, cvar_LoginTime, cvar_LoginRetryMax, cvar_AutosaveTime , cvar_DevilHea, cvar_DevilSpeed, cvar_DevilGravity, cvar_DevilRecoManaTime, cvar_DevilRecoManaNum, cvar_DevilManaMax, 
@@ -170,7 +170,8 @@ cvar_AbilityHeaAdd, cvar_AbilityAgiAdd, cvar_AbilityStrAdd, cvar_AbilityGraAdd ,
 cvar_WpnLvAddDmg, cvar_WpnLvNeedXp, cvar_WpnLvMax, cvar_DevilWinGetBaseXp, cvar_DevilWinGetBaseCoin, cvar_HumanWinGetXp, cvar_HumanWinGetCoin,
 cvar_NooneWinGetXp, cvar_NooneWinGetCoin, cvar_ConvertCoinToGash, cvar_ConvertGashToCoin, cvar_ItemOpen, cvar_NvgColor_Human[3], cvar_NvgColor_Boss[3],
 cvar_ComboAddDmg, cvar_BossComboGetCoin, cvar_BossComboGetXp, cvar_CharaBillySpeed, cvar_CharaBillyHp, cvar_CharaBRSDmg, cvar_CharaMcdonaldSpeed,
-cvar_CharaEzioReward, cvar_CharaBillyPrice, cvar_CharaBRSPrice, cvar_CharaMcdonaldPrice, cvar_CharaEzioPrice
+cvar_CharaEzioReward, cvar_CharaBillyPrice, cvar_CharaBRSPrice, cvar_CharaMcdonaldPrice, cvar_CharaEzioPrice, cvar_RandomItemTime
+
 
 // new cvar_Wpn_PlasmagunPrice, cvar_Wpn_ThunderboltPrice, cvar_Wpn_SalamanderPrice, cvar_Wpn_WatercannonPrice, cvar_Wpn_M4A1BKPrice, cvar_Wpn_QBS09Price
 
@@ -470,6 +471,8 @@ public plugin_precache()
 	cvar_CharaBRSPrice = register_cvar("de_chara_brs_price", "120")
 	cvar_CharaMcdonaldPrice = register_cvar("de_chara_mcdonald_price", "100")
 	cvar_CharaEzioPrice = register_cvar("de_chara_ezio_price", "100")
+	
+	cvar_RandomItemTime = register_cvar("de_random_item_time", "300.0")
 
 }
 
@@ -1701,6 +1704,31 @@ public task_tips()
 	client_color_print(0, "\g[提示]\t%L", LANG_PLAYER, tipsname)
 }
 
+public task_get_ramdom_item(id)
+{
+	id -= TASK_GET_RANDOM_ITEM
+	
+	if(!is_user_valid_connected(id) || is_user_bot(id))
+		return
+	
+	new _itemid = de_item_random_choose()
+	if(!_itemid)
+		return
+	
+	new _slot = gm_find_pack_free_slot(id)
+	new _itemName[32]
+	
+	if(!_slot)
+	{
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "PACK_FULL")
+		return
+	}
+	
+	g_Pack[id][_slot] = _itemid
+	ArrayGetString(g_Item_Name, _itemid, _itemName, 31)
+	client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "GET_RANDOM_ITEM", _itemName)
+}
+
 public func_critical(taskid)
 {
 	static id
@@ -2325,7 +2353,8 @@ public menu_item_select(id, key)
 		case 0:{
 			ExecuteForward(g_fwItemSelect, g_fwDummyResult, id, g_Pack[id][g_Pack_Select[id]])
 			g_Pack[id][g_Pack_Select[id]] = 0
-			client_color_print(0, "\g[提示]\y%L", LANG_PLAYER, "USE_ITEM", plrname, itemname)
+			client_color_print(0, "\g[提示]\y%L", LANG_PLAYER, "USE_ITEM", plrname, itemname, gm_find_pack_free_slot(id))
+			
 		}
 		case 1:{
 			g_Pack[id][g_Pack_Select[id]] = 0
@@ -2867,6 +2896,7 @@ public show_menu_admin_give(id)
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r2. \w%L^n",id,"GASH")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r3. \w%L^n",id,"LEVEL")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r4. \w%L^n",id,"XP")
+	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r5. \w%L^n",id,"ITEM")
 	
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "^n^n\r0.\w %L", id, "MENU_EXIT")
 	show_menu(id,KEYSMENU,Menu,-1,"AdminGive Menu")
@@ -2882,6 +2912,7 @@ public menu_admin_give(id, key)
 		case 1: g_Menu_Admin_Select[id] = ADMIN_GIVE_GASH
 		case 2: g_Menu_Admin_Select[id] = ADMIN_GIVE_LEVEL
 		case 3: g_Menu_Admin_Select[id] = ADMIN_GIVE_XP
+		case 4: g_Menu_Admin_Select[id] = ADMIN_GIVE_ITEM
 		default: return PLUGIN_HANDLED;
 	}
 	show_menu_plrlist(id)
@@ -2902,7 +2933,7 @@ public show_menu_plrlist(id)
 		case ADMIN_SELECT_BOSS: formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_SELECT_BOSS") 
 		case ADMIN_GIVE: formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_GIVE") 
 	}
-	if(g_Menu_Admin_Select[id] >= ADMIN_GIVE && g_Menu_Admin_Select[id] <= ADMIN_GIVE_LEVEL)
+	if(g_Menu_Admin_Select[id] >= ADMIN_GIVE && g_Menu_Admin_Select[id] <= ADMIN_GIVE_ITEM)
 		formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ADMIN_GIVE") 
 	
 	Menu = menu_create(Menuitem, "menu_plrlist")
@@ -2965,7 +2996,7 @@ public menu_plrlist(id, menu, item)
 					client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "ADMIN_ROUND_HAD_START");
 				else
 				{
-					client_color_print(0, "\g[ADMIN]\t%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
+					client_color_print(0, "\g[ADMIN]\y%L", LANG_PLAYER, "ADMIN_CHOOSE_BOSS", AdminName, PlrName)
 					g_Admin_Select_Boss = g_Menu_Admin_Select_PlrKey[id][key]
 					task_round_start()
 				}
@@ -2979,10 +3010,76 @@ public menu_plrlist(id, menu, item)
 		ShowSyncHudMsg(id, g_Hud_Center, "%L" , LANG_PLAYER, "ADMIN_INPUT_MSG")
 	}
 	
+	if(AdminPut == ADMIN_GIVE_ITEM)
+	{
+		g_Admin_Select_Plr[id] = g_Menu_Admin_Select_PlrKey[id][key]
+		show_menu_item_list(id)
+	}
+	
 	menu_destroy(menu);
 	//test
 	
 	return PLUGIN_HANDLED;
+}
+//======ItemList=======
+public show_menu_item_list(id)
+{
+	new Menuitem[32], Menu
+	new MENU_PROP_EXIT[12], MENU_PROP_BACK[12], MENU_PROP_NEXT[12]
+	formatex(MENU_PROP_EXIT, charsmax(MENU_PROP_EXIT),"%L", LANG_PLAYER, "MENU_EXIT") 
+	formatex(MENU_PROP_BACK, charsmax(MENU_PROP_BACK),"%L", LANG_PLAYER, "MENU_BACK") 
+	formatex(MENU_PROP_NEXT, charsmax(MENU_PROP_NEXT),"%L", LANG_PLAYER, "MENU_NEXT") 
+	
+	formatex(Menuitem, charsmax(Menuitem),"\w%L", LANG_PLAYER, "MENU_ITEM_LIST") 
+	Menu = menu_create(Menuitem, "menu_item_list")
+	
+	new _ItemName[32], Count, Char_Count[3]
+	for(new i = 1; i < g_Item_Num; i++)
+	{
+		ArrayGetString(g_Item_Name, i, _ItemName, 31)
+		formatex(Menuitem, charsmax(Menuitem), "%s", _ItemName)
+		Count++
+		num_to_str(Count, Char_Count, 3)
+		menu_additem(Menu, Menuitem, Char_Count)
+	}
+	
+	menu_setprop(Menu, MPROP_BACKNAME, MENU_PROP_BACK)
+	menu_setprop(Menu, MPROP_NEXTNAME, MENU_PROP_EXIT)
+	menu_setprop(Menu, MPROP_EXITNAME, MENU_PROP_EXIT)
+	menu_display(id, Menu)
+}
+
+public menu_item_list(id, menu, item)
+{
+	if( item == MENU_EXIT )
+	{
+		menu_destroy(menu);
+		return PLUGIN_HANDLED;
+	}
+	
+	new data[6],iName[64]
+	new access, callback;
+	menu_item_getinfo(menu, item, access, data,5, iName, 63, callback);
+	new key = str_to_num(data);
+	
+	new _Slot = gm_find_pack_free_slot(g_Admin_Select_Plr[id])
+	if(_Slot)
+	{
+		new AdminName[18], PlrName[18], ItemName[32]
+		ArrayGetString(g_Item_Name, key, ItemName, 31)
+		get_user_name(id, AdminName, charsmax(AdminName))
+		get_user_name(g_Admin_Select_Plr[id], PlrName, charsmax(PlrName))
+		client_color_print(0, "\g[ADMIN]%L", LANG_PLAYER, "ADMIN_GIVE_PACK_ITEM", AdminName, PlrName, ItemName)
+		client_color_print(0, "\g Plr:%d, Key:%d ", g_Admin_Select_Plr[id], key)
+		g_Pack[g_Admin_Select_Plr[id]][_Slot] = key
+	}
+	else
+		client_color_print(id, "\g[ADMIN]%L", LANG_PLAYER, "ADMIN_GIVE_FAIL_FULL_PACK")
+	
+	g_Admin_Select_Plr[id] = 0
+	menu_destroy(menu);
+	return PLUGIN_HANDLED;
+	
 }
 
 //======Convert=======
@@ -3187,6 +3284,7 @@ gm_user_login(id, const password[])
 		set_bit(g_isLogin, id)
 		client_cmd(id, "chooseteam")
 		set_task(get_pcvar_float(cvar_AutosaveTime), "task_autosave", id+TASK_AUTOSAVE, _, _, "b")
+		set_task(get_pcvar_float(cvar_RandomItemTime), "task_get_ramdom_item", id+TASK_GET_RANDOM_ITEM, _, _, "b")
 	}
 	else
 	{
@@ -3386,23 +3484,23 @@ gm_admin_give(id)
 		case ADMIN_GIVE_COIN:
 		{
 			g_Coin[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
+			client_color_print(0, "\g[ADMIN]%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "COIN")
 		}
 		case ADMIN_GIVE_GASH:
 		{
 			g_Gash[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
+			client_color_print(0, "\g[ADMIN]%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "GASH")
 		}
 		case ADMIN_GIVE_LEVEL:
 		{
 			g_Level[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
 			g_Sp[g_Admin_Select_Plr[id]] += g_Admin_Input[id] * get_pcvar_num(cvar_SpPreLv)
-			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
+			client_color_print(0, "\g[ADMIN]%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "LEVEL")
 		}
 		case ADMIN_GIVE_XP:
 		{
 			g_Xp[g_Admin_Select_Plr[id]] += g_Admin_Input[id]
-			client_color_print(0, "\g[ADMIN]\t%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
+			client_color_print(0, "\g[ADMIN]%L%L",  LANG_PLAYER, "ADMIN_GIVE_ITEM", AdminName, PlrName, g_Admin_Input[id], LANG_PLAYER, "XP")
 		}
 	}
 	gm_user_save(g_Admin_Select_Plr[id]) //保存一下
@@ -3426,6 +3524,19 @@ gm_set_character(id, cid)
 		fm_set_user_model(id, "mcdonald")
 	else if(cid == g_Cid_Ezio)
 		fm_set_user_model(id, "ezio")
+	
+}
+
+//找一个空背包
+gm_find_pack_free_slot(id)
+{
+	for(new i = 1; i<= MAX_PACKSLOT; i++)
+	{
+		if(g_Pack[id][i] == 0)
+			return i
+	}
+	
+	return 0
 	
 }
 

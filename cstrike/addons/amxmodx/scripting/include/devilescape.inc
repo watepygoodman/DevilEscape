@@ -79,6 +79,7 @@ native de_register_item(const name[], const info[])
 native de_register_shop_item(const name[], const price, const max)
 native de_register_character(const name[], const info[], const price)
 native de_set_user_nightvision(const id, const set)
+native de_item_random_choose() //按几率随机选择一个物品(在线奖励用)
 
 
 

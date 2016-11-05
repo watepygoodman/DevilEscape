@@ -17,7 +17,7 @@ enum{
 //商店没得卖在背包的
 new g_Itemid[32];
 new cvar_g_herb_reco, cvar_r_herb_reco, cvar_gold_herb_reco, cvar_latiao_reco, cvar_diokela_reco, cvar_xuming_reco
-
+new cvar_item_odds[32]
 //商店卖的直接用的
 new g_Shopitemid_Nvision, g_Shopitemid_Respawn
 new cvar_nvision_price, cvar_respawn_price, cvar_respawn_max
@@ -29,6 +29,12 @@ new const ITEM_NAME[][] = {"无", "绿色药草", "红色药草", "金疮药", "
 new const ITEM_INFO[][] = {"", "绿色的药草,恢复到100HP", "红色的药草,恢复到150HP", "江湖必备金疮药,恢复到200HP", 
 									   "来包辣条冷静一下,恢复到250HP", "掺了屌克拉,一袋能顶两袋撒,恢复到350HP",
 									   "来自长者的续命秘法,恢复到500HP"}
+new const ITEM_ODDS[] = {0, 20, 15, 10, 5, 3, 2}
+									   
+public plugin_natives()
+{
+	register_native("de_item_random_choose", "native_item_random_choose", 1)
+}
 
 public plugin_init()
 {
@@ -47,6 +53,16 @@ public plugin_init()
 	
 	for(new i = 0; i < sizeof ITEM_NAME; i++)
 		g_Itemid[i] = de_register_item(ITEM_NAME[i], ITEM_INFO[i])
+	
+	for(new i = 0; i < sizeof ITEM_NAME; i++)
+	{
+		static _Command[32]
+		static _Odds[3]
+		formatex(_Command, charsmax(_Command), "de_item_%d_odds", i)
+		num_to_str(ITEM_ODDS[i], _Odds, charsmax(_Odds))
+		
+		cvar_item_odds[i] = register_cvar(_Command, _Odds)
+	}
 	
 	g_Shopitemid_Nvision = de_register_shop_item(SHOP_ITEM_NAME_NVISION, get_pcvar_num(cvar_nvision_price), 0)
 	g_Shopitemid_Respawn = de_register_shop_item(SHOP_ITEM_NAME_RESPAWN, get_pcvar_num(cvar_respawn_price), get_pcvar_num(cvar_respawn_max))
@@ -83,5 +99,28 @@ public de_shop_item_select(id, itemid)
 	return 0
 }
 
+/* ==========================
 
+					[Natives]
+			 
+==========================*/
+
+public native_item_random_choose()
+{
+	new _RandomNum = random_num(1, 100)
+	// client_print(0, print_chat, "Num:%d", _RandomNum)
+	for(new i = 1; i < sizeof ITEM_NAME ; i++)
+	{
+		new _Chance1, _Chance2
+		for(new j = 0; j < i; j++)
+		{
+			_Chance1 += get_pcvar_num(cvar_item_odds[j])
+			_Chance2 += get_pcvar_num(cvar_item_odds[j+1])
+		}
+		client_print(0, print_center, "%d <= %d < %d", _Chance1,  _RandomNum, _Chance2)
+		if(_Chance1<= _RandomNum < _Chance2)
+			return i
+	}
+	return 0
+}
 

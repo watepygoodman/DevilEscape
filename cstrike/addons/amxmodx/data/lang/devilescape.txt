@@ -54,6 +54,7 @@ MENU_SHOP_CHARACTER = 人物商店
 MENU_ADMIN_SELECT_BOSS = 选择魔王
 MENU_ADMIN_GIVE = 给予物品(个人)
 MENU_ADMIN_GIVE_ALL = 给予物品(所有人)
+MENU_ITEM_LIST = 物品列表
 
 MENU_BACK = 返回
 MENU_NEXT = 继续
@@ -86,19 +87,24 @@ BOSSSKILL_DISAPPEAR = 消失
 
 ADMIN_PLAYER_MUST_ALIVE = 该玩家必须存活！
 ADMIN_ROUND_HAD_START = 该局必须未开始！
-ADMIN_CHOOSE_BOSS = 管理员%s选择了%s为魔王
+ADMIN_CHOOSE_BOSS = 管理员\t%s\y选择了\t%s\y为魔王
 ADMIN_INPUT_MSG = 请按Y输入你要给予的值(输入0取消)
 ADMIN_INPUT_ERROR = 请输入正确的值(输入0取消)
-ADMIN_GIVE_ITEM = 管理员%s给予了%s %d
+ADMIN_GIVE_ITEM = \y管理员\t%s\y给予了\t%s\y:\g%d\y
+ADMIN_GIVE_PACK_ITEM = \y管理员\t%s\y给予了\t%s\y:\g[%s]\y
+ADMIN_GIVE_FAIL_FULL_PACK = 该玩家的背包已满了！
 
 CONVERT_FAILED = 兑换失败
 CONVERT_SUCCESS = 兑换成功！
 
 ITEM_CLOSE = 物品系统被关闭了
-DROP_ITEM = 你丢弃了道具%s
-USE_ITEM = %s使用了道具:%s
+DROP_ITEM = 你丢弃了道具 [\g%s]
+USE_ITEM = %s使用了道具:[\g%s]
 MENU_ITEM_CONFIRM = 确认
 MENU_ITEM_DROP = 丢弃
+
+PACK_FULL = 你的背包已满！无法获得物品！
+GET_RANDOM_ITEM = 你获得了[\t%s\y]
 
 HAVE_NO_THIS_CHARACTER = 你没有这个人物！
 YOU_HAD_THIS_CHARACTER = 你已经拥有这个人物了！
@@ -116,6 +122,7 @@ COIN = Coin
 GASH = Gash
 LEVEL = 等级
 XP = 经验值
+ITEM = 物品
 
 DE_TIPS_1 = 按M可以打开主菜单
 DE_TIPS_2 = 魔王按E可以打开技能菜单
