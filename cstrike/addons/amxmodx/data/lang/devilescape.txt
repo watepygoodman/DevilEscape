@@ -60,6 +60,8 @@ MENU_BACK = 返回
 MENU_NEXT = 继续
 MENU_EXIT = 退出
 
+NOT_ADMIN = 你不是管理员！
+
 SHOP_BUY_SUCCESS = 你成功购买了:
 SHOP_BUY_FAILED = 购买失败
 SHOP_BUY_MAX = 购买次数已满

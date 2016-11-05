@@ -34,9 +34,6 @@ log:
 ================== */
 
 #define is_user_valid_connected(%1) (1 <= %1 <= g_MaxPlayer && get_bit(g_isConnect, %1))
-
-#define Game_Description "[魔王 Alpha]"
-
 #define SHOTGUN_AIMING 32
 
 //弹药类型武器
@@ -2859,6 +2856,11 @@ public menu_bossskill(id,key)
 //======ADMIN=======
 public show_menu_admin(id)
 {
+	if(!((get_user_flags(id) & ADMIN_ADMIN) || (get_user_flags(id) & ADMIN_RCON)))
+	{
+		client_color_print(id, "\g[提示]\y%L", LANG_PLAYER, "NOT_ADMIN")
+		return PLUGIN_HANDLED
+	}
 	new Menu[250],Len;
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\w%L^n^n",id,"MENU_ADMIN")
 	Len += formatex(Menu[Len], sizeof Menu - Len - 1, "\r1. \w%L^n",id,"MENU_ADMIN_SELECT_BOSS")
@@ -3070,7 +3072,6 @@ public menu_item_list(id, menu, item)
 		get_user_name(id, AdminName, charsmax(AdminName))
 		get_user_name(g_Admin_Select_Plr[id], PlrName, charsmax(PlrName))
 		client_color_print(0, "\g[ADMIN]%L", LANG_PLAYER, "ADMIN_GIVE_PACK_ITEM", AdminName, PlrName, ItemName)
-		client_color_print(0, "\g Plr:%d, Key:%d ", g_Admin_Select_Plr[id], key)
 		g_Pack[g_Admin_Select_Plr[id]][_Slot] = key
 	}
 	else
