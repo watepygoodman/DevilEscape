@@ -1,13 +1,13 @@
 [cn]
-SAVE_SUCCESS = 你的数据已自动保存
+SAVE_SUCCESS = \g[提示]\y你的数据已自动保存
 
-REGISTER_OUTOFLEN = 错误 你的密码过长或过短
-REGISTER_INVAILDCHAR = 错误 你的密码含有非法字符
-REGISTER_SUCCESS = 注册成功 你的密码是:
-CHANGEPASSWORD_SUCCESS = 更改成功 你的密码是:
+REGISTER_OUTOFLEN = \g[提示]\y错误 你的密码过长或过短
+REGISTER_INVAILDCHAR = \g[提示]\y错误 你的密码含有非法字符
+REGISTER_SUCCESS = \g[提示]\y注册成功 你的密码是:
+CHANGEPASSWORD_SUCCESS = \g[提示]\y更改成功 你的密码是:
 
-LOGIN_SUCCESS = 登陆成功,若要更改密码请输入/pwchange
-LOGIN_FAILED = 登录失败,密码错误
+LOGIN_SUCCESS = \g[提示]\y登陆成功,若要更改密码请输入/pwchange
+LOGIN_FAILED = \g[提示]\y登录失败,密码错误
 
 HUD_NO_REGISTER = [DevilEscape]^n您还没有注册,请按Y输入你的密码^n剩余%d秒
 HUD_NO_LOGIN = [DevilEscape]^n您还没有登录,请按Y输入你的密码^n剩余%d秒^n使用了[%d/%d]次机会
@@ -22,15 +22,16 @@ DHUD_BOSS_USESKILL = 魔王 %s使用了技能:%s
 DHUD_BOSS_WIN = 魔王胜利！
 DHUD_HUMAN_WIN = 人类胜利！
 DHUD_NOONE_WIN = 平局
-WIN_GET_CHAT = 获得 %d Exp, %d Coin奖励！
-GAME_NEED_PLAYER = 由于人数小于%d人,没有奖励
 
-HOW_MANY_LV_NEED = Lv.%d
-HAVE_MAIN_WPN = 你已经购买过主武器了！
-HAVE_SEC_WPN = 你已经购买过副武器了！
-HAVE_NO_THIS_WPN = 你没有这把武器！
-YOU_CHOOSE_THIS_WPN = 你选择了
-NOT_HUMAN = 你不是人类！
+WIN_GET_CHAT = \g[提示]\y获得 %d Exp, %d Coin奖励！
+GAME_NEED_PLAYER = \g[提示]\y由于人数小于%d人,没有奖励
+
+HOW_MANY_LV_NEED = 需要 Lv.%d
+HAVE_MAIN_WPN = \g[提示]\y你已经购买过主武器了！
+HAVE_SEC_WPN = \g[提示]\y你已经购买过副武器了！
+HAVE_NO_THIS_WPN = \g[提示]\y你没有这把武器！
+YOU_CHOOSE_THIS_WPN = \g[提示]\y你选择了
+NOT_HUMAN = \g[提示]\y你不是人类！
 
 MENU_ABILITY = 能力菜单
 MENU_SKILL = 技能菜单
@@ -55,6 +56,7 @@ MENU_ADMIN_SELECT_BOSS = 选择魔王
 MENU_ADMIN_GIVE = 给予物品(个人)
 MENU_ADMIN_GIVE_ALL = 给予物品(所有人)
 MENU_ITEM_LIST = 物品列表
+MENU_CAREER = 职业系统
 
 MENU_BACK = 返回
 MENU_NEXT = 继续
@@ -62,15 +64,19 @@ MENU_EXIT = 退出
 
 NOT_ADMIN = 你不是管理员！
 
-SHOP_BUY_SUCCESS = 你成功购买了:
-SHOP_BUY_FAILED = 购买失败
-SHOP_BUY_MAX = 购买次数已满
-SHOP_HAD_THIS_WPN = 你已经有这个武器了！
+SHOP_BUY_SUCCESS = \g[提示]\y你成功购买了:
+SHOP_BUY_FAILED = \g[提示]\y购买失败
+SHOP_BUY_MAX = \g[提示]\y购买次数已满
+SHOP_HAD_THIS_WPN = \g[提示]\y你已经有这个武器了！
 
-SKILL_LEARN_SUCCESS = 技能学习成功！
-SKILL_LEARN_FULL = 该技能已满！
+SKILL_LEARN_SUCCESS = \g[提示]\y技能学习成功！
+SKILL_LEARN_FULL = \g[提示]\y该技能已满！
 NO_SP = 你的技能点不足！
-NO_LEVEL = 你的等级不足！
+NO_LEVEL = \g[提示]\y你的等级不足！
+
+YOU_HAVE_HAD_CAREER = \g[提示]\y你已经有一个职业了！
+CHOOSE_CAREER_SUCCESS = \g[提示]\y你成为了一名\t[%s]\y！
+MY_CAREER = 目前职业:%s
 
 ABILITY_HEALTH = 生命
 ABILITY_AGILITY = 速度
@@ -87,7 +93,7 @@ BOSSSKILL_TELEPORT = 传送
 BOSSSKILL_GODMODE = 无敌
 BOSSSKILL_DISAPPEAR = 消失
 
-ADMIN_PLAYER_MUST_ALIVE = 该玩家必须存活！
+ADMIN_PLAYER_MUST_ALIVE = \g[管理员]\y该玩家必须存活！
 ADMIN_ROUND_HAD_START = 该局必须未开始！
 ADMIN_CHOOSE_BOSS = 管理员\t%s\y选择了\t%s\y为魔王
 ADMIN_INPUT_MSG = 请按Y输入你要给予的值(输入0取消)
@@ -99,7 +105,7 @@ ADMIN_GIVE_FAIL_FULL_PACK = 该玩家的背包已满了！
 CONVERT_FAILED = 兑换失败
 CONVERT_SUCCESS = 兑换成功！
 
-ITEM_CLOSE = 物品系统被关闭了
+ITEM_CLOSE = \g[提示]\y物品系统被关闭了
 DROP_ITEM = 你丢弃了道具 [\g%s]
 USE_ITEM = %s使用了道具:[\g%s]
 MENU_ITEM_CONFIRM = 确认
@@ -108,13 +114,13 @@ MENU_ITEM_DROP = 丢弃
 PACK_FULL = 你的背包已满！无法获得物品！
 GET_RANDOM_ITEM = 你获得了[\t%s\y]
 
-HAVE_NO_THIS_CHARACTER = 你没有这个人物！
-YOU_HAD_THIS_CHARACTER = 你已经拥有这个人物了！
-YOU_ALREADY_CHOOSE_THIS_CHARACTER = 你已经选择这个人物了！
-YOU_CHOOSE_THIS_CHARACTER = 你选择了%s,该人物要在下次复活生效
+HAVE_NO_THIS_CHARACTER = \g[提示]\y你没有这个人物！
+YOU_HAD_THIS_CHARACTER = \g[提示]\y你已经拥有这个人物了！
+YOU_ALREADY_CHOOSE_THIS_CHARACTER = \g[提示]\y你已经选择这个人物了！
+YOU_CHOOSE_THIS_CHARACTER = \g[提示]\y你选择了%s,该人物要在下次复活生效
 CHOOSED_CHARACTER = 目前选择的人物
 
-BOSS_COMBO = 魔王%s已经杀掉了%d人类，已奖励%dExp, %d Coin!
+BOSS_COMBO = \g[提示]\y魔王\t%s\y已经杀掉了\t%d\y人类，已奖励 \t%dExp + %d Coin!
 
 SPEC_HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n累计伤害: %f  |  Combo: %d
 HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  能力点数: %d^n%s Level: %d  |  %s Exp: %d/%d^n累计伤害: %f  |  Combo: %d
@@ -126,9 +132,9 @@ LEVEL = 等级
 XP = 经验值
 ITEM = 物品
 
-DE_TIPS_1 = 按M可以打开主菜单
-DE_TIPS_2 = 魔王按E可以打开技能菜单
-DE_TIPS_3 = 每集齐2000伤害可以得到Exp, Coin和WeaponExp
-DE_TIPS_4 = 枪械每提高一级,伤害就会增加1点
-DE_TIPS_5 = 杀敌可以增加Combo,Combo每增加1就会增加2%攻击力
-DE_TIPS_6 = 若有作弊现象请立即告知OP
+DE_TIPS_1 = \g[提示]\y 按M可以打开主菜单
+DE_TIPS_2 = \g[提示]\y魔王按E可以打开技能菜单
+DE_TIPS_3 = \g[提示]\y每集齐2000伤害可以得到Exp, Coin和WeaponExp
+DE_TIPS_4 = \g[提示]\y枪械每提高一级,伤害就会增加1点
+DE_TIPS_5 = \g[提示]\y杀敌可以增加Combo,Combo每增加1就会增加2%攻击力
+DE_TIPS_6 = \g[提示]\y若有作弊现象请立即告知OP
