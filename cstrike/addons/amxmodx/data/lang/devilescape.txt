@@ -2,12 +2,12 @@
 SAVE_SUCCESS = \yData saved
 
 REGISTER_OUTOFLEN = \yError: Password must contains 6 to 12 characters.
-REGISTER_INVAILDCHAR = \yError: Invaild password
+REGISTER_INVAILDCHAR = \yError: Invaild password.
 REGISTER_SUCCESS = ]\yRegister successfully, Your password is: 
-CHANGEPASSWORD_SUCCESS = \yYour password has been reset successfully, new password is: 
+CHANGEPASSWORD_SUCCESS = \yYour password has been reset successfully, new password is:  
 
 LOGIN_SUCCESS = \yLogin successfully.
-LOGIN_FAILED = \yFail to login
+LOGIN_FAILED = \yFail to login!
 
 HUD_NO_REGISTER = ^nPlease register before entering^n%d seconds remaining
 HUD_NO_LOGIN = ^nPlease login before entering^n%d seconds remaining^nTried [%d/%d]
@@ -15,16 +15,16 @@ HUD_CHANGING_PW = ^nPress Y to type in your new password
 HUD_LEVEL_UP = Level Up!!!^nNow you are Lv.%d
 HUD_WPN_LEVEL_UP = [%s Lv.%d]
 
-DHUD_ROUND_START = Game will start after 10 seconds
+DHUD_ROUND_START = Game will start after 10 seconds.
 DHUD_YOU_BECOME_BOSS = You are the devil, press E to use skills.
-DHUD_BOSS_USESKILL =  %s :%s
+DHUD_BOSS_USESKILL =  %s uses skill: %s
 
 DHUD_BOSS_WIN = Devil Win!
 DHUD_HUMAN_WIN = Human Win!
 DHUD_NOONE_WIN = Draw
 
 WIN_GET_CHAT = \yGet %d Exp, %d Coin!
-GAME_NEED_PLAYER = \yThe number of players is less than %d
+GAME_NEED_PLAYER = \yThe number of players is less than %d.
 
 HOW_MANY_LV_NEED = need Lv.%d
 HAVE_MAIN_WPN = \yYou've selected your main weapon!
@@ -62,9 +62,9 @@ MENU_BACK = Back
 MENU_NEXT = Next
 MENU_EXIT = Exit
 
-NOT_ADMIN = You're not admin
+NOT_ADMIN = You're not admin!
 
-SHOP_BUY_SUCCESS = \yYou bought:
+SHOP_BUY_SUCCESS = \yYou bought: 
 SHOP_BUY_FAILED = \yFailed to buy
 SHOP_BUY_MAX = \yCannot buy more
 SHOP_HAD_THIS_WPN = \yYou've owned this weapon
@@ -76,7 +76,7 @@ NO_LEVEL = \yYou need more level
 
 YOU_HAVE_HAD_CAREER = \yYou've already selected your role
 CHOOSE_CAREER_SUCCESS = \yYou became a \t[%s]\y！
-MY_CAREER = Role:%s
+MY_CAREER = Role: %s
 
 ABILITY_HEALTH = Health
 ABILITY_AGILITY = Speed
