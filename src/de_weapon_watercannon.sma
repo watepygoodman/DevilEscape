@@ -6,7 +6,7 @@
 #include <xs>
 #include <devilescape>
 
-#define PLUGIN_NAME	"水炎火炮"
+#define PLUGIN_NAME	"Watercannon"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "watepy"
 

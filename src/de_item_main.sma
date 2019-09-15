@@ -5,7 +5,7 @@
 #include <devilescape>
 // #include <bitset>
 
-#define PLUGIN_NAME "道具列表(For De)"
+#define PLUGIN_NAME "Item List(For De)"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "DevilEscape"
 
@@ -22,13 +22,13 @@ new cvar_item_odds[32]
 new g_Shopitemid_Nvision, g_Shopitemid_Respawn
 new cvar_nvision_price, cvar_respawn_price, cvar_respawn_max
 
-new const SHOP_ITEM_NAME_NVISION[] = "夜视仪"
-new const SHOP_ITEM_NAME_RESPAWN[] = "重生"
+new const SHOP_ITEM_NAME_NVISION[] = "Night Vision"
+new const SHOP_ITEM_NAME_RESPAWN[] = "Respawn"
 
-new const ITEM_NAME[][] = {"无", "绿色药草", "红色药草", "金疮药", "辣条", "屌克拉", "续命"}
-new const ITEM_INFO[][] = {"", "绿色的药草,恢复到100HP", "红色的药草,恢复到150HP", "江湖必备金疮药,恢复到200HP", 
-									   "来包辣条冷静一下,恢复到250HP", "掺了屌克拉,一袋能顶两袋撒,恢复到350HP",
-									   "来自长者的续命秘法,恢复到500HP"}
+new const ITEM_NAME[][] = {"None", "Green Herb", "Red Herb", "Gold Herb", "Latiao", "Kiola", "Newlife"}
+new const ITEM_INFO[][] = {"", "Restore HP to 100", "Restore HP to 150", "Restore HP to 200", 
+									   "Restore HP to 250", "Restore HP to 350",
+									   "Restore HP to 500"}
 new const ITEM_ODDS[] = {0, 20, 15, 10, 5, 3, 2}
 									   
 public plugin_natives()

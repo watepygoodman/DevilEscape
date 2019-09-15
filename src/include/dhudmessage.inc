@@ -1,3 +1,10 @@
+//https://forums.alliedmods.net/showthread.php?t=149210
+// Credits
+// MPNumB : original idea.
+// xPaw : original idea.
+// Exolent[jNr] : put the code in a .inc.
+
+
 #if defined _dhudmessage_included
     #endinput
 #endif

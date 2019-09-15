@@ -6,7 +6,7 @@
 #include <devilescape>
 #include <de_wpn_tool>
 
-#define PLUGIN_NAME "钉枪"
+#define PLUGIN_NAME "Coilgun"
 #define PLUGIN_VERSION "0.0"
 #define PLUGIN_AUTHOR "watepy"
 
