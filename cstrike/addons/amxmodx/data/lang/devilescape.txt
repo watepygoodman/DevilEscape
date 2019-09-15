@@ -1,3 +1,144 @@
+[en]
+SAVE_SUCCESS = \yData saved
+
+REGISTER_OUTOFLEN = \yError: Password must contains 6 to 12 characters.
+REGISTER_INVAILDCHAR = \yError: Invaild password
+REGISTER_SUCCESS = ]\yRegister successfully, Your password is: 
+CHANGEPASSWORD_SUCCESS = \yYour password has been reset successfully, new password is: 
+
+LOGIN_SUCCESS = \yLogin successfully.
+LOGIN_FAILED = \yFail to login
+
+HUD_NO_REGISTER = ^nPlease register before entering^n%d seconds remaining
+HUD_NO_LOGIN = ^nPlease login before entering^n%d seconds remaining^nTried [%d/%d]
+HUD_CHANGING_PW = ^nPress Y to type in your new password
+HUD_LEVEL_UP = Level Up!!!^nNow you are Lv.%d
+HUD_WPN_LEVEL_UP = [%s Lv.%d]
+
+DHUD_ROUND_START = Game will start after 10 seconds
+DHUD_YOU_BECOME_BOSS = You are the devil, press E to use skills.
+DHUD_BOSS_USESKILL =  %s :%s
+
+DHUD_BOSS_WIN = Devil Win!
+DHUD_HUMAN_WIN = Human Win!
+DHUD_NOONE_WIN = Draw
+
+WIN_GET_CHAT = \yGet %d Exp, %d Coin!
+GAME_NEED_PLAYER = \yThe number of players is less than %d
+
+HOW_MANY_LV_NEED = need Lv.%d
+HAVE_MAIN_WPN = \yYou've selected your main weapon!
+HAVE_SEC_WPN = \yYou've selected your secondary weapon!
+HAVE_NO_THIS_WPN = \yYou havevn't this weapon!
+YOU_CHOOSE_THIS_WPN = \yYou selected 
+NOT_HUMAN = \yYou're not human!
+
+MENU_ABILITY = Ability
+MENU_SKILL = Skills
+MENU_CHOOSE = Weapons
+MENU_WEAPON_FREE = LV Weapons
+MENU_WEAPON_GASH = Coin Weapons
+MENU_WEAPON_SPECIAL = Special Weapons
+MENU_WEAPON_SECOND = Pistols
+MENU_CHARACTER = Characters
+MENU_HUMANSKILL = Human Skills
+MENU_BOSSSKILL = Devil Skills
+MENU_PACK = Backpack
+MENU_EQUIP = Equipment
+MENU_ADMIN = Admin Menu
+MENU_SHOP = Shops
+MENU_SHOP_ITEM = Item Shop
+MENU_CONVERT = Coin Exchange
+MENU_SHOP_WEAPON_GASH = Coin Weapons Shop
+MENU_SHOP_WEAPON_SPECIAL = Special Weapons Shop
+MENU_SHOP_CHARACTER = Character Shop
+MENU_ADMIN_SELECT_BOSS = Select Boss
+MENU_ADMIN_GIVE = Give Item(Single Player)
+MENU_ADMIN_GIVE_ALL = Give Item(All Players)
+MENU_ITEM_LIST = Item List
+MENU_CAREER = Role
+
+MENU_BACK = Back
+MENU_NEXT = Next
+MENU_EXIT = Exit
+
+NOT_ADMIN = You're not admin
+
+SHOP_BUY_SUCCESS = \yYou bought:
+SHOP_BUY_FAILED = \yFailed to buy
+SHOP_BUY_MAX = \yCannot buy more
+SHOP_HAD_THIS_WPN = \yYou've owned this weapon
+
+SKILL_LEARN_SUCCESS = \ySkill learned!
+SKILL_LEARN_FULL = \ySkill max level
+NO_SP = \yNo SP point
+NO_LEVEL = \yYou need more level 
+
+YOU_HAVE_HAD_CAREER = \yYou've already selected your role
+CHOOSE_CAREER_SUCCESS = \yYou became a \t[%s]\y！
+MY_CAREER = Role:%s
+
+ABILITY_HEALTH = Health
+ABILITY_AGILITY = Speed
+ABILITY_STRENGTH = Strength
+ABILITY_GRAVITY = Gravity
+
+HUMANSKILL_FASTRUN = Rampage
+HUMANSKILL_ONLYHEADSHOT = Accurate Shoting
+
+BOSSSKILL_LONGJUMP = Long Jump
+BOSSSKILL_SCARE = Scare
+BOSSSKILL_BLIND = Blind
+BOSSSKILL_TELEPORT = Teleport
+BOSSSKILL_GODMODE = God
+BOSSSKILL_DISAPPEAR = Stealth Walk
+
+ADMIN_PLAYER_MUST_ALIVE = \yThis player is not alive
+ADMIN_ROUND_HAD_START = Round has not started
+ADMIN_CHOOSE_BOSS = Admin:\t%s\y Selected \t%s\y to be the one
+ADMIN_INPUT_MSG = Press Y to input the value(0 to cancel)
+ADMIN_INPUT_ERROR = Input error
+ADMIN_GIVE_ITEM = \yAdmin: \t%s\y gives \t%s\y:\g%d\y
+ADMIN_GIVE_PACK_ITEM = \yAdmin: \t%s\y gives \t%s\y:\g[%s]\y
+ADMIN_GIVE_FAIL_FULL_PACK = This player's backpack is full
+
+CONVERT_FAILED = Failed
+CONVERT_SUCCESS = Success
+
+ITEM_CLOSE = yItem shop closed
+DROP_ITEM = You dropped [\g%s]
+USE_ITEM = %s Uses [\g%s]
+MENU_ITEM_CONFIRM = Confirm
+MENU_ITEM_DROP = Discard
+
+PACK_FULL = Your backpack is full
+GET_RANDOM_ITEM = You got [\t%s\y] 
+
+HAVE_NO_THIS_CHARACTER = \yYou don't have this character
+YOU_HAD_THIS_CHARACTER = \yYou've owned this character
+YOU_ALREADY_CHOOSE_THIS_CHARACTER = \yYou have selected this character
+YOU_CHOOSE_THIS_CHARACTER = \yYou selected %s 
+CHOOSED_CHARACTER = Your Character 
+
+BOSS_COMBO = \t%s\y Killed \t%d\yHumans, \t%dExp + %d Coin rewarded.
+
+SPEC_HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  SP: %d^nDamage: %f  |  Combo: %d
+HUD_INFO = HP: %d  |  Coin: %d  |  Gash: %d^nLevel: %d  |  Exp: %d/%d  |  SP: %d^n%s Level: %d  |  %s Exp: %d/%d^nDamage: %f  |  Combo: %d
+RANK_INFO = 1st.^nName:%s^nDamage:%f^n^2nd.^nName:%s^nDamage:%f^n^n3rd.^nName:%s^nDamage:%f
+
+COIN = Coin
+GASH = Gash
+LEVEL = Level
+XP = EXP
+ITEM = Items
+
+DE_TIPS_1 = \g[Tips]\yPress M to toggle main menu
+DE_TIPS_2 = \g[Tips]\yPress E to toggle skill menu
+DE_TIPS_3 = \g[Tips]\yPress E to toggle skill menu
+DE_TIPS_4 = \g[Tips]\yPress E to toggle skill menu
+DE_TIPS_5 = \g[Tips]\ydeal 2000 damage to get reward
+DE_TIPS_6 = \g[Tips]\yPress M to toggle main menu
+
 [cn]
 SAVE_SUCCESS = \g[提示]\y你的数据已自动保存
 
