@@ -2,8 +2,6 @@
 	
 	DevilEscape mode
 		For Counter-Strike 1.6
-		
-	Coding by watepy	in 15/12/7
 	
 log:
 	15/12/7 : start coding
